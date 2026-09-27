@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AquaFlow - Owner Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="auth-page owner-auth-theme">
+  <main class="auth-card">
+    <header class="auth-header">
+      <div class="auth-logo auth-logo-dark">OWN</div>
+      <div>
+        <h1 class="auth-title">Owner Login</h1>
+        <p class="auth-subtitle">AquaFlow analytics portal - owners only</p>
+      </div>
+    </header>
+    <p class="auth-description">This is a different login from the cashier terminal. Owners enter username, password, plus a private Owner PIN.</p>
+    <form class="auth-form" onsubmit="event.preventDefault(); doOwnerLogin();">
+      <label class="form-label" for="u">Owner username</label>
+      <input id="u" class="form-input" placeholder="Owner username" autocomplete="username">
+      
+      <label class="form-label" for="p">Password</label>
+      <input id="p" type="password" class="form-input" placeholder="Password" autocomplete="current-password">
+      
+      <label class="form-label" for="pin">Owner PIN (4 digits)</label>
+      <input id="pin" type="password" inputmode="numeric" maxlength="4" class="form-input" placeholder="Owner PIN">
+      
+      <div id="err" class="auth-error hidden">Invalid owner login.</div>
+      
+      <button type="submit" class="btn btn-primary btn-block">Open Owner Portal</button>
+    </form>
+    <p class="auth-footer-text">Cashier? <a href="index.html" class="auth-link">Go to Cashier Login</a> (no PIN needed there).</p>
+  </main>
+
+  <script src="js/data/initial-data.js"></script>
+  <script src="js/data/store.js"></script>
+  <script src="js/auth/auth.js"></script>
+  <script>
+    function doOwnerLogin() {
+      const username = document.getElementById('u').value.trim();
+      const password = document.getElementById('p').value;
+      const pin = document.getElementById('pin').value.trim();
+      const errorElement = document.getElementById('err');
+
+      if (!username || !password || !pin) {
+        errorElement.textContent = 'Enter username, password, and Owner PIN.';
+        errorElement.classList.remove('hidden');
+        return;
+      }
+
+      const result = attemptAdminLogin(username, password, pin);
+      if (!result.ok) {
+        errorElement.textContent = result.reason || 'Invalid credentials.';
+        errorElement.classList.remove('hidden');
+        return;
+      }
+
+      window.location.href = 'ADMIN/index.html';
+    }
+  </script>
+</body>
+</html>

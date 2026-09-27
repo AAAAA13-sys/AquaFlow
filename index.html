@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AquaFlow - Cashier Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="auth-page cashier-auth-theme">
+  <main class="auth-card">
+    <header class="auth-header">
+      <div class="auth-logo">AF</div>
+      <div>
+        <h1 class="auth-title">Cashier Terminal</h1>
+        <p class="auth-subtitle">AquaFlow POS - staff only</p>
+      </div>
+    </header>
+    <p class="auth-description">Cashiers sign in here to open the POS terminal. Owners use a separate owner login.</p>
+    <form class="auth-form" onsubmit="event.preventDefault(); doLogin();">
+      <label class="form-label" for="u">Cashier username</label>
+      <input id="u" class="form-input" placeholder="Cashier username" autocomplete="username">
+      
+      <label class="form-label" for="p">Password</label>
+      <input id="p" type="password" class="form-input" placeholder="Password" autocomplete="current-password">
+      
+      <div id="err" class="auth-error hidden">Invalid username or password.</div>
+      
+      <button type="submit" class="btn btn-primary btn-block">Open Cashier Terminal</button>
+    </form>
+    <p class="auth-footer-text">Are you the owner? <a href="admin-login.html" class="auth-link">Go to Owner Login</a> (separate page, needs Owner PIN).</p>
+  </main>
+
+  <script src="js/data/initial-data.js"></script>
+  <script src="js/data/store.js"></script>
+  <script src="js/auth/auth.js"></script>
+  <script>
+    function doLogin() {
+      const username = document.getElementById('u').value.trim();
+      const password = document.getElementById('p').value;
+      const errorElement = document.getElementById('err');
+
+      if (!username || !password) {
+        errorElement.textContent = 'Enter username and password.';
+        errorElement.classList.remove('hidden');
+        return;
+      }
+
+      const result = attemptLogin(username, password);
+      if (!result.ok) {
+        errorElement.textContent = result.reason || 'Invalid username or password.';
+        errorElement.classList.remove('hidden');
+        return;
+      }
+
+      if (result.role === 'admin') {
+        errorElement.textContent = 'Owner accounts use the separate Owner Login page.';
+        errorElement.classList.remove('hidden');
+        return;
+      }
+
+      window.location.href = 'CASHIER/index.html';
+    }
+  </script>
+</body>
+</html>
