@@ -1,0 +1,148 @@
+# AquaFlow - four-tier deployment (Docker Compose)
+#
+#   Tier 1  web              nginx: public entry point, security headers, proxy
+#   Tier 2  app              Laravel + PHP 8.2 + Apache: pages and REST API
+#           worker           same image: runs the Laravel scheduler
+#   Tier 3  analytics        Python + statsmodels: ARIMA forecasting service
+#   Tier 4  db               MySQL 8 with a persistent volume
+#
+# First run:
+#   cp .env.example .env        (set MYSQL_ROOT_PASSWORD)
+#   docker compose build
+#   docker compose run --rm app php artisan key:generate --show   # put it in .env
+#   docker compose up -d
+#   docker compose --profile setup run --rm migrate               # schema + demo data
+#   open http://localhost:8080/
+#
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${DB_DATABASE:-aquaflow_db}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      # Exposed only so a host client can inspect the database; remove in production.
+      - "${AQUAFLOW_DB_PORT:-3307}:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks: [aquaflow]
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME:-AquaFlow}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY:?run: docker compose run --rm app php artisan key:generate --show}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-aquaflow_db}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      ANALYTICS_URL: http://analytics:5000
+      ANALYTICS_TIMEOUT: ${ANALYTICS_TIMEOUT:-240}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [aquaflow]
+
+  # One-off container for schema + demo data: --profile setup
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    profiles: ["setup"]
+    command: >
+      sh -c "php artisan migrate --force --seed
+             && php artisan aquaflow:generate-history
+             && php artisan aquaflow:forecast --skip-analytics"
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?generate an APP_KEY first}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-aquaflow_db}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      ANALYTICS_URL: http://analytics:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    networks: [aquaflow]
+
+  analytics:
+    build: ./analytics
+    environment:
+      AQUAFLOW_DB_HOST: db
+      AQUAFLOW_DB_PORT: 3306
+      AQUAFLOW_DB_NAME: ${DB_DATABASE:-aquaflow_db}
+      AQUAFLOW_DB_USER: root
+      AQUAFLOW_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      AQUAFLOW_HISTORY_DAYS: ${ANALYTICS_HISTORY_DAYS:-90}
+      AQUAFLOW_HORIZON_DAYS: ${ANALYTICS_HORIZON_DAYS:-7}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [aquaflow]
+
+  # Runs the Laravel scheduler: daily forecast + inventory recalculation.
+  worker:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?generate an APP_KEY first}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-aquaflow_db}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      ANALYTICS_URL: http://analytics:5000
+      LOG_CHANNEL: stderr
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [aquaflow]
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    ports:
+      - "${AQUAFLOW_HTTP_PORT:-8080}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks: [aquaflow]
+
+volumes:
+  db_data:
+
+networks:
+  aquaflow:
+    driver: bridge

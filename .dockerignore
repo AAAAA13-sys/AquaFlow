@@ -1,0 +1,27 @@
+# Keep build contexts small and free of secrets.
+.git
+.gitignore
+.env
+.env.example
+docker-compose.yml
+node_modules
+vendor
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+bootstrap/cache
+public/build
+public/hot
+tests
+docs
+.phpunit.result.cache
+
+# Python
+analytics/__pycache__
+analytics/.pytest_cache
+analytics/.venv
+
+# OS
+Thumbs.db
+.DS_Store
