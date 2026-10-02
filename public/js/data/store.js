@@ -4,6 +4,25 @@
 // navigation and refreshes. There is no container-custody state any more: the
 // station owns no jugs, so nothing is tracked against a liability.
 
+// ---- Shared icon helper -----------------------------------------------------
+// Lives here rather than in a page-specific module because scripts-base is
+// loaded by BOTH the cashier terminal and the owner portal, before either
+// page's own scripts. Defining it only in js/pos/cart.js left the owner portal
+// throwing "icon is not defined" as soon as it rendered a ledger row.
+
+// Absolute URL to the icon sprite. The layout sets window.SPRITE_URL via
+// asset(); the fallback keeps this file usable if it is ever loaded on its own.
+var SPRITE_URL = (typeof window !== 'undefined' && window.SPRITE_URL)
+  ? window.SPRITE_URL
+  : '/icons/sprite.svg';
+
+// Renders one icon from the sprite. Inline markup (no fetch) so rows can be
+// painted synchronously while a table or list is being built.
+function icon(id, extraClass) {
+  return '<svg class="icon' + (extraClass ? ' ' + extraClass : '') + '" aria-hidden="true"><use href="' +
+    SPRITE_URL + '#' + id + '"></use></svg>';
+}
+
 function savePOSState() {
   if (typeof POS === 'undefined') return;
   try {

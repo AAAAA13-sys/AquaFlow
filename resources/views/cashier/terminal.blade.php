@@ -16,8 +16,12 @@
         <div class="stage-toolbar">
           <input id="custSearch" oninput="renderCustList()" class="form-input"
                  placeholder="Search name or address..." autocomplete="off">
-          <button onclick="openRegisterModal()" class="btn btn-ghost btn-sm">+ New Customer</button>
-          <button onclick="toggleDebtSettle()" class="btn btn-ghost btn-sm">Settle Debt</button>
+          <button type="button" onclick="pickWalkIn()" class="btn btn-primary btn-sm stage-fasttrack"
+                  title="Start a walk-in cash sale without choosing a customer (F2)">
+            Quick Walk-In
+          </button>
+          <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
+          <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>
         </div>
 
         <div id="custCard" class="active-customer-banner"></div>
@@ -34,8 +38,8 @@
     ==================================================================== --}}
     <section class="pos-stage" data-step="2">
       <div class="stage-segment" role="group" aria-label="Order type">
-        <button id="bWalk" onclick="setType('Walk-in')" class="seg-btn">🚶 Walk-In</button>
-        <button id="bDel" onclick="setType('Delivery')" class="seg-btn">🚚 Delivery</button>
+        <button id="bWalk" onclick="setType('Walk-in')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-walkin"></use></svg> Walk-In</button>
+        <button id="bDel" onclick="setType('Delivery')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg> Delivery</button>
       </div>
 
       <p id="orderTypeNote" class="auto-deduct-caption"></p>
