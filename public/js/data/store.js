@@ -11,8 +11,7 @@ function savePOSState() {
       orderN: POS.orderN,
       cart: POS.cart,
       custId: POS.custId,
-      type: POS.type,
-      pay: POS.pay
+      type: POS.type
     }));
   } catch (e) {
     console.warn('Could not save POS state to localStorage', e);
@@ -24,7 +23,7 @@ function restorePOSState() {
   try {
     const saved = JSON.parse(localStorage.getItem('aquaflow_pos') || 'null');
     if (!saved) return;
-    ['orderN', 'cart', 'custId', 'type', 'pay'].forEach(k => {
+    ['orderN', 'cart', 'custId', 'type'].forEach(k => {
       if (saved[k] !== undefined) POS[k] = saved[k];
     });
     if (!Array.isArray(POS.cart)) POS.cart = [];

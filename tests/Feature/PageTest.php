@@ -74,14 +74,17 @@ class PageTest extends TestCase
     {
         $response = $this->actingAs($this->cashier)->get('/cashier');
 
-        // Tapping a tile must list the item on the same panel.
+        // Tapping a tile must list the item on the same stage.
         $response->assertOk()
-            ->assertSee('Select Items', false)
             ->assertSee('id="productGrid"', false)
             ->assertSee('Bought Items', false)
             ->assertSee('id="boughtItems"', false)
             ->assertSee('id="boughtTotal"', false)
-            ->assertSee('Running Total', false);
+            ->assertSee('Running Total', false)
+            // Walk-in / Delivery is a segmented toggle at the top of stage 2.
+            ->assertSee('class="stage-segment"', false)
+            ->assertSee('🚶 Walk-In', false)
+            ->assertSee('🚚 Delivery', false);
     }
 
     public function test_the_cashier_never_enters_filled_out_or_returned_containers(): void
@@ -130,16 +133,28 @@ class PageTest extends TestCase
             ->assertDontSee('jugBanner', false);
     }
 
-    public function test_stage_three_offers_cash_gcash_and_account(): void
+    public function test_stage_three_offers_cash_for_walk_ins_and_account_for_deliveries(): void
     {
-        $this->actingAs($this->cashier)->get('/cashier')
-            ->assertOk()
-            ->assertSee("setPay('Cash')", false)
-            ->assertSee("setPay('GCash')", false)
-            ->assertSee("setPay('Account')", false)
-            ->assertSee('GCASH / QR', false)
-            ->assertSee('id="gcashBox"', false)
-            ->assertSee('Exact', false);
+        $response = $this->actingAs($this->cashier)->get('/cashier');
+
+        $response->assertOk()
+            ->assertSee('id="cashPanel"', false)
+            ->assertSee('id="deliveryPanel"', false)
+            ->assertSee('id="tender"', false)
+            ->assertSee('id="tChg"', false)
+            ->assertSee('Amount Tendered', false)
+            ->assertSee('Exact', false)
+            // The delivery panel explains the automatic charge.
+            ->assertSee('Automatically charged to customer account', false)
+            ->assertSee('id="deliveryBalance"', false)
+            // There is no payment-method picker any more.
+            ->assertDontSee('GCASH', false)
+            ->assertDontSee('setPay(', false);
+
+        $checkout = (string) file_get_contents(base_path('public/js/pos/checkout.js'));
+
+        $this->assertStringContainsString('Complete & Print Receipt', $checkout);
+        $this->assertStringContainsString('Dispatch Delivery & Print Slip', $checkout);
     }
 
     public function test_the_receipt_only_ever_prints_the_receipt(): void
@@ -292,16 +307,59 @@ class PageTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_the_stage_bar_stays_inside_the_terminal_column(): void
+    public function test_the_terminal_is_a_non_scrolling_viewport_app(): void
     {
-        // Back/Next used to be a full-viewport bar; it is now bounded so it
-        // reads as part of the panel rather than page chrome.
+        // The shell locks to the viewport; only designated regions scroll.
+        $this->actingAs($this->cashier)->get('/cashier')
+            ->assertOk()
+            ->assertSee('cashier-viewport', false)
+            ->assertSee('id="posStageError"', false);
+
         $css = (string) file_get_contents(base_path('public/css/styles.css'));
 
+        // The shell is pinned to 100vh and hides page overflow.
         $this->assertMatchesRegularExpression(
-            '/\.mobile-action-bar\s*\{[^}]*max-width:\s*620px/s',
+            '/\.cashier-viewport[^{]*\{[^}]*height:\s*100vh[^}]*max-height:\s*100vh[^}]*overflow:\s*hidden/s',
             $css
         );
+
+        // Micro-scrolls are allowed, but only inside marked regions.
+        $this->assertMatchesRegularExpression(
+            '/\.scroll-region\s*\{[^}]*overflow-y:\s*auto/s',
+            $css
+        );
+
+        // The action bar is docked as a flex child, not an overlay.
+        $this->assertMatchesRegularExpression(
+            '/\.mobile-action-bar\s*\{[^}]*flex:\s*0 0 auto/s',
+            $css
+        );
+        $this->assertStringNotContainsString("position: fixed;\n  left: 0;\n  right: 0;\n  bottom: 0;", $css);
+    }
+
+    public function test_only_the_terminal_locks_to_the_viewport(): void
+    {
+        // The queue and history pages share the cashier shell but must keep
+        // normal page scrolling; locking them would clip their content.
+        $this->actingAs($this->cashier)->get('/cashier')
+            ->assertOk()
+            ->assertSee('admin-layout cashier-viewport', false);
+
+        foreach (['/cashier/queue', '/cashier/history'] as $url) {
+            $this->actingAs($this->cashier)->get($url)
+                ->assertOk()
+                ->assertSee('admin-layout', false)
+                ->assertDontSee('admin-layout cashier-viewport', false);
+        }
+    }
+
+    public function test_stage_cards_and_lists_scroll_internally(): void
+    {
+        $this->actingAs($this->cashier)->get('/cashier')
+            ->assertOk()
+            // The customer list and the cart are the scrollable regions.
+            ->assertSee('class="customer-list-container scroll-region"', false)
+            ->assertSee('class="cart-items-container scroll-region"', false);
     }
 
     // ---------- Navigation guards ----------

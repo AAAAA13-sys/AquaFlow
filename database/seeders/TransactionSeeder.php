@@ -28,7 +28,7 @@ class TransactionSeeder extends Seeder
         $sales = [
             [
                 'receipt_number' => 'OR-1011', 'customer' => 'Santos Family', 'order_type' => 'Delivery',
-                'volume' => '3S+2R', 'subtotal' => 175.00, 'payment' => 'Cash', 'tendered' => 200.00,
+                'volume' => '3S+2R', 'subtotal' => 175.00, 'payment' => 'Account', 'tendered' => 0.00,
                 'days_ago' => 2, 'time' => '08:12:00',
                 'items' => [['slim', 'Slim 5-Gal Refill', 3, 35.00], ['round', 'Round 5-Gal Refill', 2, 35.00]],
                 'custody' => [3, 1, 2, 2],
@@ -49,14 +49,14 @@ class TransactionSeeder extends Seeder
             ],
             [
                 'receipt_number' => 'OR-1014', 'customer' => 'Aqua Office', 'order_type' => 'Delivery',
-                'volume' => '6S', 'subtotal' => 210.00, 'payment' => 'Cash', 'tendered' => 250.00,
+                'volume' => '6S', 'subtotal' => 210.00, 'payment' => 'Account', 'tendered' => 0.00,
                 'days_ago' => 0, 'time' => '11:15:00',
                 'items' => [['slim', 'Slim 5-Gal Refill', 6, 35.00]],
                 'custody' => [6, 0, 0, 0],
             ],
             [
                 'receipt_number' => 'OR-1015', 'customer' => 'Walk-in Guest', 'order_type' => 'Walk-in',
-                'volume' => '2S', 'subtotal' => 70.00, 'payment' => 'GCash', 'tendered' => 0.00,
+                'volume' => '2S', 'subtotal' => 70.00, 'payment' => 'Cash', 'tendered' => 100.00,
                 'days_ago' => 0, 'time' => '13:02:00',
                 'items' => [['slim', 'Slim 5-Gal Refill', 2, 35.00]],
                 'custody' => [0, 0, 0, 0],
@@ -77,7 +77,7 @@ class TransactionSeeder extends Seeder
             ],
             [
                 'receipt_number' => 'OR-1018', 'customer' => 'Mendoza Canteen', 'order_type' => 'Walk-in',
-                'volume' => '4R', 'subtotal' => 140.00, 'payment' => 'GCash', 'tendered' => 0.00,
+                'volume' => '4R', 'subtotal' => 140.00, 'payment' => 'Cash', 'tendered' => 150.00,
                 'days_ago' => 0, 'time' => '16:05:00',
                 'items' => [['round', 'Round 5-Gal Refill', 4, 35.00]],
                 'custody' => [0, 0, 4, 0],

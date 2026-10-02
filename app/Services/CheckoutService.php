@@ -21,6 +21,10 @@ use Illuminate\Validation\ValidationException;
  * is the gross amount, so the vatable sales and the tax portion are derived from
  * it. There are no discounts.
  *
+ * Payment (MSME rule): order type decides it. A WALK-IN pays CASH at the
+ * counter, a DELIVERY is CHARGED TO THE CUSTOMER'S ACCOUNT. The cashier never
+ * chooses, and any client-supplied payment method is ignored.
+ *
  * Containers: under the Zero Station-Owned Jugs rule the station lends nothing,
  * so there is no custody debt. A refill is the customer's own jug coming back
  * filled; a brand-new jug is ordinary merchandise that depletes jug stock and is
@@ -33,9 +37,18 @@ class CheckoutService
     /** Philippine VAT, inclusive of the displayed price. */
     public const VAT_RATE = 0.12;
 
+    public const PAYMENT_CASH = 'Cash';
+    public const PAYMENT_ACCOUNT = 'Account';
+
     public function __construct(
         private readonly InventoryEngine $inventory,
     ) {
+    }
+
+    /** Order type determines payment: walk-in is cash, delivery is on account. */
+    public static function paymentFor(string $orderType): string
+    {
+        return $orderType === 'Delivery' ? self::PAYMENT_ACCOUNT : self::PAYMENT_CASH;
     }
 
     /**
@@ -147,22 +160,24 @@ class CheckoutService
         $vatable = round($gross / (1 + self::VAT_RATE), 2);
         $vat = round($gross - $vatable, 2);
 
-        if ($data->paymentMethod === 'Cash' && $data->cashTendered + 0.0001 < $gross) {
+        $payment = self::paymentFor($data->orderType);
+        $isCash = $payment === self::PAYMENT_CASH;
+
+        if ($isCash && $data->cashTendered + 0.0001 < $gross) {
             throw ValidationException::withMessages([
                 'cash_tendered' => 'Tendered amount is less than the total due.',
             ]);
         }
 
-        $change = $data->paymentMethod === 'Cash'
-            ? round(max(0.0, $data->cashTendered - $gross), 2)
-            : 0.0;
+        $change = $isCash ? round(max(0.0, $data->cashTendered - $gross), 2) : 0.0;
 
         return [
             'lines' => $lines,
+            'payment_method' => $payment,
             'vatable' => $vatable,
             'vat' => $vat,
             'total' => $gross,
-            'cash_tendered' => $data->paymentMethod === 'Cash' ? $data->cashTendered : 0.0,
+            'cash_tendered' => $isCash ? $data->cashTendered : 0.0,
             'cash_change' => $change,
             'gallons' => $gallons,
             'slim_volume' => $slimGallons,
@@ -197,12 +212,8 @@ class CheckoutService
     {
         $isWalkIn = $customer->name === 'Walk-in Guest';
 
-        if ($data->paymentMethod === 'Account' && $isWalkIn) {
-            throw ValidationException::withMessages([
-                'payment_method' => 'Charging to account requires a registered customer.',
-            ]);
-        }
-
+        // A delivery is charged to the account, so it needs a real ledger to
+        // charge against. (A walk-in always pays cash, so it can never accrue.)
         if ($data->orderType === 'Delivery' && $isWalkIn) {
             throw ValidationException::withMessages([
                 'order_type' => 'Delivery requires a registered customer.',
@@ -244,7 +255,7 @@ class CheckoutService
             'auto_discount' => 0,
             'manual_discount' => 0,
             'total_amount' => $pricing['total'],
-            'payment_method' => $data->paymentMethod,
+            'payment_method' => $pricing['payment_method'],
             'cash_tendered' => $pricing['cash_tendered'],
             'cash_change' => $pricing['cash_change'],
             'transaction_date' => now()->toDateString(),
@@ -296,7 +307,7 @@ class CheckoutService
         $customer->total_transactions += 1;
         $customer->last_visit = now()->toDateString();
 
-        if ($data->paymentMethod === 'Account') {
+        if ($pricing['payment_method'] === self::PAYMENT_ACCOUNT) {
             $customer->debt_balance += $pricing['total'];
         }
 

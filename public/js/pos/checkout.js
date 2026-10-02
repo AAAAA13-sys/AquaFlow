@@ -1,18 +1,18 @@
 // AquaFlow CASHIER terminal - checkout, payment, debt settlement, registration,
 // step navigation and receipt printing.
 //
-// Sales are priced by the server (api/transactions.php). The client sends the
-// cart, the customer, the order type and the payment method; it never sets
-// prices, VAT or totals.
+// Sales are priced by the server (POST /api/transactions). The client sends the
+// cart, the customer and the order type; it never sets prices, VAT, totals or
+// the payment method - the order type decides how the sale is settled.
 
-// ---------- Step switching (one panel at a time) ----------
+// ---------- Step switching (one stage on screen at a time) ----------
 let posCur = 1;
 
 /**
  * What each stage needs before the cashier may move past it.
  *
- * Stage 3 has no gate of its own: Complete Sale re-checks everything and the
- * server validates the payload again.
+ * Stage 3 has no gate of its own: completing the sale re-checks everything and
+ * the server validates the payload again.
  */
 const STAGE_RULES = {
   1: {
@@ -50,26 +50,6 @@ function showStageError(message) {
   el.classList.remove('hidden');
 }
 
-/** Paints a stage. No validation - callers decide whether the move is legal. */
-function renderStage(step) {
-  posCur = step;
-  showStageError(null);
-
-  document.querySelectorAll('.pos-col').forEach(col => {
-    col.classList.toggle('pos-active', Number(col.dataset.step) === posCur);
-  });
-  document.querySelectorAll('#posSteps .pos-step').forEach(button => {
-    button.classList.toggle('active', Number(button.dataset.step) === posCur);
-  });
-
-  const back = document.getElementById('posBack');
-  if (back) back.disabled = posCur === 1;
-  const next = document.getElementById('posNext');
-  if (next) next.textContent = posCur >= 3 ? 'Complete Sale' : 'Next';
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 /** Puts the caret where the cashier has to act. */
 function focusStageField(step) {
   const rule = STAGE_RULES[step];
@@ -98,6 +78,41 @@ function refreshStageValidation() {
   if (el && !el.classList.contains('hidden') && stageProblem(posCur) === null) {
     showStageError(null);
   }
+}
+
+/** The action bar's primary button changes label with the stage and order type. */
+function primaryLabel(step) {
+  if (step === 1) return 'Next';
+  if (step === 2) return 'Proceed to Summary';
+
+  return isDelivery() ? 'Dispatch Delivery & Print Slip' : 'Complete & Print Receipt';
+}
+
+/** Refreshes the action bar's primary button (its label depends on stage AND order type). */
+function refreshPrimaryLabel() {
+  const next = document.getElementById('posNext');
+  if (next) next.textContent = primaryLabel(posCur);
+}
+
+/** Paints a stage. No validation - callers decide whether the move is legal. */
+function renderStage(step) {
+  posCur = step;
+  showStageError(null);
+
+  document.querySelectorAll('.pos-stage').forEach(section => {
+    section.classList.toggle('pos-active', Number(section.dataset.step) === posCur);
+  });
+  document.querySelectorAll('#posSteps .pos-step').forEach(button => {
+    button.classList.toggle('active', Number(button.dataset.step) === posCur);
+  });
+
+  const back = document.getElementById('posBack');
+  if (back) back.disabled = posCur === 1;
+
+  refreshPrimaryLabel();
+
+  // Stage 3 shows either the cash tender panel or the account ledger notice.
+  if (posCur === 3 && typeof renderPaymentPanel === 'function') renderPaymentPanel();
 }
 
 /**
@@ -160,65 +175,6 @@ async function bootCashierPortal() {
   return session;
 }
 
-// ---------- Payment method ----------
-
-/** Charging to account needs a registered customer, and so does delivery. */
-function walkInSelected() {
-  const c = posCust();
-  return c === null || c.name === 'Walk-in Guest';
-}
-
-function setPay(p) {
-  if (p === 'Account' && walkInSelected()) {
-    alert('Charging to account requires a registered customer.');
-    p = 'Cash';
-  }
-
-  POS.pay = p;
-
-  const methods = { Cash: 'pCash', GCash: 'pGCash', Account: 'pAccount' };
-  Object.keys(methods).forEach(key => {
-    const el = document.getElementById(methods[key]);
-    if (el) el.className = 'btn ' + (p === key ? 'btn-primary' : 'btn-ghost');
-  });
-
-  const tenderWrap = document.getElementById('tenderWrap');
-  if (tenderWrap) tenderWrap.style.display = p === 'Cash' ? 'block' : 'none';
-
-  const qr = document.getElementById('gcashBox');
-  if (qr) qr.classList.toggle('hidden', p !== 'GCash');
-
-  savePOSState();
-  renderPOS();
-}
-
-/** Explains why account payment is unavailable. */
-function updatePayLock() {
-  const locked = walkInSelected();
-  const acct = document.getElementById('pAccount');
-  if (acct) acct.classList.toggle('is-locked', locked);
-
-  const note = document.getElementById('payLockNote');
-  if (note) {
-    note.textContent = locked
-      ? 'Charging to account is available for registered customers only.'
-      : '';
-  }
-}
-
-/** Keeps state honest if the customer changes back to a walk-in. */
-function enforcePaymentRules() {
-  if (POS.pay !== 'Account' || !walkInSelected()) {
-    return;
-  }
-
-  POS.pay = 'Cash';
-  const cash = document.getElementById('pCash');
-  const acct = document.getElementById('pAccount');
-  if (cash) cash.className = 'btn btn-primary';
-  if (acct) acct.className = 'btn btn-ghost';
-}
-
 /** Quick denominations: Exact fills the total, the rest accumulate cash. */
 function applyQuickCash(value) {
   const tender = document.getElementById('tender');
@@ -263,8 +219,8 @@ function updateDebtPanel() {
   const after = document.getElementById('debtAfter');
   const debt = c === null ? 0 : Number(c.debt);
 
-  if (view) view.textContent = '₱' + debt.toLocaleString();
-  if (after) after.textContent = '₱' + Math.max(0, debt - (+((pay && pay.value) || 0))).toLocaleString();
+  if (view) view.textContent = peso(debt);
+  if (after) after.textContent = peso(Math.max(0, debt - (+((pay && pay.value) || 0))));
 }
 
 async function settleDebt() {
@@ -276,7 +232,7 @@ async function settleDebt() {
 
   const pay = document.getElementById('debtPay');
   const amount = +((pay && pay.value) || 0);
-  if (amount <= 0) { alert('Enter a payment amount.'); return; }
+  if (amount <= 0) { showStageError('Enter a payment amount.'); return; }
 
   try {
     const result = await API.settleDebt(c.id, amount);
@@ -285,10 +241,11 @@ async function settleDebt() {
     saveDB();
     updateDebtPanel();
     renderPOS();
-    alert('Debt payment recorded: ₱' + Number(result.applied).toLocaleString() +
-      '. Remaining balance ₱' + Number(result.customer.debt).toLocaleString() + '.');
+    showStageError(null);
+    alert('Debt payment recorded: ' + peso(result.applied) +
+      '. Remaining balance ' + peso(result.customer.debt) + '.');
   } catch (error) {
-    alert(error.message || 'Could not record the payment.');
+    showStageError(error.message || 'Could not record the payment.');
   }
 }
 
@@ -352,7 +309,7 @@ function showServerReceipt(result) {
 
   const tx = result.transaction;
   const totals = result.totals;
-  const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const onAccount = tx.pay === 'Account';
 
   meta.textContent = tx.no + ' | ' + new Date().toLocaleString() + ' | ' + (tx.by || '');
 
@@ -360,12 +317,12 @@ function showServerReceipt(result) {
     POS.cart.map(i => '<div class="receipt-line"><span>' + i.q + 'x ' + i.name + '</span><span>' + money(i.q * i.price) + '</span></div>').join('') +
     '<div class="receipt-line"><span>Vatable Sales</span><span>' + money(totals.vatable) + '</span></div>' +
     '<div class="receipt-line"><span>12% VAT (incl.)</span><span>' + money(totals.vat) + '</span></div>' +
-    '<div class="receipt-line total"><span>Total</span><span>' + money(totals.total) + '</span></div>' +
+    '<div class="receipt-line total"><span>Gross Total</span><span>' + money(totals.total) + '</span></div>' +
     '<div class="receipt-line"><span>Customer</span><span>' + tx.cust + '</span></div>' +
     '<div class="receipt-line"><span>Order type</span><span>' + tx.type + '</span></div>' +
-    '<div class="receipt-line"><span>' + tx.pay + (tx.pay === 'Cash' ? ' / Tendered ' + money(totals.cash_tendered) : '') + '</span><span>' +
-    (tx.pay === 'Cash' ? 'Change ' + money(totals.cash_change)
-      : tx.pay === 'Account' ? 'Debt ' + money(result.customer.debt) : 'Paid') + '</span></div>';
+    (onAccount
+      ? '<div class="receipt-line"><span>CHARGED TO ACCOUNT</span><span>Balance ' + money(result.customer.debt) + '</span></div>'
+      : '<div class="receipt-line"><span>Cash / Tendered ' + money(totals.cash_tendered) + '</span><span>Change ' + money(totals.cash_change) + '</span></div>');
 
   box.classList.remove('hidden');
 }
@@ -377,8 +334,8 @@ async function completeSale(sessionName) {
   if (!POS.cart.length) { showStageError('Add at least one item before completing the sale.'); return; }
 
   const c = posCust();
-  if (POS.type === 'Delivery' && c.name === 'Walk-in Guest') {
-    showStageError('Delivery requires a registered customer.');
+  if (isDelivery() && c.name === 'Walk-in Guest') {
+    showStageError('Delivery requires a registered customer - the order is charged to their account.');
     return;
   }
 
@@ -386,20 +343,20 @@ async function completeSale(sessionName) {
   const ten = tenderEl ? (+tenderEl.value || 0) : 0;
   const t = posTotals();
 
-  if (POS.pay === 'Cash' && ten < t.total) {
-    // Say exactly how much is still owed, and put the caret back in the field.
-    showStageError('Cash tendered is less than the total due by ₱' + (t.total - ten).toFixed(2) + '.');
+  // Only a walk-in handles cash; a delivery settles on the ledger.
+  if (!isDelivery() && ten < t.total) {
+    showStageError('Cash tendered is less than the total due by ' + money(t.total - ten) + '.');
     if (tenderEl) tenderEl.focus();
     return;
   }
 
   showStageError(null);
 
+  // The server derives the payment method from the order type.
   const payload = {
     customer_id: POS.custId,
     order_type: POS.type,
-    payment_method: POS.pay,
-    cash_tendered: POS.pay === 'Cash' ? ten : 0,
+    cash_tendered: isDelivery() ? 0 : ten,
     items: POS.cart.map(i => ({ product_id: i.id, quantity: i.q })),
   };
 
@@ -407,7 +364,7 @@ async function completeSale(sessionName) {
   try {
     result = await API.createTransaction(payload);
   } catch (error) {
-    alert(error.message || 'Could not save the sale.');
+    showStageError(error.message || 'Could not save the sale.');
     return;
   }
 
@@ -431,14 +388,15 @@ function closeReceipt() {
   POS.cart = [];
   POS.custId = null;
   POS.type = 'Walk-in';
-  POS.pay = 'Cash';
 
   const tender = document.getElementById('tender');
   if (tender) tender.value = 0;
 
+  const debtBox = document.getElementById('debtSettleBox');
+  if (debtBox) debtBox.classList.add('hidden');
+
   saveDB();
   setType('Walk-in');
-  setPay('Cash');
   renderPOS();
   posStep(1);
 }
@@ -460,7 +418,7 @@ function reprint(no) {
 
   meta.textContent = x.no + ' | ' + x.date + ' ' + x.t + ' | ' + x.cust;
   body.innerHTML =
-    '<div class="receipt-line"><span>' + x.type + ' ' + x.gal + '</span><span>₱' + x.total + '</span></div>' +
+    '<div class="receipt-line"><span>' + x.type + ' ' + x.gal + '</span><span>' + money(x.total) + '</span></div>' +
     '<div class="receipt-line"><span>Payment</span><span>' + x.pay + '</span></div>' +
     '<div class="receipt-line"><span>Cashier</span><span>' + x.by + '</span></div>';
 

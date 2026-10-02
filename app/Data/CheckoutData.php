@@ -8,8 +8,13 @@ namespace App\Data;
  * Prices and totals are deliberately absent: the server looks them up so a
  * tampered client cannot influence what a sale costs.
  *
- * There is no container-custody input. Under the Zero Station-Owned Jugs rule
- * the station never lends a jug, so nothing is handed out against a liability.
+ * The payment method is absent too. MSME rule: a walk-in pays cash at the
+ * counter, a delivery is charged to the customer's account. Order type
+ * therefore *determines* payment, and the cashier never picks it.
+ *
+ * There is no container-custody input either. Under the Zero Station-Owned Jugs
+ * rule the station never lends a jug, so nothing is handed out against a
+ * liability.
  */
 final readonly class CheckoutData
 {
@@ -19,7 +24,6 @@ final readonly class CheckoutData
     public function __construct(
         public int $customerId,
         public string $orderType,
-        public string $paymentMethod,
         public float $cashTendered,
         public array $items,
     ) {
@@ -43,7 +47,6 @@ final readonly class CheckoutData
         return new self(
             customerId: (int) $validated['customer_id'],
             orderType: (string) ($validated['order_type'] ?? 'Walk-in'),
-            paymentMethod: (string) ($validated['payment_method'] ?? 'Cash'),
             cashTendered: (float) ($validated['cash_tendered'] ?? 0),
             items: $items,
         );

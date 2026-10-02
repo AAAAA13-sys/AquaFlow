@@ -94,7 +94,7 @@ class GenerateSalesHistory extends Command
                     $isWalkIn = mt_rand(1, 100) <= 18;
                     $customerId = $isWalkIn ? $walkInId : $registered[array_rand($registered)];
                     $orderType = (! $isWalkIn && mt_rand(1, 100) <= 45) ? 'Delivery' : 'Walk-in';
-                    $payment = $this->pickPayment($isWalkIn);
+                    $payment = $this->pickPayment($orderType);
 
                     $total = round($saleGallons * 35.0, 2);
 
@@ -133,7 +133,7 @@ class GenerateSalesHistory extends Command
                             cashierId: $cashierId,
                             customerId: $walkInId,
                             orderType: 'Walk-in',
-                            payment: mt_rand(1, 100) <= 60 ? 'Cash' : 'GCash',
+                            payment: 'Cash',
                             total: round(($qtySlim + $qtyRound) * 250.0, 2),
                             volume: '0 gal',
                             date: $date->toDateString(),
@@ -169,21 +169,12 @@ class GenerateSalesHistory extends Command
     }
 
     /**
-     * Walk-ins pay on the spot; registered customers sometimes run a tab.
+     * MSME rule: the order type decides payment. Walk-ins pay cash at the
+     * counter; deliveries are charged to the customer's account.
      */
-    private function pickPayment(bool $isWalkIn): string
+    private function pickPayment(string $orderType): string
     {
-        $roll = mt_rand(1, 100);
-
-        if ($isWalkIn) {
-            return $roll <= 72 ? 'Cash' : 'GCash';
-        }
-
-        if ($roll <= 50) {
-            return 'Cash';
-        }
-
-        return $roll <= 82 ? 'GCash' : 'Account';
+        return $orderType === 'Delivery' ? 'Account' : 'Cash';
     }
 
     /**

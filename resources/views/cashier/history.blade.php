@@ -28,7 +28,6 @@
         <select id="hPay" onchange="renderHistoryPage()">
           <option>All</option>
           <option>Cash</option>
-          <option>GCash</option>
           <option>Account</option>
         </select>
       </div>

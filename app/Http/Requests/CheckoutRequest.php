@@ -19,8 +19,8 @@ class CheckoutRequest extends FormRequest
         return [
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'order_type' => ['required', 'in:Walk-in,Delivery'],
-            'payment_method' => ['required', 'in:Cash,GCash,Account'],
-            // Only meaningful for cash; GCash and account settle exactly.
+            // Only meaningful for a walk-in; a delivery is charged to the
+            // account and settles exactly.
             'cash_tendered' => ['sometimes', 'numeric', 'min:0', 'max:1000000'],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],

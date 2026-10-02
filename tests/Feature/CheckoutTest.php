@@ -264,11 +264,19 @@ class CheckoutTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_a_walk_in_cannot_charge_to_account(): void
+    public function test_a_walk_in_can_never_accrue_debt(): void
     {
-        $this->actingAs($this->cashier)
-            ->postJson('/api/transactions', $this->payload(['payment_method' => 'Account']))
-            ->assertStatus(422);
+        $guest = Customer::query()->where('name', 'Walk-in Guest')->firstOrFail();
+        $before = (float) $guest->debt_balance;
+
+        // Even if a client asks to charge it, a walk-in is cash.
+        $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'payment_method' => 'Account',
+        ]));
+
+        $response->assertCreated();
+        $this->assertSame('Cash', $response->json('transaction.pay'));
+        $this->assertSame($before, (float) $guest->refresh()->debt_balance);
     }
 
     public function test_a_walk_in_cannot_request_delivery(): void
@@ -280,30 +288,49 @@ class CheckoutTest extends TestCase
 
     // ---------- Payment methods ----------
 
-    public function test_gcash_is_accepted_and_settles_exactly(): void
+    public function test_the_payment_method_is_derived_and_never_taken_from_the_client(): void
     {
-        $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+        // A walk-in is always cash, whatever the client claims.
+        $walkIn = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'payment_method' => 'GCash',
         ]));
-
-        $response->assertCreated();
-        $this->assertSame(0.0, (float) $response->json('totals.cash_change'));
-        $this->assertDatabaseHas('transactions', ['payment_method' => 'GCash']);
+        $walkIn->assertCreated();
+        $this->assertSame('Cash', $walkIn->json('transaction.pay'));
+        $this->assertDatabaseHas('transactions', [
+            'receipt_number' => $walkIn->json('transaction.no'),
+            'payment_method' => 'Cash',
+        ]);
     }
 
-    public function test_charging_to_account_adds_to_the_balance(): void
+    public function test_a_delivery_is_charged_to_the_account_automatically(): void
     {
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $before = (float) $customer->debt_balance;
 
-        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+        $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'customer_id' => $customer->id,
             'order_type' => 'Delivery',
-            'payment_method' => 'Account',
-            'cash_tendered' => 0,
-        ]))->assertCreated();
+            'items' => [['product_id' => 'slim', 'quantity' => 4]],
+        ]));
 
-        $this->assertSame($before + 70.0, (float) $customer->refresh()->debt_balance);
+        $response->assertCreated();
+        $this->assertSame('Account', $response->json('transaction.pay'));
+        $this->assertSame($before + 140.0, (float) $customer->refresh()->debt_balance);
+    }
+
+    public function test_a_delivery_records_no_cash_tender_or_change(): void
+    {
+        $customer = Customer::query()->where('name', 'Reyes Store')->firstOrFail();
+
+        $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'customer_id' => $customer->id,
+            'order_type' => 'Delivery',
+            'cash_tendered' => 500,
+        ]));
+
+        $response->assertCreated();
+        $this->assertSame(0.0, (float) $response->json('totals.cash_tendered'));
+        $this->assertSame(0.0, (float) $response->json('totals.cash_change'));
     }
 
     // ---------- Receipt & queue ----------

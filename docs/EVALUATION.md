@@ -10,7 +10,7 @@ accuracy validation, and the two evaluation instruments required by the thesis
 
 | Suite | Location | Command | Scope |
 |---|---|---|---|
-| Laravel feature + unit | `tests/` | `php artisan test` | 96 tests / 369 assertions: auth, RBAC, checkout (`CheckoutService`), receivables, inventory, forecasting, routing, inventory math |
+| Laravel feature + unit | `tests/` | `php artisan test` | 99 tests / 400 assertions: auth, RBAC, checkout (`CheckoutService`), receivables, inventory, forecasting, routing, inventory math |
 | Analytics engine (unit) | `analytics/tests/` | `python -m pytest analytics/tests -q` | 22 tests: cleaning, ADF, order selection, seasonal adjustment, backtest scoring, ACF/PACF |
 
 Test environment: PHPUnit runs against MySQL (`aquaflow_test`) because the
@@ -37,7 +37,7 @@ migrates and re-seeds the schema for every test, so runs are isolated.
 | POS | Every refilled gallon | Consumes 1 cap + 1 seal | `CheckoutTest` |
 | POS | Selling only supplies | Does not queue production | `CheckoutTest` |
 | POS | Walk-in charging to account, or requesting delivery | 422 | `CheckoutTest` |
-| POS | GCash payment | Accepted, settles exactly, no change recorded | `CheckoutTest` |
+| POS | Payment routing | Order type decides: walk-in = Cash, delivery = Account; a spoofed `payment_method` is ignored | `CheckoutTest` |
 | POS | Receipt numbers | Unique across sales | `CheckoutTest` |
 | Printing | Receipt printing | Only the receipt prints; the terminal chrome is hidden | browser run |
 | POS | Tapping a product tile | Item is listed immediately on the same panel with quantity and running total | browser run |

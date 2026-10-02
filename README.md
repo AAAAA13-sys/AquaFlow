@@ -246,7 +246,7 @@ php artisan aquaflow:forecast
 |---|---|
 | ~1,050 sales | spread over 90 days, weekday baseline with a weekend uplift |
 | Order types | Walk-in and Delivery |
-| Payments | Cash, GCash and Charge-to-Account |
+| Payments | Cash (walk-in) and Charge-to-Account (delivery) |
 | Products | both refills and both brand-new jugs |
 | ~25 settlements | logged as `Debt Payment` rows against real balances |
 | VAT | an inclusive split on every sale (`Vatable + VAT = Total`) |
@@ -268,7 +268,7 @@ of the day's log rather than the top.
 ## Testing
 
 ```bash
-php artisan test                              # 96 tests, 369 assertions
+php artisan test                              # 99 tests, 400 assertions
 python -m pytest analytics/tests -q           # 22 tests
 
 # Custom validation failures (analytics service offline, etc.)
@@ -308,6 +308,26 @@ the ISO/IEC 25010 assessment.
 | 4 - Dynamic SS & ROP engine | Complete |
 | 5 - Testing & system evaluation | Complete (SUS field study pending participants) |
 | 6 - Backend integration & deployment | Complete |
+
+**2026-10-02 — Single-screen, non-scrolling POS with payment routing.**
+The cashier terminal is now a fixed `100vh` application: the page itself never
+scrolls, and only designated list regions scroll internally (the customer list,
+the cart tray and the receipt table). The Back/Next action bar is docked at the
+bottom of the viewport as the last flex child, so it is always reachable. Stage 3
+splits into two columns — the receipt on the left, the payment panel on the
+right. The queue and history pages deliberately keep normal page scrolling.
+
+Payment is no longer a cashier choice; **the order type decides it**:
+
+| Order type | Payment | Cashier sees |
+|---|---|---|
+| Walk-In | **Cash only** | tender input, quick-cash pills, large green live Change, `[ Complete & Print Receipt ]` |
+| Delivery | **Charged to the customer's account** | a notice that the driver collects on delivery, the balance before/after, `[ Dispatch Delivery & Print Slip ]` |
+
+GCash and the manual Cash/GCash/Account picker are gone. The API ignores any
+client-supplied `payment_method` and derives it from `order_type`, so the rule
+cannot be bypassed from the browser. A walk-in can never accrue debt, and a
+delivery always raises the ledger balance.
 
 **2026-09-28 — Stages validate their content before advancing.** The cashier can
 no longer walk past an incomplete stage. **Next** (and any forward jump on the
@@ -352,9 +372,9 @@ entries below.
 - **Money.** 12% VAT is **inclusive**: the shelf price is the gross total, and
   `Vatable = Total / 1.12`, `VAT = Total − Vatable` (₱35 → ₱31.25 + ₱3.75). All
   discount fields, the "Subtotal" line and the jug banner were removed.
-- **Payment.** Cash, GCash/QR and Charge to Account (registered delivery and
-  regular accounts only). Debt settlements are written as `Debt Payment`
-  transactions so they show up in the history.
+- **Payment.** Derived from the order type: a walk-in pays Cash at the counter,
+  a Delivery is charged to the customer's account. Debt settlements are written
+  as `Debt Payment` transactions so they show up in the history.
 - **Stages.** Stage 1 is customer only — name + address registration (phone
   removed), nothing pre-selected, with *Settle Debt*. Stage 2 carries the
   Walk-in/Delivery toggle and the product tiles, and still lists **Bought Items**

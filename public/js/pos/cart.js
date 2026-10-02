@@ -4,14 +4,18 @@
 // and the tax portion are extracted from the gross total. There are no
 // discounts.
 //
+// Payment model (MSME): the order type decides how it is paid. A walk-in pays
+// CASH at the counter; a delivery is CHARGED TO THE CUSTOMER'S ACCOUNT. The
+// cashier never picks a payment method.
+//
 // Containers: the station owns no jugs. A refill is the customer's own jug
 // coming back filled (no liability, no deposit); a brand-new jug is ordinary
 // merchandise that depletes stock and is walk-in only.
 
 // `var` (not `let`) keeps `typeof POS` safe in the persistence layer no matter
 // how the scripts are loaded, including concatenated builds.
-// custId starts null: the spec requires nothing pre-selected.
-var POS = { type: 'Walk-in', pay: 'Cash', cart: [], custId: null, orderN: 1018 };
+// custId starts null: nothing is pre-selected.
+var POS = { type: 'Walk-in', cart: [], custId: null, orderN: 1018 };
 
 const VAT_RATE = 0.12;
 
@@ -35,18 +39,31 @@ function hasCustomer() {
   return posCust() !== null;
 }
 
+/** Payment is a consequence of the order type, never a cashier choice. */
+function posPayment() {
+  return POS.type === 'Delivery' ? 'Account' : 'Cash';
+}
+
+function isDelivery() {
+  return POS.type === 'Delivery';
+}
+
 /** Jugs of the customer's that the station is still holding. */
 function jugsInCustody(customer) {
   return Math.max(0, customer.issuedS - customer.returnedS) +
     Math.max(0, customer.issuedR - customer.returnedR);
 }
 
+const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const peso = n => '₱' + Number(n).toLocaleString();
+
 function setType(t) {
   POS.type = t;
+
   const walk = document.getElementById('bWalk');
   const del = document.getElementById('bDel');
-  if (walk) walk.className = 'btn ' + (t === 'Walk-in' ? 'btn-primary' : 'btn-ghost');
-  if (del) del.className = 'btn ' + (t === 'Delivery' ? 'btn-primary' : 'btn-ghost');
+  if (walk) walk.className = 'seg-btn' + (t === 'Walk-in' ? ' active' : '');
+  if (del) del.className = 'seg-btn' + (t === 'Delivery' ? ' active' : '');
 
   // Walk-in-only merchandise cannot ride a delivery, so drop it from the cart.
   if (t === 'Delivery') {
@@ -71,17 +88,20 @@ function renderCustList() {
     const q = (search.value || '').toLowerCase();
     const rows = DB.customers
       .filter(c => c.name.toLowerCase().includes(q) || String(c.addr).toLowerCase().includes(q))
-      .slice(0, 8);
+      .slice(0, 40);
 
     list.innerHTML = rows.map(c => {
       const sel = c.id === POS.custId;
       const custody = jugsInCustody(c);
+      const debt = Number(c.debt);
 
-      return '<button onclick="pickCust(' + c.id + ')" class="customer-option' + (sel ? ' selected' : '') + '">' +
-        '<span class="cust-option-top"><b>' + c.name + '</b>' +
-        '<span class="cust-option-oob ' + (custody > 0 ? 'text-red-600' : 'text-green-700') + '">' +
-        custody + ' Jug' + (custody === 1 ? '' : 's') + ' in Custody</span></span>' +
-        '<span class="cust-option-sub">' + c.addr + '</span></button>';
+      return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
+        '<b class="cust-row-name">' + c.name + '</b>' +
+        '<span class="cust-row-addr">' + c.addr + '</span>' +
+        '<span class="cust-row-stat">📦 ' + custody + ' jug' + (custody === 1 ? '' : 's') + '</span>' +
+        '<span class="cust-row-stat ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
+        (debt > 0 ? '⚠️ ' + peso(debt) + ' debt' : '✓ Clear') + '</span>' +
+        '</button>';
     }).join('');
   }
 
@@ -89,21 +109,23 @@ function renderCustList() {
   if (!card) return;
 
   const c = posCust();
+
   if (c === null) {
-    card.innerHTML = '<p class="cust-option-sub">No customer selected. Search above, or add a new one.</p>' +
-      '<div class="debt-badge hidden"></div>';
+    card.className = 'active-customer-banner empty';
+    card.innerHTML = '<span class="cust-detail">No customer selected. Tap a customer below or choose Walk-in.</span>';
     return;
   }
 
-  const owes = Number(c.debt) > 0;
   const custody = jugsInCustody(c);
+  const debt = Number(c.debt);
 
+  card.className = 'active-customer-banner';
   card.innerHTML =
-    '<div class="flex-between"><b>' + c.name + '</b><span class="cust-option-sub">ID-' + c.id + '</span></div>' +
-    '<p class="cust-option-sub">' + c.addr + '</p>' +
-    '<div class="custody-row"><span>Jugs in Custody</span><b>' + custody + '</b></div>' +
-    '<div class="debt-badge ' + (owes ? '' : 'clear') + '">' +
-    '<span>Cash debt</span><b>&#8369;' + Number(c.debt).toLocaleString() + '</b></div>';
+    '<b class="cust-detail-name">' + c.name + '</b>' +
+    '<span class="cust-detail">' + c.addr + '</span>' +
+    '<span class="cust-detail">📦 ' + custody + ' jug' + (custody === 1 ? '' : 's') + ' in custody</span>' +
+    '<span class="cust-detail ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
+    (debt > 0 ? '⚠️ ' + peso(debt) + ' debt' : '✓ No balance') + '</span>';
 }
 
 function pickCust(id) {
@@ -117,9 +139,6 @@ function pickCust(id) {
 const PRODUCT_THEMES = {
   slim: 'prod-theme-blue',
   round: 'prod-theme-teal',
-  caps: 'prod-theme-yellow',
-  seals: 'prod-theme-yellow',
-  soap: 'prod-theme-purple',
   newS: 'prod-theme-gray',
   newR: 'prod-theme-gray'
 };
@@ -127,9 +146,6 @@ const PRODUCT_THEMES = {
 const PRODUCT_SUBTITLES = {
   slim: 'Bring your own jug',
   round: 'Bring your own jug',
-  caps: 'Per pack of 50',
-  seals: 'Per pack of 100',
-  soap: 'Cleaning supplies',
   newS: 'For Sale - brand new',
   newR: 'For Sale - brand new'
 };
@@ -137,26 +153,23 @@ const PRODUCT_SUBTITLES = {
 function productTheme(product) {
   if (PRODUCT_THEMES[product.id]) return PRODUCT_THEMES[product.id];
   if (product.cat === 'refill') return product.kind === 'R' ? 'prod-theme-teal' : 'prod-theme-blue';
-  if (product.cat === 'consumable') return 'prod-theme-yellow';
-  if (product.cat === 'cleaning') return 'prod-theme-purple';
   return 'prod-theme-gray';
 }
 
 function productSubtitle(product) {
   if (PRODUCT_SUBTITLES[product.id]) return PRODUCT_SUBTITLES[product.id];
   if (product.cat === 'refill') return 'Refill';
-  if (product.cat === 'container') return 'For Sale';
-  return 'Supply';
+  return 'For Sale';
 }
 
-/** Tile order: refills first, then containers, then supplies. */
-const POS_TILE_ORDER = ['slim', 'round', 'newS', 'newR', 'caps', 'seals', 'soap'];
+/** Tile order: refills first, then brand-new containers. */
+const POS_TILE_ORDER = ['slim', 'round', 'newS', 'newR'];
 
 function renderProducts() {
   const grid = document.getElementById('productGrid');
   if (!grid) return;
 
-  const delivering = POS.type === 'Delivery';
+  const delivering = isDelivery();
 
   const items = (DB.products || [])
     .filter(product => product.sold_at_pos !== false)
@@ -204,13 +217,18 @@ function addProduct(pid) {
   const p = DB.products.find(x => x.id === pid);
   if (!p) return;
 
-  if (p.walk_in_only && POS.type === 'Delivery') {
+  if (p.walk_in_only && isDelivery()) {
     alert(p.name + ' is for walk-in customers only.');
     return;
   }
 
   const f = POS.cart.find(i => i.id === pid);
-  if (f) f.q++; else POS.cart.push({ id: p.id, name: p.name, price: p.price, q: 1, kind: p.kind, cat: p.cat, walkInOnly: !!p.walk_in_only });
+  if (f) {
+    f.q++;
+  } else {
+    POS.cart.push({ id: p.id, name: p.name, price: p.price, q: 1, kind: p.kind, cat: p.cat, walkInOnly: !!p.walk_in_only });
+  }
+
   savePOSState();
   renderPOS();
 }
@@ -243,7 +261,7 @@ function posTotals() {
   return { total: rounded, vatable, vat, gal: cartGallons() };
 }
 
-/** The bought-items rows, shared by the products panel and the payment panel. */
+/** The bought-items rows, shared by the tray and the summary. */
 function cartRowsHtml() {
   if (!POS.cart.length) {
     return '<p class="cust-option-sub">No items yet - tap a product above.</p>';
@@ -251,10 +269,34 @@ function cartRowsHtml() {
 
   return POS.cart.map((it, x) =>
     '<div class="order-row">' +
-    '<span>' + it.name + '</span><span class="text-right">&#8369;' + it.price + '</span>' +
-    '<span class="qty-ctrl"><button onclick="chgQty(' + x + ',-1)">-</button><b>x' + it.q + '</b><button onclick="chgQty(' + x + ',1)">+</button></span>' +
-    '<span class="text-right"><b>&#8369;' + (it.price * it.q).toLocaleString() + '</b></span></div>'
+    '<span>' + it.name + '</span><span class="text-right">' + money(it.price) + '</span>' +
+    '<span class="qty-ctrl"><button type="button" onclick="chgQty(' + x + ',-1)">-</button><b>x' + it.q + '</b><button type="button" onclick="chgQty(' + x + ',1)">+</button></span>' +
+    '<span class="text-right"><b>' + peso(it.price * it.q) + '</b></span></div>'
   ).join('');
+}
+
+/** Switches the stage-3 payment panel to match the order type. */
+function renderPaymentPanel() {
+  const cash = document.getElementById('cashPanel');
+  const delivery = document.getElementById('deliveryPanel');
+  const badge = document.getElementById('payBadge');
+
+  const delivering = isDelivery();
+
+  if (cash) cash.classList.toggle('hidden', delivering);
+  if (delivery) delivery.classList.toggle('hidden', !delivering);
+  if (badge) badge.textContent = delivering ? 'ACCOUNT / UTANG' : 'CASH';
+
+  if (!delivering) return;
+
+  const c = posCust();
+  const t = posTotals();
+  const balance = c === null ? 0 : Number(c.debt);
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('deliveryBalance', money(balance));
+  set('deliveryThis', money(t.total));
+  set('deliveryAfter', money(balance + t.total));
 }
 
 function renderPOS() {
@@ -262,7 +304,6 @@ function renderPOS() {
   renderProducts();
 
   const t = posTotals();
-  const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const rNo = document.getElementById('rNo');
   if (rNo) rNo.textContent = 'OR-' + POS.orderN;
@@ -286,6 +327,7 @@ function renderPOS() {
     boughtCount.textContent = count + (count === 1 ? ' item' : ' items');
   }
 
+  // Cash change, shown large and green on the walk-in panel.
   const tender = document.getElementById('tender');
   const ten = tender ? (+tender.value || 0) : 0;
   set('tChg', money(Math.max(0, ten - t.total)));
@@ -297,60 +339,34 @@ function renderPOS() {
       : '';
   }
 
-  // Summary block: customer, address, existing debt
+  renderPaymentPanel();
+
+  // Summary block: customer, address, order type, existing debt
   const sumCustomer = document.getElementById('sumCustomer');
   if (sumCustomer) {
     const c = posCust();
+    sumCustomer.className = 'active-customer-banner' + (c === null ? ' empty' : '');
     sumCustomer.innerHTML = c === null
-      ? '<p class="cust-option-sub">No customer selected yet.</p>'
-      : '<div class="flex-between"><b>' + c.name + '</b><span class="cust-option-sub">' + c.addr + '</span></div>' +
-        '<p class="cust-option-sub">Existing cash debt: <b>&#8369;' + Number(c.debt).toLocaleString() + '</b></p>';
-  }
-
-  const payBadge = document.getElementById('payDebtBadge');
-  if (payBadge) {
-    const c = posCust();
-    if (c === null || c.name === 'Walk-in Guest') {
-      payBadge.className = 'debt-badge hidden';
-    } else if (Number(c.debt) > 0) {
-      payBadge.className = 'debt-badge';
-      payBadge.innerHTML = '<span>Outstanding Debt</span><b>&#8369;' + Number(c.debt).toLocaleString() + '</b>';
-    } else {
-      payBadge.className = 'debt-badge clear';
-      payBadge.innerHTML = '<span>Account balance</span><b>Cleared</b>';
-    }
+      ? '<span class="cust-detail">No customer selected yet.</span>'
+      : '<b class="cust-detail-name">' + c.name + '</b>' +
+        '<span class="cust-detail">' + c.addr + '</span>' +
+        '<span class="cust-detail">' + (isDelivery() ? '🚚 Delivery' : '🚶 Walk-in') + '</span>' +
+        '<span class="cust-detail">Existing debt: ' + money(Number(c.debt)) + '</span>';
   }
 
   // Order-type hint on stage 2
   const orderNote = document.getElementById('orderTypeNote');
   if (orderNote) {
-    orderNote.textContent = POS.type === 'Delivery'
-      ? 'Delivery: brand-new jugs are hidden because they are walk-in only.'
+    orderNote.textContent = isDelivery()
+      ? 'Delivery orders are charged to the customer account. Brand-new jugs are hidden (walk-in only).'
       : '';
   }
 
-  // Compact production queue on the payment stage
-  const strip = document.getElementById('queueStrip');
-  if (strip) {
-    strip.innerHTML = DB.queue.length
-      ? DB.queue.slice(0, 5).map(q =>
-        '<div class="custody-row"><span><b>' + q.no + '</b> ' + q.cust + '</span><b>' + (STAGES[q.stage] || 'Done') + '</b></div>'
-      ).join('')
-      : '<p class="cust-option-sub">No orders in progress.</p>';
-  }
-
-  // Payment guardrails
-  if (typeof enforcePaymentRules === 'function') enforcePaymentRules();
-  if (typeof updatePayLock === 'function') updatePayLock();
   if (typeof updateDebtPanel === 'function') updateDebtPanel();
+  // The primary button label depends on the order type as well as the stage.
+  if (typeof refreshPrimaryLabel === 'function') refreshPrimaryLabel();
   // Clear a stage warning once the cashier has fixed what it complained about.
   if (typeof refreshStageValidation === 'function') refreshStageValidation();
-
-  // A sale needs a customer and at least one item.
-  const complete = document.getElementById('btnComplete');
-  if (complete) {
-    complete.disabled = !hasCustomer() || POS.cart.length === 0;
-  }
 
   savePOSState();
 }

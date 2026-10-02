@@ -678,18 +678,6 @@ button {
   width: 100%;
 }
 
-.pos-columns-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-}
-
-@media (min-width: 1280px) {
-  .pos-columns-grid {
-    grid-template-columns: 3fr 5fr 4fr;
-  }
-}
-
 .panel-heading {
   font-size: 0.875rem;
   font-weight: 700;
@@ -1564,22 +1552,30 @@ body.pos-lock .pos-layout {
   color: var(--surface-white);
 }
 
-/* One panel at a time, at every screen size. Kept deliberately narrow so the
-   cashier's eye does not have to travel across a wide screen. */
-.pos-col {
+/* One stage on screen at a time. Each stage fills the viewport height that the
+   shell gives it and manages its own internal scrolling. */
+.pos-stage {
   display: none;
   width: 100%;
-  max-width: 620px;
-  margin: 0 auto;
+  min-height: 0;
 }
 
-.pos-col.pos-active {
-  display: block;
+.pos-stage.pos-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-/* The terminal scrolls naturally; the fixed action bar clears the content. */
+/* The terminal body is a flex column that never scrolls; only its designated
+   list regions do. */
 .pos-layout {
-  padding-bottom: 92px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
 }
 
 .pos-active {
@@ -1603,18 +1599,14 @@ body.pos-lock .pos-layout {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  /* The terminal's own footer: it sits directly under the active panel, inside
-     the same 620px column. `sticky` only keeps it reachable on tall panels. */
-  position: sticky;
-  bottom: 0;
+  /* Docked at the bottom of the viewport as the last flex child of the
+     terminal, so it is always visible without scrolling. */
+  flex: 0 0 auto;
   z-index: 30;
   width: 100%;
-  max-width: 620px;
-  margin: 0 auto;
   background-color: var(--surface-white);
   border: 1px solid var(--border-line);
   border-radius: 12px;
-  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.06);
   padding: 0.6rem 0.9rem;
 }
 
@@ -1882,15 +1874,6 @@ body.pos-lock .pos-layout {
    SINGLE-PANEL POS FLOW (one step visible at a time)
 ============================================================================= */
 
-/* The terminal shows one panel at a time, so the grid never lays out columns. */
-.pos-columns-grid {
-  grid-template-columns: 1fr;
-}
-
-/* The terminal scrolls naturally; the fixed action bar clears the content. */
-/* The stage bar (Back/Next) is in the terminal's own flow and pinned with
-   `position: sticky`, so no body-level padding is needed to clear it. */
-
 /* Larger one-touch targets when a panel has the full width to itself */
 @media (min-width: 900px) {
   .product-item {
@@ -2113,3 +2096,253 @@ button.product-item .product-info-price {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* =============================================================================
+   VIEWPORT-LOCKED POS (single-screen, non-scrolling)
+   -----------------------------------------------------------------------------
+   The cashier terminal is a fixed 100vh application: the page itself never
+   scrolls. Only the designated `.scroll-region` lists do, and the action bar is
+   permanently docked at the bottom. The owner portal is unaffected.
+============================================================================= */
+
+.cashier-viewport,
+.cashier-viewport .admin-sidebar {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.cashier-viewport .admin-main-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cashier-viewport .admin-topbar,
+.cashier-viewport .pos-step-wizard {
+  flex: 0 0 auto;
+}
+
+/* The terminal's working width. Wider than the old touch-only column so stage 3
+   can show the receipt and the payment panel side by side. */
+.cashier-viewport .pos-stage,
+.cashier-viewport .mobile-action-bar {
+  width: 100%;
+  max-width: 1000px;
+  margin-inline: auto;
+}
+
+.cashier-viewport .pos-step-wizard {
+  max-width: 1000px;
+}
+
+/* The one place scrolling is allowed. */
+.scroll-region {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* Stage cards: a column that can shrink, so inner lists scroll instead of the page. */
+.stage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+.stage-card.stage-grow {
+  flex: 1 1 auto;
+}
+
+/* ---- Stage 1: compact toolbar + single-line customer rows ---- */
+
+.stage-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.stage-toolbar .form-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.stage-toolbar .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.active-customer-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.85rem;
+  border: 1px solid var(--border-line);
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  background-color: var(--surface-subtle);
+  font-size: 0.78rem;
+  flex: 0 0 auto;
+}
+
+.active-customer-banner.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cust-detail-name {
+  font-size: 0.86rem;
+}
+
+.cust-detail {
+  color: var(--text-slate);
+}
+
+.customer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.3fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.cust-row-name,
+.cust-row-addr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cust-row-addr {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.cust-row-stat {
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---- Stage 2: segmented toggle, 2x2 tiles, cart tray ---- */
+
+.stage-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.seg-btn {
+  min-height: 48px;
+  border: 1px solid var(--border-line);
+  border-radius: 10px;
+  background-color: var(--surface-white);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-slate);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.seg-btn:hover {
+  background-color: var(--surface-subtle);
+}
+
+.seg-btn.active {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--surface-white);
+}
+
+.cashier-viewport .products-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.cart-tray {
+  flex: 0 0 auto;
+}
+
+.cart-tray .cart-items-container {
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+/* ---- Stage 3: receipt beside the payment panel ---- */
+
+.stage-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.stage-summary-grid .stage-card {
+  min-height: 0;
+}
+
+.stage-summary-grid .cart-items-container {
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+@media (max-width: 860px) {
+  .stage-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+}
+
+.tender-input {
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.change-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  background-color: #ecfdf5;
+}
+
+.change-display span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #047857;
+}
+
+.change-display b {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #047857;
+}
+
+.ledger-notice {
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background-color: #eff6ff;
+  color: #1e40af;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.queue-shortcut {
+  margin-top: 0.5rem;
+}
+
