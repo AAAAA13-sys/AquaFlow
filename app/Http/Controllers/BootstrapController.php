@@ -86,7 +86,7 @@ class BootstrapController extends Controller
 
         if ($request->user()?->isAdmin()) {
             $payload['users'] = UserResource::collection(
-                User::query()->where('is_active', true)->orderBy('id')->get()
+                User::query()->orderBy('id')->get()
             );
         }
 

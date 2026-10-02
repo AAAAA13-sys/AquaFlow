@@ -3,8 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class UpdateInventoryRequest extends FormRequest
+class StoreInventoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,13 +18,12 @@ class UpdateInventoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lead_time_days' => ['sometimes', 'integer', 'min:1', 'max:14'],
-            'direction' => ['sometimes', 'integer', 'in:-1,1'],
-            'item_name' => ['sometimes', 'string', 'max:150'],
-            'category' => ['sometimes', 'string', 'in:Consumable,Filtration,Cleaning,Asset'],
+            'item_name' => ['required', 'string', 'max:150', 'unique:inventory,item_name'],
+            'category' => ['required', Rule::in(['Consumable', 'Filtration', 'Cleaning', 'Asset'])],
             'stock_on_hand' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'unit' => ['sometimes', 'string', 'max:20'],
-            'supplier_id' => ['sometimes', 'nullable', 'integer', 'exists:suppliers,id'],
+            'lead_time_days' => ['sometimes', 'integer', 'min:1', 'max:14'],
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
         ];
     }
 }

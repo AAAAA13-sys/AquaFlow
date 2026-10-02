@@ -9,6 +9,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -68,10 +69,28 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
 
         // Inventory and dynamic thresholds
         Route::get('inventory', [InventoryController::class, 'index'])->name('api.inventory.index');
+        Route::post('inventory', [InventoryController::class, 'store'])
+            ->middleware('owner')
+            ->name('api.inventory.store');
         Route::patch('inventory/{inventory}', [InventoryController::class, 'update'])->name('api.inventory.update');
+        Route::delete('inventory/{inventory}', [InventoryController::class, 'destroy'])
+            ->middleware('owner')
+            ->name('api.inventory.destroy');
         Route::post('inventory/recalculate', [InventoryController::class, 'recalculate'])
             ->middleware('owner')
             ->name('api.inventory.recalculate');
+
+        // Suppliers directory
+        Route::get('suppliers', [SupplierController::class, 'index'])->name('api.suppliers.index');
+        Route::post('suppliers', [SupplierController::class, 'store'])
+            ->middleware('owner')
+            ->name('api.suppliers.store');
+        Route::patch('suppliers/{supplier}', [SupplierController::class, 'update'])
+            ->middleware('owner')
+            ->name('api.suppliers.update');
+        Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])
+            ->middleware('owner')
+            ->name('api.suppliers.destroy');
 
         // Sales
         Route::get('transactions', [TransactionController::class, 'index'])->name('api.transactions.index');
@@ -103,6 +122,15 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
         Route::get('users', [UserController::class, 'index'])
             ->middleware('owner')
             ->name('api.users.index');
+        Route::post('users', [UserController::class, 'store'])
+            ->middleware('owner')
+            ->name('api.users.store');
+        Route::patch('users/{user}', [UserController::class, 'update'])
+            ->middleware('owner')
+            ->name('api.users.update');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])
+            ->middleware('owner')
+            ->name('api.users.destroy');
     });
 });
 
