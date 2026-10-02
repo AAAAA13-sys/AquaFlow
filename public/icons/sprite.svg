@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AquaFlow icon sprite
+
+  Lucide (ISC licensed) 24x24 stroke icons, re-exported as a single sprite so the
+  app keeps its zero-build setup: no npm, no Vite, no CDN, works offline.
+
+  Usage:
+      <svg class="icon"><use href="/icons/sprite.svg#i-alert"></use></svg>
+
+  Icons inherit currentColor, so colour them with plain CSS by setting `color`
+  on the element or any ancestor.
+
+  To add an icon: paste a Lucide <svg> body inside a new <symbol>, strip its own
+  <svg> wrapper, give it an id prefixed with i-, and keep the viewBox="0 0 24 24".
+-->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+
+  <!-- warning / outstanding debt -->
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+    <path d="M12 9v4"/>
+    <path d="M12 17h.01"/>
+  </symbol>
+
+  <!-- settled / no balance -->
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.801 10A10 10 0 1 1 17 3.335"/>
+    <path d="m9 11 3 3L22 4"/>
+  </symbol>
+
+  <!-- jugs held in custody -->
+  <symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
+    <path d="M12 22V12"/>
+    <path d="m3.29 7 8.71 5 8.71-5"/>
+    <path d="m7.5 4.27 9 5.15"/>
+  </symbol>
+
+  <!-- delivery order -->
+  <symbol id="i-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+    <path d="M15 18H9"/>
+    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+    <circle cx="17" cy="18" r="2"/>
+    <circle cx="7" cy="18" r="2"/>
+  </symbol>
+
+  <!-- walk-in / counter customer -->
+  <symbol id="i-walkin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </symbol>
+
+  <!-- POS terminal -->
+  <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="20" height="14" x="2" y="3" rx="2"/>
+    <path d="M8 21h8"/>
+    <path d="M12 17v4"/>
+  </symbol>
+
+  <!-- orders in progress / production queue -->
+  <symbol id="i-orders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="8" height="4" x="8" y="2" rx="1"/>
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <path d="M12 12h.01"/>
+    <path d="M16 12h.01"/>
+    <path d="M12 16h.01"/>
+    <path d="M16 16h.01"/>
+  </symbol>
+
+  <!-- sales & transaction history -->
+  <symbol id="i-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
+    <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+    <path d="M12 17.5v-11"/>
+  </symbol>
+
+  <!-- message a customer about their balance -->
+  <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <path d="M8 9h8"/>
+    <path d="M8 13h5"/>
+  </symbol>
+
+  <!-- record a returned container -->
+  <symbol id="i-return" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+    <path d="M3 3v5h5"/>
+    <path d="M9 12h6"/>
+    <path d="M12 9v6"/>
+  </symbol>
+
+</svg>

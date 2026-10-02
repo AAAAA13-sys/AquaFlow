@@ -1,0 +1,181 @@
+/* =============================================================================
+   AquaFlow icons
+
+   Sizes and aligns the SVG sprite referenced from /icons/sprite.svg.
+   The icons themselves carry their own stroke/fill attributes, so colour comes
+   from `color` on any ancestor - the sprite inherits currentColor.
+
+       <svg class="icon"><use href="/icons/sprite.svg#i-alert"></use></svg>
+   ========================================================================== */
+
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  display: inline-block;
+  vertical-align: -0.135em;
+  overflow: visible;
+}
+
+/* Sizes relative to the surrounding text, so an icon inside a 12px label is 12px. */
+.icon-sm { font-size: 0.9em; }
+.icon-xs { font-size: 0.78em; }
+.icon-lg { font-size: 1.35em; }
+.icon-xl { font-size: 1.9em; }
+
+/* Inside sidebar / nav links the icon sits slightly proud of the label. */
+.sidebar-link .icon,
+.admin-sidebar a .icon {
+  vertical-align: -0.15em;
+}
+
+/* Segment buttons (Walk-In / Delivery) centre the icon against its label. */
+.seg-btn .icon {
+  vertical-align: -0.16em;
+  margin-right: 0.15em;
+}
+
+/* Customer row stats: the icon must not stretch the row height. */
+.cust-row-stat .icon,
+.cust-detail .icon {
+  vertical-align: -0.14em;
+}
+
+/* Print: icons are decorative, keep them but never let them break a receipt. */
+@media print {
+  .icon { vertical-align: baseline; }
+}
+
+/* =============================================================================
+   Cashier POS additions
+   Debt badges, bulk quantity steps and the walk-in fast track.
+   ========================================================================== */
+
+/* --- Debt badges -----------------------------------------------------------
+   Debt is what a cashier scans the list for, so it gets a filled pill rather
+   than coloured text. Three tones: settled, outstanding, and "high" for the
+   balances worth chasing. Tone is always paired with a word (No balance /
+   debt) so it never relies on colour alone. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.badge .icon {
+  font-size: 0.9em;
+  vertical-align: -0.12em;
+}
+
+.badge-clear {
+  background-color: #DCFCE7;
+  color: #166534;
+  border: 1px solid #86EFAC;
+}
+
+.badge-warn {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.badge-high {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+
+.cust-row-stat.badge-host {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* --- Bulk quantity steps ----------------------------------------------------
+   +5 / +10 sit inside the existing stepper so a 10-jug commercial order is one
+   click instead of ten. Deliberately quieter than the -/+ buttons. */
+
+.qty-step {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: 0.3rem;
+  padding-left: 0.3rem;
+  border-left: 1px solid var(--border-line, #E2E8F0);
+}
+
+.qty-step button {
+  min-width: 30px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #334155;
+  background-color: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qty-step button:hover {
+  background-color: #E2E8F0;
+}
+
+.qty-step button:active {
+  transform: scale(0.95);
+}
+
+.qty-step button:focus-visible {
+  outline: 2px solid #00A3E0;
+  outline-offset: 1px;
+}
+
+/* --- Walk-in fast track -----------------------------------------------------
+   The one action a cashier takes most, so it carries primary weight and sits
+   first after the search field. */
+
+.stage-fasttrack {
+  white-space: nowrap;
+}
+
+.stage-toolbar {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .stage-fasttrack {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .qty-step {
+    margin-left: 0.2rem;
+    padding-left: 0.2rem;
+  }
+}
+
+/* Respect reduced-motion for the new press states. */
+@media (prefers-reduced-motion: reduce) {
+  .qty-step button:active {
+    transform: none;
+  }
+}
+
+/* Screen-reader-only helper for icon-only buttons. */
+.icon-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

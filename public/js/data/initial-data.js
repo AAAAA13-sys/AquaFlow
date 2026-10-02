@@ -68,8 +68,13 @@ function pending(c) {
   return { s: c.issuedS - c.returnedS, r: c.issuedR - c.returnedR };
 }
 
+// Status label + pill tone. The label itself is an explicit instruction
+// ("REORDER NOW") rather than a passive "Warning"; the pill tone still carries
+// the severity split so the two tiers remain visually distinguishable.
+// `status_label` / `needs_reorder` come from the backend resource.
 function statusOf(inv) {
-  if (inv.on <= inv.ss) return ['Critical', 'pill-bad'];
-  if (inv.on <= inv.rop) return ['Warning', 'pill-warn'];
+  if (inv.status_label) return [inv.status_label, inv.status === 'Critical' ? 'pill-bad' : 'pill-warn'];
+  if (inv.on <= inv.ss) return ['REORDER NOW', 'pill-bad'];
+  if (inv.on <= inv.rop) return ['REORDER NOW', 'pill-warn'];
   return ['OK', 'pill-ok'];
 }

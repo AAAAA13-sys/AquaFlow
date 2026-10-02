@@ -1131,6 +1131,17 @@ button {
   gap: 0.75rem;
 }
 
+/* The dashboard leads with actions, so the to-do card gets a stronger border to
+   separate it from the evidence below it. */
+.dashboard-todo-first {
+  margin-bottom: 0.75rem;
+  border-left: 4px solid #dc2626;
+}
+
+.dashboard-todo-first .panel-heading {
+  margin-top: 0;
+}
+
 @media (min-width: 768px) {
   .dashboard-row-4col {
     grid-template-columns: 1fr 1fr;
@@ -2142,6 +2153,14 @@ button.product-item .product-info-price {
   overflow-y: auto;
   min-height: 0;
   flex: 1 1 auto;
+}
+
+/* Stage 1's customer list must fill its panel. The base rule still carries a
+   180px max-height from the old three-column layout, which capped the list at
+   roughly three rows and left the rest of the panel empty. Uncapping it lets
+   the .scroll-region flex sizing above do the work. */
+.cashier-viewport .customer-list-container {
+  max-height: none;
 }
 
 /* Stage cards: a column that can shrink, so inner lists scroll instead of the page. */

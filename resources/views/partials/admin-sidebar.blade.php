@@ -1,13 +1,18 @@
-@php($tabs = [
-    'dashboard' => 'Dashboard',
-    'sales' => 'Sales & POS Logs',
-    'arima' => 'ARIMA Analytics',
-    'inventory' => 'Consumables & ROP',
-    'customers' => 'Customer Liabilities',
-    'suppliers' => 'Suppliers',
-    'users' => 'Users & Access',
-    'settings' => 'Settings',
-])
+@php
+  // Plain-language label first, technical term kept underneath as a subtitle.
+  // A station owner should never need to know what ROP or ARIMA means to use the
+  // app, but the thesis still needs the precise term visible to a reviewer.
+  $tabs = [
+      'dashboard'  => ['label' => 'Overview',        'hint' => null],
+      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs'],
+      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model'],
+      'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points'],
+      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities'],
+      'suppliers'  => ['label' => 'Suppliers',       'hint' => null],
+      'users'      => ['label' => 'Staff & Access',  'hint' => 'Users'],
+      'settings'   => ['label' => 'Settings',        'hint' => null],
+  ]
+@endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
@@ -26,10 +31,12 @@
     @foreach ($tabs as $slug => $label)
       <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
          class="sidebar-link {{ $active === $slug ? 'active' : '' }}">
-        <span>{{ $label }}</span>
-        @if ($slug === 'arima')
-          <span class="pill pill-info">ARIMA</span>
-        @endif
+        <span class="sidebar-link-text">
+          <span class="sidebar-link-label">{{ $label['label'] }}</span>
+          @if ($label['hint'])
+            <span class="sidebar-link-hint">{{ $label['hint'] }}</span>
+          @endif
+        </span>
       </a>
     @endforeach
   </nav>
