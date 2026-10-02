@@ -1,16 +1,58 @@
 // Inventory Table Rendering
+//
+// Filter state for the dashboard's "Stock Check" card. Kept module-level so the
+// active tab survives a re-render (e.g. after a lead-time edit).
+let stockFilter = 'all';
+
+const STOCK_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'Consumable', label: 'Consumables' },
+  { key: 'Filtration', label: 'Filtration' },
+  { key: 'Asset', label: 'Assets' },
+  { key: 'Cleaning', label: 'Cleaning' },
+  { key: 'reorder', label: 'Needs Reorder' },
+];
+
+function stockFilterMatch(v, key) {
+  if (key === 'all') return true;
+  if (key === 'reorder') return statusOf(v)[0] !== 'OK';
+  return v.cat === key;
+}
+
+function stockFiltered() {
+  return DB.inventory.filter(v => stockFilterMatch(v, stockFilter));
+}
+
+function renderStockFilterTabs() {
+  const host = document.getElementById('invFilterTabs');
+  if (!host) return;
+  host.innerHTML = STOCK_FILTERS.map(f => {
+    const n = DB.inventory.filter(v => stockFilterMatch(v, f.key)).length;
+    const active = stockFilter === f.key;
+    return '<button type="button" class="filter-tab' + (active ? ' is-active' : '') + '" ' +
+      'onclick="setStockFilter(\'' + f.key + '\')" aria-pressed="' + active + '">' +
+      f.label + ' <span class="filter-tab-count">' + n + '</span></button>';
+  }).join('');
+}
+
+function setStockFilter(key) {
+  stockFilter = STOCK_FILTERS.some(f => f.key === key) ? key : 'all';
+  renderStockFilterTabs();
+  renderInvTable();
+}
+
 function renderInvTable() {
   const body = document.getElementById('invBody');
   if (body) {
     body.innerHTML = DB.inventory.map((v, i) => {
       const st = statusOf(v);
       return '<tr><td><b>' + v.item + '</b><span class="cell-sub">' + v.cat + ' | ' + v.supplier + '</span></td>' +
-        '<td>' + v.cat + '</td><td class="num"><b>' + v.on.toLocaleString() + '</b> ' + v.unit + '</td>' +
+        '<td>' + v.cat + '</td><td class="num"><b>' + v.on.toLocaleString() + '</b><span class="num-unit">' + v.unit + '</span></td>' +
         '<td class="num">' + v.ss + '</td><td class="num" id="rop' + i + '">' + v.rop + '</td>' +
         '<td><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
         '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
-        '<td><button onclick="stkAdj(' + i + ',1)" class="btn btn-ghost btn-sm">+ In</button> ' +
-        '<button onclick="stkAdj(' + i + ',-1)" class="btn btn-ghost btn-sm">- Adj</button></td></tr>';
+        '<td><button onclick="stkAdj(' + i + ',1)" class="btn btn-secondary btn-sm">+ In</button> ' +
+        '<button onclick="stkAdj(' + i + ',-1)" class="btn btn-secondary btn-sm">- Adj</button></td></tr>';
     }).join('');
   }
 
@@ -18,14 +60,26 @@ function renderInvTable() {
   const health = document.getElementById('invHealth');
   if (health) health.textContent = crit.length + ' item(s) need reorder';
 
+  renderStockFilterTabs();
+
   const dash = document.getElementById('invBodyDash');
   if (dash) {
-    dash.innerHTML = DB.inventory.map(v => {
-      const st = statusOf(v);
-      return '<tr><td><b>' + v.item + '</b></td><td>' + v.cat + '</td>' +
-        '<td class="num">' + v.on.toLocaleString() + ' ' + v.unit + '</td><td class="num">' + v.rop + '</td>' +
-        '<td>' + v.lead + 'd</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
-    }).join('');
+    const rows = stockFiltered();
+    if (!rows.length) {
+      dash.innerHTML = '<tr><td colspan="5" class="empty-cell">Nothing matches this filter.</td></tr>';
+    } else {
+      dash.innerHTML = rows.map(v => {
+        const st = statusOf(v);
+        const days = v.days_left === null || v.days_left === undefined
+          ? '&mdash;'
+          : Number(v.days_left).toFixed(1) + 'd';
+        return '<tr><td><b>' + v.item + '</b><span class="cell-sub">' + v.cat + ' | ' + v.supplier + '</span></td>' +
+          '<td class="num"><b>' + v.on.toLocaleString() + '</b><span class="num-unit">' + v.unit + '</span></td>' +
+          '<td class="num">' + v.rop + '</td>' +
+          '<td class="num">' + days + '</td>' +
+          '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
+      }).join('');
+    }
   }
 }
 

@@ -83,8 +83,11 @@ class PageTest extends TestCase
             ->assertSee('Running Total', false)
             // Walk-in / Delivery is a segmented toggle at the top of stage 2.
             ->assertSee('class="stage-segment"', false)
-            ->assertSee('🚶 Walk-In', false)
-            ->assertSee('🚚 Delivery', false);
+            ->assertSee('Walk-In', false)
+            ->assertSee('Delivery', false)
+            // Each segment is labelled by a sprite icon rather than an emoji.
+            ->assertSee('#i-walkin', false)
+            ->assertSee('#i-truck', false);
     }
 
     public function test_the_cashier_never_enters_filled_out_or_returned_containers(): void
@@ -384,14 +387,16 @@ class PageTest extends TestCase
     {
         $this->actingAs($this->owner)->get('/admin')->assertRedirect('/admin/dashboard');
 
+        // The sidebar shows a plain-language label for station owners, with the
+        // precise thesis term kept underneath it in a .sidebar-link-hint.
         $tabs = [
-            'dashboard' => 'Station Dashboard &amp; Analytics',
-            'sales' => 'Sales &amp; POS Logs',
-            'arima' => 'ARIMA Analytics',
-            'inventory' => 'Consumables &amp; ROP',
-            'customers' => 'Customer Liabilities',
+            'dashboard' => 'Overview',
+            'sales' => 'Sales History',
+            'arima' => 'Demand Forecast',
+            'inventory' => 'Stock &amp; Supplies',
+            'customers' => 'Customer Balances',
             'suppliers' => 'Suppliers',
-            'users' => 'Users &amp; Access',
+            'users' => 'Staff &amp; Access',
             'settings' => 'Settings',
         ];
 
@@ -401,6 +406,14 @@ class PageTest extends TestCase
                 ->assertOk()
                 ->assertSee($marker, false);
         }
+
+        // The technical terms the thesis relies on must stay visible to a reviewer.
+        $this->actingAs($this->owner)
+            ->get('/admin/arima')
+            ->assertSee('ARIMA model', false);
+        $this->actingAs($this->owner)
+            ->get('/admin/inventory')
+            ->assertSee('reorder point', false);
     }
 
     public function test_the_owner_can_also_open_the_terminal(): void
