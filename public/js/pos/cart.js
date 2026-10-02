@@ -19,6 +19,10 @@ var POS = { type: 'Walk-in', cart: [], custId: null, orderN: 1018 };
 
 const VAT_RATE = 0.12;
 
+// icon() / SPRITE_URL now live in js/data/store.js so the owner portal can use
+// them too — they used to be defined here and the admin pages threw
+// "icon is not defined" when rendering the ledger.
+
 // Resume order numbering past any persisted transaction so OR numbers never collide.
 (function () {
   restorePOSState();
@@ -80,6 +84,40 @@ function setType(t) {
 
 // ---------- Customer list ----------
 
+const WALK_IN_NAME = 'Walk-in Guest';
+
+// Debt is the number a cashier scans for, so it gets a real badge rather than
+// coloured text. Bands are deliberately simple: settled, outstanding, and a
+// "high" tier for the balances worth chasing before they grow.
+const DEBT_HIGH = 5000;
+
+function debtBadge(debt) {
+  const amount = Number(debt) || 0;
+
+  if (amount <= 0) {
+    return '<span class="badge badge-clear">' + icon('i-check-circle') + ' No balance</span>';
+  }
+
+  const tone = amount >= DEBT_HIGH ? 'badge-high' : 'badge-warn';
+  return '<span class="badge ' + tone + '">' + icon('i-alert') + ' ' + peso(amount) + ' debt</span>';
+}
+
+/**
+ * One-click fast track for a plain cash sale.
+ *
+ * The guest customer is a real seeded record, so this only reuses the normal
+ * selection path - it does not bypass any server rule. Payment still follows the
+ * order type (walk-in => cash), which the API re-derives regardless.
+ */
+function pickWalkIn() {
+  const guest = DB.customers.find(c => c.name === WALK_IN_NAME);
+  if (!guest) {
+    alert('Walk-in customer is missing. Re-seed the database to restore it.');
+    return;
+  }
+  pickCust(guest.id);
+}
+
 function renderCustList() {
   const search = document.getElementById('custSearch');
   const list = document.getElementById('custList');
@@ -98,9 +136,8 @@ function renderCustList() {
       return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
         '<b class="cust-row-name">' + c.name + '</b>' +
         '<span class="cust-row-addr">' + c.addr + '</span>' +
-        '<span class="cust-row-stat">📦 ' + custody + ' jug' + (custody === 1 ? '' : 's') + '</span>' +
-        '<span class="cust-row-stat ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
-        (debt > 0 ? '⚠️ ' + peso(debt) + ' debt' : '✓ Clear') + '</span>' +
+        '<span class="cust-row-stat">' + icon('i-package') + ' ' + custody + ' jug' + (custody === 1 ? '' : 's') + '</span>' +
+        '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
         '</button>';
     }).join('');
   }
@@ -123,9 +160,9 @@ function renderCustList() {
   card.innerHTML =
     '<b class="cust-detail-name">' + c.name + '</b>' +
     '<span class="cust-detail">' + c.addr + '</span>' +
-    '<span class="cust-detail">📦 ' + custody + ' jug' + (custody === 1 ? '' : 's') + ' in custody</span>' +
+    '<span class="cust-detail">' + icon('i-package') + ' ' + custody + ' jug' + (custody === 1 ? '' : 's') + ' in custody</span>' +
     '<span class="cust-detail ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
-    (debt > 0 ? '⚠️ ' + peso(debt) + ' debt' : '✓ No balance') + '</span>';
+    (debt > 0 ? icon('i-alert') + ' ' + peso(debt) + ' debt' : icon('i-check-circle') + ' No balance') + '</span>';
 }
 
 function pickCust(id) {
@@ -241,6 +278,15 @@ function chgQty(i, d) {
   renderPOS();
 }
 
+/** Bulk quantity step for commercial orders: +1 / +5 / +10 in one click. */
+function addQty(i, step) {
+  if (!POS.cart[i]) return;
+  POS.cart[i].q += Number(step) || 0;
+  if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
+  savePOSState();
+  renderPOS();
+}
+
 /** Only refilled gallons consume caps and seals; containers are merchandise. */
 function cartGallons() {
   return POS.cart.filter(item => item.cat === 'refill').reduce((sum, item) => sum + item.q, 0);
@@ -270,7 +316,12 @@ function cartRowsHtml() {
   return POS.cart.map((it, x) =>
     '<div class="order-row">' +
     '<span>' + it.name + '</span><span class="text-right">' + money(it.price) + '</span>' +
-    '<span class="qty-ctrl"><button type="button" onclick="chgQty(' + x + ',-1)">-</button><b>x' + it.q + '</b><button type="button" onclick="chgQty(' + x + ',1)">+</button></span>' +
+    '<span class="qty-ctrl"><button type="button" onclick="chgQty(' + x + ',-1)">-</button><b>x' + it.q + '</b><button type="button" onclick="chgQty(' + x + ',1)">+</button>' +
+      '<span class="qty-step">' +
+        '<button type="button" onclick="addQty(' + x + ',5)" title="Add 5">+5</button>' +
+        '<button type="button" onclick="addQty(' + x + ',10)" title="Add 10">+10</button>' +
+      '</span>' +
+    '</span>' +
     '<span class="text-right"><b>' + peso(it.price * it.q) + '</b></span></div>'
   ).join('');
 }
@@ -350,7 +401,7 @@ function renderPOS() {
       ? '<span class="cust-detail">No customer selected yet.</span>'
       : '<b class="cust-detail-name">' + c.name + '</b>' +
         '<span class="cust-detail">' + c.addr + '</span>' +
-        '<span class="cust-detail">' + (isDelivery() ? '🚚 Delivery' : '🚶 Walk-in') + '</span>' +
+        '<span class="cust-detail">' + (isDelivery() ? icon('i-truck') + ' Delivery' : icon('i-walkin') + ' Walk-in') + '</span>' +
         '<span class="cust-detail">Existing debt: ' + money(Number(c.debt)) + '</span>';
   }
 

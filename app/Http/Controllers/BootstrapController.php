@@ -39,8 +39,9 @@ class BootstrapController extends Controller
             'products' => ProductResource::collection(
                 Product::query()->with('inventoryItem')->where('is_active', true)->orderBy('id')->get()
             ),
-            'inventory' => InventoryItemResource::collection(
-                InventoryItem::query()->with('supplier')->orderBy('id')->get()
+            'inventory' => InventoryItemResource::forItems(
+                InventoryItem::query()->with('supplier')->orderBy('id')->get(),
+                $this->inventory
             ),
             'advisories' => $this->inventory->advisories(),
             'customers' => CustomerResource::collection(

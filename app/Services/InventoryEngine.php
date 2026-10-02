@@ -81,6 +81,74 @@ class InventoryEngine
         };
     }
 
+    // ---------------------------------------------------------------------
+    // Canonical days-of-cover (SINGLE SOURCE OF TRUTH)
+    //
+    // Days Remaining = Current Stock Quantity / ARIMA Projected Daily Consumption
+    //
+    // This previously existed twice: once here and once in the browser
+    // (insights.js dailyUse(), which multiplied forecast average by hard-coded
+    // factors of 0.8/1.2/1.5). That produced two different answers on the same
+    // screen - "Non-Spill Caps" read 2.2 days in the Days Left panel and 1.7 in
+    // the advisory. Every consumer now reads these numbers instead of computing
+    // its own.
+    // ---------------------------------------------------------------------
+
+    /**
+     * @return array{daily_demand: float, demand_source: string, days_left: float|null, days_exact: float|null}
+     */
+    public function daysRemaining(InventoryItem|int $item): array
+    {
+        $model = $item instanceof InventoryItem
+            ? $item
+            : InventoryItem::query()->findOrFail($item);
+
+        $profile = $this->demandProfile($model->item_name);
+        $daily = (float) $profile['daily'];
+
+        // Demand of zero is unknown demand, not infinite stock. Report it as null
+        // so the UI can say "no forecast yet" instead of dividing by zero.
+        $exact = $daily > 0.0 ? $model->stock_on_hand / $daily : null;
+
+        return [
+            'daily_demand' => round($daily, 2),
+            'demand_source' => (string) $profile['source'],
+            'days_exact' => $exact,
+            'days_left' => $exact === null ? null : round($exact, 1),
+        ];
+    }
+
+    /**
+     * Same figure for many items, without N+1 queries.
+     *
+     * @param  iterable<int, InventoryItem>  $items
+     * @return array<int, array{daily_demand: float, demand_source: string, days_left: float|null, days_exact: float|null}>
+     */
+    public function daysRemainingFor(iterable $items): array
+    {
+        $out = [];
+        foreach ($items as $item) {
+            $out[$item->id] = $this->daysRemaining($item);
+        }
+
+        return $out;
+    }
+
+    /**
+     * "1 unit" / "2 units" / "1 pack" - keeps advisory copy grammatical.
+     */
+    public function quantityLabel(int $quantity, string $unit): string
+    {
+        $quantity = max(0, $quantity);
+        $noun = match (true) {
+            $quantity === 1 && $unit === 'pcs' => 'unit',
+            $quantity === 1 => rtrim($unit, 's'),
+            default => str_ends_with($unit, 's') ? $unit : $unit . 's',
+        };
+
+        return $quantity . ' ' . $noun;
+    }
+
     // Safety Stock & ROP Formulas
     public function safetyStock(float $dailyStdDev, int $leadTimeDays, float $priorityFactor): int
     {
@@ -150,10 +218,9 @@ class InventoryEngine
             ->get()
             ->filter(fn (InventoryItem $item): bool => $item->needsReorder())
             ->map(function (InventoryItem $item): array {
-                $profile = $this->demandProfile($item->item_name);
-                $daysLeft = $profile['daily'] > 0
-                    ? $item->stock_on_hand / $profile['daily']
-                    : 999.0;
+                // One formula, shared with the inventory list and the resource.
+                $cover = $this->daysRemaining($item);
+                $orderQty = $this->recommendedOrderQuantity($item);
 
                 return [
                     'id' => $item->id,
@@ -166,13 +233,18 @@ class InventoryEngine
                     'target_stock' => $item->target_stock,
                     'lead_time' => $item->lead_time_days,
                     'supplier' => $item->supplier?->name ?? '-',
-                    'daily_demand' => round($profile['daily'], 2),
-                    'days_left' => round($daysLeft, 1),
-                    'order_quantity' => $this->recommendedOrderQuantity($item),
+                    'daily_demand' => $cover['daily_demand'],
+                    'demand_source' => $cover['demand_source'],
+                    'days_left' => $cover['days_left'],
+                    'order_quantity' => $orderQty,
+                    'order_quantity_label' => $this->quantityLabel($orderQty, $item->unit),
+                    'on_hand_label' => $this->quantityLabel($item->stock_on_hand, $item->unit),
+                    // Explicit call to action instead of a passive "Warning".
+                    'status_label' => 'REORDER NOW',
                     'severity' => $item->stock_on_hand <= $item->safety_stock ? 'critical' : 'warning',
                 ];
             })
-            ->sortBy('days_left')
+            ->sortBy(fn (array $row): float => $row['days_left'] ?? PHP_FLOAT_MAX)
             ->values();
     }
 }

@@ -19,10 +19,10 @@ class InventoryController extends Controller
 
     public function index(): JsonResponse
     {
+        $items = InventoryItem::query()->with('supplier')->orderBy('id')->get();
+
         return response()->json([
-            'inventory' => InventoryItemResource::collection(
-                InventoryItem::query()->with('supplier')->orderBy('id')->get()
-            ),
+            'inventory' => InventoryItemResource::forItems($items, $this->engine),
             'advisories' => $this->engine->advisories(),
         ]);
     }
@@ -115,12 +115,11 @@ class InventoryController extends Controller
     public function recalculate(): JsonResponse
     {
         $updated = $this->engine->recalculateAll();
+        $items = InventoryItem::query()->with('supplier')->orderBy('id')->get();
 
         return response()->json([
             'updated' => $updated,
-            'inventory' => InventoryItemResource::collection(
-                InventoryItem::query()->with('supplier')->orderBy('id')->get()
-            ),
+            'inventory' => InventoryItemResource::forItems($items, $this->engine),
             'advisories' => $this->engine->advisories(),
         ]);
     }

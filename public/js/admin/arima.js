@@ -1,4 +1,4 @@
-// Series Mapping & Selectors
+﻿// Series Mapping & Selectors
 const ARIMA_SERIES = {
   'Refill gallons': 'Refill Gallons',
   'Heat Shrink Seals': 'Heat Shrink Seals',
@@ -68,14 +68,25 @@ function renderForecast() {
     : agg(forecast, hz).map((v, i) => [(hz === 7 ? 'Week ' : 'Month ') + (i + 1) + ' forecast', v]);
 
   const seasonalPill = model.method === 'arima_seasonal'
-    ? '<span class="pill pill-ok">Weekly seasonality</span>'
+    ? '<span class="pill pill-ok" title="Detects a repeating weekly pattern">Follows your weekly pattern</span>'
     : '';
 
+  // Pill labels are written for a station owner, not a statistician. The exact
+  // figures stay in the tooltip and in the explanation below, so a reviewer can
+  // still read ARIMA order, MAPE and the Ljung-Box result.
+  const mapeNum = Number(model.mape);
+  const mapePill = Number.isFinite(mapeNum)
+    ? '<span class="pill ' + (mapeNum <= 10 ? 'pill-ok' : mapeNum <= 20 ? 'pill-warn' : 'pill-bad') +
+      '" title="MAPE ' + mapeNum + '% — average error when the model was tested on days it had not seen">Usually right by ' +
+      (100 - mapeNum).toFixed(0) + '%</span>'
+    : '';
+  const residOk = model.ljung_box_pvalue > 0.05;
+  const residPill = '<span class="pill ' + (residOk ? 'pill-ok' : 'pill-warn') +
+    '" title="Ljung-Box p ' + model.ljung_box_pvalue + '">Pattern is reliable</span>';
+
   const metaHtml =
-    '<span class="pill pill-info">' + (model.order || 'ARIMA') + '</span> ' +
-    seasonalPill + ' ' +
-    '<span class="pill pill-ok">Backtest MAPE ' + (model.mape ?? '-') + '%</span> ' +
-    '<span class="pill pill-info">Ljung-Box p ' + (model.ljung_box_pvalue ?? '-') + '</span>';
+    '<span class="pill pill-info" title="' + (model.order || 'ARIMA') + '">Smart prediction model</span> ' +
+    seasonalPill + ' ' + mapePill + ' ' + residPill;
 
   if (meta) meta.innerHTML = metaHtml;
   if (metaDash) metaDash.innerHTML = metaHtml;
@@ -85,16 +96,21 @@ function renderForecast() {
     const firstItem = (DB.advisories && DB.advisories[0]) ? DB.advisories[0] : null;
     const action = firstItem
       ? 'order ' + Number(firstItem.order_quantity).toLocaleString() + ' ' + firstItem.unit + ' of ' + firstItem.item + ' from ' + firstItem.supplier
-      : 'check the Consumables & ROP tab for what to order';
+      : 'check the Stock & Supplies tab for what to order';
 
     table.innerHTML = rows.map(r =>
       '<div class="insight-row"><span>' + r[0] + '</span><b>' + Math.round(r[1]).toLocaleString() + ' ' + unit + '</b></div>'
     ).join('') + '<p class="insight-note"><b>What this means:</b> about ' + next3.toLocaleString() + ' ' + unit + ' are projected for the next 3 days.<br>' +
     '<b>What to do:</b> ' + action + '.<br>' +
-    '<b>Model confidence:</b> backtest error is ' + (model.mape ?? '-') + '% (MAPE) on held-out days' +
-    (model.ljung_box_pvalue !== undefined ? ', and residual autocorrelation is ' + (model.ljung_box_pvalue > 0.05 ? 'not significant (model fits)' : 'still present') : '') + '.</p>';
+    '<b>How reliable is this?</b> When AquaFlow was tested on days it had not seen before, its answer was off by about ' + (model.mape ?? '-') +
+    '% on average <span class="term-hint">(MAPE ' + (model.mape ?? '-') + '%)</span>' +
+    (model.ljung_box_pvalue !== undefined
+      ? ', and the weekly pattern it found ' + (residOk ? 'holds up on its own' : 'still needs more data') +
+        ' <span class="term-hint">(Ljung-Box p = ' + model.ljung_box_pvalue + ')</span>'
+      : '') + '. Treat it as a good guide, not an exact number.</p>';
   }
 }
+
 
 
 // Demand Chart (14-Day History + 7-Day Forecast)
@@ -120,10 +136,23 @@ function renderDemandChart() {
         { label: 'Forecast', type: 'line', data: [...Array(last14.length - 1).fill(null), last14[last14.length - 1], ...fc], borderColor: '#F59E0B', borderDash: [6, 4], tension: 0.3 }
       ]
     },
-    options: { plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+    options: {
+      responsive: true,
+      // Chart.js sizes the canvas from its content, so an axis with many wide
+      // labels (real dates, autoSkip off) expands the card instead of the
+      // card containing it. Skipping labels keeps the axis narrow. Do not set
+      // autoSkip: false here.
+      plugins: {
+        legend: { display: true },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { beginAtZero: true },
+        x: { ticks: { autoSkip: true, maxTicksLimit: 12, maxRotation: 0 }, grid: { display: false } }
+      }
+    }
   });
 }
-
 
 // ARIMA Model Chart (Multi-Horizon)
 function renderArimaChart() {

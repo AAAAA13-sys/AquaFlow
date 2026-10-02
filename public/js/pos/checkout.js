@@ -154,6 +154,49 @@ function posNext() {
   else posStep(posCur + 1);
 }
 
+// ---------------------------------------------------------------------------
+// Keyboard shortcuts
+//
+// Every key is delegated to the same functions the on-screen buttons call, so
+// the hotkeys cannot bypass a stage-validity rule: Enter still runs
+// validateStage(), and Esc still calls posPrev().
+//
+// Keys are ignored while the cashier is typing in a field, otherwise a customer
+// name containing "enter"-adjacent keys would keep jumping the wizard.
+// ---------------------------------------------------------------------------
+
+// Each entry declares whether it may fire while the cashier is typing. Enter is
+// blocked in a text field because it would otherwise advance the wizard while
+// the cashier is still entering a customer name. F-keys and Escape are safe.
+const POS_HOTKEYS = {
+  Enter: { whileTyping: false, run: () => posNext() },
+  Escape: { whileTyping: true, run: () => posPrev() },
+  F2: { whileTyping: true, run: () => pickWalkIn() },
+  F4: { whileTyping: true, run: () => setType(isDelivery() ? 'Walk-in' : 'Delivery') },
+  F8: { whileTyping: true, run: () => { if (typeof toggleDebtSettle === 'function') toggleDebtSettle(); } },
+};
+
+/** True when focus is somewhere the cashier is typing text. */
+function posTypingInField(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  return target.isContentEditable === true;
+}
+
+function initPosHotkeys() {
+  document.addEventListener('keydown', event => {
+    const binding = POS_HOTKEYS[event.key];
+    if (!binding) return;
+
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!binding.whileTyping && posTypingInField(event.target)) return;
+
+    event.preventDefault();
+    binding.run();
+  });
+}
+
 // Shared boot: role guard, session name, live clock and live data.
 async function bootCashierPortal() {
   const session = guardCashier();
@@ -170,6 +213,13 @@ async function bootCashierPortal() {
     await loadFromServer();
   } catch (error) {
     console.warn('AquaFlow: API unavailable, using cached data. ' + error.message);
+  }
+
+  // Keyboard shortcuts are a document-level listener, so they are installed
+  // once per full page load (not per tab render) to avoid double-binding.
+  if (!document.body.dataset.posHotkeys) {
+    document.body.dataset.posHotkeys = '1';
+    initPosHotkeys();
   }
 
   return session;

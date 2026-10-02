@@ -1,16 +1,20 @@
 @extends('layouts.admin')
 
-@section('title', 'ARIMA Analytics | ' . ($stationName ?? 'AquaFlow'))
-@section('topbar-title', 'ARIMA Analytics')
+@section('title', 'Demand Forecast | ' . ($stationName ?? 'AquaFlow'))
+@section('topbar-title', 'Demand Forecast')
 
 @section('admin-content')
   <section id="s-arima">
-    <h2 class="auth-title">ARIMA Analytics <span class="pill pill-info">thesis model</span></h2>
-    <p class="auth-description">Dedicated ARIMA forecasting suite analyzing historical volume to project next 7 days demand.</p>
+    <h2 class="auth-title">Demand Forecast <span class="pill pill-info">smart prediction</span></h2>
+    <p class="auth-description">
+      AquaFlow studies your past sales and predicts how much you will need for the next
+      7 days, so you can buy and prepare in advance.
+      <span class="term-hint">Powered by an ARIMA model fitted to your sales history.</span>
+    </p>
 
     <div class="card filter-toolbar no-print">
       <div class="filter-group">
-        <label class="form-label">Time frame</label>
+        <label class="form-label">Show by</label>
         <select id="fHorizon" onchange="renderArimaChart(); renderForecast()">
           <option>Daily</option>
           <option>Weekly</option>
@@ -18,7 +22,7 @@
         </select>
       </div>
       <div class="filter-group">
-        <label class="form-label">Item</label>
+        <label class="form-label">Product</label>
         <select id="fSeries" onchange="renderArimaChart(); renderForecast()">
           <option>Refill gallons</option>
           <option>Heat Shrink Seals</option>
@@ -32,12 +36,12 @@
 
     <div class="dashboard-row-2col">
       <div class="card">
-        <h3 class="panel-heading">ARIMA Demand Forecasting Engine</h3>
+        <h3 class="panel-heading">What You Will Need <span class="term-hint">ARIMA demand forecast</span></h3>
         <canvas id="chArima" height="140"></canvas>
         <div id="fcMeta" class="orders-queue-list order-type-selector"></div>
       </div>
       <div class="card">
-        <h3 class="panel-heading">Next 7 Days - Action Recommendations</h3>
+        <h3 class="panel-heading">What To Do This Week</h3>
         <div id="fcTable"></div>
       </div>
     </div>
