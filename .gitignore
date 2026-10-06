@@ -29,3 +29,10 @@ __pycache__/
 .pytest_cache/
 analytics/.venv/
 /package-lock.json
+
+# Local Python virtualenv (repo root)
+/.venv/
+
+# Tooling / generated
+/.opencode/
+/graphify-out/

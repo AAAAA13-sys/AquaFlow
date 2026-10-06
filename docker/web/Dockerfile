@@ -1,6 +1,6 @@
 # AquaFlow presentation tier (Tier 1) - nginx reverse proxy in front of Laravel.
 # Terminates client connections, adds security headers and forwards to the app.
-FROM nginx:1.27-alpine
+FROM nginx:1.27-alpine AS web
 
 RUN rm -f /etc/nginx/conf.d/default.conf
 

@@ -3,6 +3,7 @@
 #   Tier 1  web              nginx: public entry point, security headers, proxy
 #   Tier 2  app              Laravel + PHP 8.2 + Apache: pages and REST API
 #           worker           same image: runs the Laravel scheduler
+#           test             same image + dev deps: PHPUnit against aquaflow_test
 #   Tier 3  analytics        Python + statsmodels: ARIMA forecasting service
 #   Tier 4  db               MySQL 8 with a persistent volume
 #
@@ -14,6 +15,11 @@
 #   docker compose --profile setup run --rm migrate               # schema + demo data
 #   open http://localhost:8080/
 #
+# Run the tests:
+#   docker compose --profile test up -d test
+#   docker compose exec test php artisan test
+#   docker compose exec test php artisan test --filter=US03
+
 services:
   db:
     image: mysql:8.0
@@ -39,11 +45,12 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
+      target: app
     environment:
       APP_NAME: ${APP_NAME:-AquaFlow}
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY:?run: docker compose run --rm app php artisan key:generate --show}
+      APP_KEY: "${APP_KEY:?run: docker compose run --rm app php artisan key:generate --show}"
       APP_URL: ${APP_URL:-http://localhost:8080}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
       LOG_CHANNEL: stderr
@@ -69,6 +76,7 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
+      target: app
     profiles: ["setup"]
     command: >
       sh -c "php artisan migrate --force --seed
@@ -84,6 +92,48 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       ANALYTICS_URL: http://analytics:5000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    networks: [aquaflow]
+
+  # Test runner. Separate database (aquaflow_test) so a run can never touch
+  # application data. Source is bind-mounted, so editing a PHP file needs no
+  # rebuild - start it once and exec as many runs as you like.
+  test:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+      target: test
+    profiles: ["test"]
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "true"
+      APP_KEY: ${APP_KEY:?generate an APP_KEY first}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: aquaflow_test
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      ANALYTICS_URL: http://analytics:5000
+    volumes:
+      # The container keeps its own vendor/; only source is shared with the host.
+      - ./app:/var/www/html/app
+      - ./tests:/var/www/html/tests
+      - ./routes:/var/www/html/routes
+      - ./config:/var/www/html/config
+      - ./database:/var/www/html/database
+      - ./resources:/var/www/html/resources
+      - ./public:/var/www/html/public
+      - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
+      - ./phpunit.xml:/var/www/html/phpunit.xml
     depends_on:
       db:
         condition: service_healthy
@@ -111,6 +161,7 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
+      target: app
     command: ["php", "artisan", "schedule:work"]
     environment:
       APP_ENV: production
@@ -133,6 +184,7 @@ services:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
+      target: web
     ports:
       - "${AQUAFLOW_HTTP_PORT:-8080}:80"
     depends_on:

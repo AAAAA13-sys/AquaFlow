@@ -1,6 +1,7 @@
 # Keep build contexts small and free of secrets.
 .git
 .gitignore
+.github
 .env
 .env.example
 docker-compose.yml
@@ -13,14 +14,22 @@ storage/framework/views
 bootstrap/cache
 public/build
 public/hot
-tests
 docs
 .phpunit.result.cache
 
+# `tests/` is intentionally NOT ignored: the `test` image ships PHPUnit specs so
+# it works even without the compose bind mounts.
+
 # Python
+__pycache__
 analytics/__pycache__
 analytics/.pytest_cache
 analytics/.venv
+.venv
+
+# Tooling / generated
+.opencode
+graphify-out
 
 # OS
 Thumbs.db

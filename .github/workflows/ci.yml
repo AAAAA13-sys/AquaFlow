@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Tier 2 + 4: Laravel feature/unit suite against a real MySQL 8 instance.
+  # SQLite is not an option - checkout uses MySQL-specific SQL.
+  # ---------------------------------------------------------------------------
+  laravel:
+    name: Laravel (PHP 8.2 + MySQL 8)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: aquaflow_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, openssl, curl, bcmath, fileinfo
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          {
+            echo "DB_CONNECTION=mysql"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=3306"
+            echo "DB_USERNAME=root"
+            echo "DB_PASSWORD=root"
+          } >> .env
+
+      - name: Verify the test database is reachable
+        run: php -r 'new PDO("mysql:host=127.0.0.1;port=3306;dbname=aquaflow_test", "root", "root"); echo "connected\n";'
+
+      - name: Run the test suite
+        run: php artisan test
+
+  # ---------------------------------------------------------------------------
+  # Tier 3: the Python ARIMA engine.
+  # ---------------------------------------------------------------------------
+  analytics:
+    name: Analytics (Python 3.12)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: analytics
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: analytics/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run engine tests
+        run: python -m pytest tests -q
+
+  # ---------------------------------------------------------------------------
+  # The four-tier Docker stack must actually build. This is the job that keeps
+  # the Dockerfiles honest even though the images are not published here.
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+
+    env:
+      # Throwaway values: nothing is deployed, we only prove the build works.
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      MYSQL_ROOT_PASSWORD: ci-not-a-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose config --quiet
+
+      - name: Build all images
+        run: docker compose build
+
+      - name: Build the test runner image
+        run: docker compose --profile test build test

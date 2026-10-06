@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim
+FROM python:3.12-slim AS analytics
 
 WORKDIR /app
 
