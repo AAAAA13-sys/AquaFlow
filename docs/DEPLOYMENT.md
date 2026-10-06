@@ -232,3 +232,62 @@ migration is safely reversible).
 | `419 Page Expired` on POST | Missing/expired CSRF token | Reload the page; the client reads the `XSRF-TOKEN` cookie |
 | Port 8080 already in use | Another service | Change `AQUAFLOW_HTTP_PORT` |
 | `vendor` missing after copy | Dependencies not installed | `composer install` |
+
+---
+
+## 7. Docker-first workflow (Windows)
+
+Docker Desktop on Windows requires **WSL 2**. On a fresh machine, in an
+*Administrator* PowerShell:
+
+```powershell
+wsl --install
+wsl --set-default-version 2   # after the reboot
+```
+
+Install Docker Desktop from <https://www.docker.com/products/docker-desktop/> and
+enable *Settings -> Resources -> WSL Integration*.
+
+### Bring the stack up
+
+```bash
+cp .env.example .env
+# set MYSQL_ROOT_PASSWORD to anything
+docker compose build
+docker compose run --rm app php artisan key:generate --show   # paste into .env
+docker compose up -d
+docker compose --profile setup run --rm migrate
+```
+
+### Run the tests
+
+```bash
+docker compose --profile test up -d test
+docker compose exec test php artisan test
+docker compose exec test php artisan test --filter=US03
+```
+
+The `test` service is a separate build target of `docker/app/Dockerfile` with dev
+dependencies, running PHPUnit against its own `aquaflow_test` database so a test
+run can never touch application data. Source is bind-mounted, so editing a PHP
+file needs no rebuild.
+
+### Continuous integration and delivery
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+| Job | What it proves |
+|---|---|
+| Laravel (PHP 8.2 + MySQL 8) | `php artisan test` against a real MySQL service container |
+| Analytics (Python 3.12) | `pytest` for the ARIMA engine |
+| Docker images build | `docker compose config` plus a build of every image, so the Dockerfiles cannot silently rot |
+
+`.github/workflows/release.yml` publishes the `app`, `web` and `analytics` images
+to GitHub Container Registry when a `v*` tag is pushed:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Each image is tagged with the release tag and `latest`.

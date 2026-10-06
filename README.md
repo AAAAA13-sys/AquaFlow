@@ -61,28 +61,38 @@ Blade pages + vanilla JS  ──fetch /api/…──►  Laravel (controllers/se
 
 ---
 
-## Quick start (XAMPP)
+## Windows prerequisites (Docker)
+
+Docker Desktop on Windows needs **WSL 2**. On a fresh machine, in an
+*Administrator* PowerShell:
+
+```powershell
+wsl --install                  # installs WSL 2 + a default distro; REBOOT when prompted
+wsl --set-default-version 2    # after the reboot
+```
+
+Then install **Docker Desktop** from <https://www.docker.com/products/docker-desktop/>
+and enable *Settings → Resources → WSL Integration* for your distro. Confirm:
+
+```powershell
+docker --version
+docker compose version
+```
+
+## Quick start (Docker)
 
 ```bash
-# 1. Dependencies and configuration
-composer install
-cp .env.example .env            # then set DB_* and MYSQL_ROOT_PASSWORD
-php artisan key:generate
-
-# 2. Schema + demo data
-php artisan migrate --seed
-php artisan aquaflow:generate-history     # 90 days of sales for the model
-
-# 3. Forecasting tier (separate terminal)
-python -m pip install -r analytics/requirements.txt
-python analytics/service.py               # http://127.0.0.1:5000
-
-# 4. First forecast + inventory thresholds
-php artisan aquaflow:forecast
-
-# 5. Serve the application
-php artisan serve                          # http://127.0.0.1:8000
+cp .env.example .env
+# set MYSQL_ROOT_PASSWORD in .env to anything you like
+docker compose build
+docker compose run --rm app php artisan key:generate --show   # paste into .env as APP_KEY
+docker compose up -d
+docker compose --profile setup run --rm migrate               # schema + 90 days of demo data
+# open http://localhost:8080/
 ```
+
+Four tiers: `web` (nginx) → `app` (Laravel) + `worker` (scheduler) + `test`
+→ `analytics` (Python) → `db` (MySQL with a persistent volume).
 
 ### Demo credentials
 
@@ -93,21 +103,30 @@ php artisan serve                          # http://127.0.0.1:8000
 
 Passwords and the PIN are bcrypt hashes in MySQL; the browser never receives them.
 
----
-
-## Quick start (Docker)
+### Running the tests
 
 ```bash
-cp .env.example .env            # set MYSQL_ROOT_PASSWORD
-docker compose build
-docker compose run --rm app php artisan key:generate --show   # copy into .env
-docker compose up -d
-docker compose --profile setup run --rm migrate               # schema + demo data
-# open http://localhost:8080/
+docker compose --profile test up -d test
+docker compose exec test php artisan test
+docker compose exec test php artisan test --filter=US03
 ```
 
-Four tiers: `web` (nginx) → `app` (Laravel) + `worker` (scheduler) →
-`analytics` (Python) → `db` (MySQL with a persistent volume).
+The test service uses its own `aquaflow_test` database, so a run can never touch
+application data. Source is bind-mounted: edit a PHP file and re-run, no rebuild.
+
+### Stopping and resetting
+
+```bash
+docker compose down              # stop, keep the database
+docker compose down -v           # stop and DELETE the database volume
+docker compose --profile test down
+```
+
+### Without Docker (legacy)
+
+XAMPP + `php artisan serve` still works for a quick look, but Docker is the
+supported path. See `docs/DEPLOYMENT.md` for the legacy steps.
+
 See `docs/DEPLOYMENT.md` for the full guide.
 
 ---
@@ -268,7 +287,7 @@ of the day's log rather than the top.
 ## Testing
 
 ```bash
-php artisan test                              # 99 tests, 400 assertions
+php artisan test                              # 110 tests, 450 assertions
 python -m pytest analytics/tests -q           # 22 tests
 
 # Custom validation failures (analytics service offline, etc.)
@@ -292,8 +311,11 @@ the ISO/IEC 25010 assessment.
 - **The Flask development server** is used for the analytics tier locally;
   production containers should front it with gunicorn/waitress.
 - **No product management screen** — the catalog is seeded.
-- **Docker images are written but were not executed here** (Docker is not
-  installed on the development machine); the XAMPP path is fully verified.
+- **The Docker stack has not been built on the author's machine.** Windows WSL 2
+  and Docker Desktop are not installed there, so `docker compose build` is
+  unverified locally; the code itself was verified through the legacy path
+  (`php artisan test`). The CI pipeline builds every image on each push, which is
+  where the Dockerfiles are proven.
 
 ---
 
@@ -308,6 +330,17 @@ the ISO/IEC 25010 assessment.
 | 4 - Dynamic SS & ROP engine | Complete |
 | 5 - Testing & system evaluation | Complete (SUS field study pending participants) |
 | 6 - Backend integration & deployment | Complete |
+
+**2026-10-06 — Docker-first workflow and CI/CD.** The project now runs through
+Docker Compose rather than XAMPP. `docker/app/Dockerfile` gained a separate
+`test` build target with dev dependencies, and a `test` compose service runs
+PHPUnit against its own `aquaflow_test` database — so
+`docker compose exec test php artisan test` works, which the production image
+could never support (it installs `--no-dev` and the Dockerfile had no test
+target at all). A latent YAML bug was fixed along the way: an `APP_KEY` default
+containing `: ` made `docker-compose.yml` unparseable. GitHub Actions now runs
+the Laravel suite against MySQL 8, the Python ARIMA tests, and builds every
+Docker image on each push; tagging `v*` publishes the tier images to GHCR.
 
 **2026-10-02 — Single-screen, non-scrolling POS with payment routing.**
 The cashier terminal is now a fixed `100vh` application: the page itself never
@@ -448,4 +481,4 @@ Earlier: split the terminal per wizard step, consolidated the stylesheet and
 module tree, added the dynamic inventory engine, and fixed bottle deposits
 counting as refill gallons.
 
-Last updated: 2026-09-28
+Last updated: 2026-10-06
