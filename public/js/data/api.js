@@ -103,6 +103,7 @@ const API = {
   post(path, body) { return this.request(path, { method: 'POST', body: body || {} }); },
   patch(path, body) { return this.request(path, { method: 'PATCH', body: body || {} }); },
   put(path, body) { return this.request(path, { method: 'PUT', body: body || {} }); },
+  del(path) { return this.request(path, { method: 'DELETE' }); },
 
   // ---- Authentication -------------------------------------------------
   login(username, password) {
@@ -128,9 +129,18 @@ const API = {
 
   // Inventory
   inventory() { return this.get('inventory'); },
+  createInventory(item) { return this.post('inventory', item); },
   updateInventoryLead(id, lead) { return this.patch('inventory/' + id, { lead_time_days: lead }); },
+  updateInventory(id, payload) { return this.patch('inventory/' + id, payload); },
   adjustInventory(id, direction) { return this.patch('inventory/' + id, { direction: direction }); },
+  deleteInventory(id) { return this.del('inventory/' + id); },
   recalculateInventory() { return this.post('inventory/recalculate'); },
+
+  // Suppliers
+  suppliers() { return this.get('suppliers'); },
+  createSupplier(supplier) { return this.post('suppliers', supplier); },
+  updateSupplier(id, payload) { return this.patch('suppliers/' + id, payload); },
+  deleteSupplier(id) { return this.del('suppliers/' + id); },
 
   // Sales
   transactions(params) {
@@ -156,6 +166,9 @@ const API = {
 
   // Users
   users() { return this.get('users'); },
+  createUser(user) { return this.post('users', user); },
+  updateUser(id, payload) { return this.patch('users/' + id, payload); },
+  deleteUser(id) { return this.del('users/' + id); },
 
   // ---- Local snapshot helpers ----------------------------------------
   replaceCustomer(customer) {
@@ -169,5 +182,36 @@ const API = {
     const list = DB.inventory || (DB.inventory = []);
     const index = list.findIndex(i => i.id === item.id);
     if (index >= 0) list[index] = item;
+    else list.push(item);
+  },
+
+  removeInventory(id) {
+    if (!Array.isArray(DB.inventory)) return;
+    DB.inventory = DB.inventory.filter(i => i.id !== id);
+  },
+
+  replaceSupplier(supplier) {
+    const list = DB.suppliers || (DB.suppliers = []);
+    const resolveId = s => (s.id !== undefined ? s.id : s.name);
+    const index = list.findIndex(s => resolveId(s) === resolveId(supplier));
+    if (index >= 0) list[index] = supplier;
+    else list.push(supplier);
+  },
+
+  removeSupplier(idOrName) {
+    if (!Array.isArray(DB.suppliers)) return;
+    DB.suppliers = DB.suppliers.filter(s => (s.id !== undefined ? s.id : s.name) !== idOrName);
+  },
+
+  replaceUser(user) {
+    const list = DB.users || (DB.users = []);
+    const index = list.findIndex(u => u.id === user.id);
+    if (index >= 0) list[index] = user;
+    else list.push(user);
+  },
+
+  removeUser(id) {
+    if (!Array.isArray(DB.users)) return;
+    DB.users = DB.users.filter(u => u.id !== id);
   }
 };
