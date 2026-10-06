@@ -46,7 +46,7 @@ class ForecastTest extends TestCase
         ]);
     }
 
-    public function test_forecasts_are_listed_per_series_with_diagnostics(): void
+    public function test_u_s39_u_s41_forecasts_are_listed_per_series_with_diagnostics(): void
     {
         $this->storeForecast();
 

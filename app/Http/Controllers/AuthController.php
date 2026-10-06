@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\LoginResult;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\OwnerLoginRequest;
 use App\Http\Resources\UserResource;
@@ -25,22 +26,16 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->auth->attemptCashier($request->validated(), $request->ip());
-
-        if (! $result->succeeded()) {
-            return response()->json(['message' => $result->message], $result->status);
-        }
-
-        Auth::login($result->user, false);
-        $request->session()->regenerate();
-
-        return response()->json(['user' => new UserResource($result->user)]);
+        return $this->loginResponse($request, $this->auth->attemptCashier($request->validated(), $request->ip()));
     }
 
     public function loginOwner(OwnerLoginRequest $request): JsonResponse
     {
-        $result = $this->auth->attemptOwner($request->validated(), $request->ip());
+        return $this->loginResponse($request, $this->auth->attemptOwner($request->validated(), $request->ip()));
+    }
 
+    private function loginResponse(Request $request, LoginResult $result): JsonResponse
+    {
         if (! $result->succeeded()) {
             return response()->json(['message' => $result->message], $result->status);
         }

@@ -20,14 +20,10 @@ class SettingsController extends Controller
     {
         $data = $request->validated();
 
-        if (array_key_exists('station_name', $data)) {
-            SystemSetting::put(SystemSetting::KEY_STATION_NAME, (string) $data['station_name']);
-        }
-        if (array_key_exists('restock_lead_days', $data)) {
-            SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, (string) $data['restock_lead_days']);
-        }
-        if (array_key_exists('sus_target', $data)) {
-            SystemSetting::put(SystemSetting::KEY_SUS_TARGET, (string) $data['sus_target']);
+        foreach ([SystemSetting::KEY_STATION_NAME, SystemSetting::KEY_RESTOCK_LEAD_DAYS, SystemSetting::KEY_SUS_TARGET] as $key) {
+            if (array_key_exists($key, $data)) {
+                SystemSetting::put($key, (string) $data[$key]);
+            }
         }
 
         return response()->json(['settings' => SystemSetting::allValues()]);

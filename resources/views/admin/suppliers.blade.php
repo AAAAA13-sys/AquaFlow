@@ -4,41 +4,34 @@
 @section('topbar-title', 'Suppliers')
 
 @section('admin-content')
-  <section id="s-sup">
-    <h2 class="auth-title">Suppliers</h2>
-    <p class="auth-description">Restock times on this page feed the reorder alerts in Consumables &amp; ROP.</p>
+  <section id="s-sup" class="admin-page">
+    <div class="admin-page-titlebar">
+    @include('partials.admin-page-header', ['eyebrow' => 'PURCHASING', 'heading' => 'Suppliers', 'description' => 'Keep supplier contacts and delivery times ready for your next restock.'])
+      <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="supFormPanel" onclick="toggleAddForm(this)">Add supplier</button>
+    </div>
 
-    <div class="card" style="margin-bottom:1rem;">
+
+<div id="supplierSummary" class="admin-summary" aria-label="suppliers summary"></div>
+        <div id="supFormPanel" class="card form-card hidden">
       <h3 class="panel-heading">Add supplier</h3>
-      <form id="supForm" onsubmit="return createSupplier(event)" class="filter-toolbar" style="flex-wrap:wrap;">
-        <input id="supName" class="form-input" placeholder="Supplier name *" required maxlength="120" style="min-width:160px;">
-        <input id="supItems" class="form-input" placeholder="Supplied items *" required maxlength="255" style="min-width:160px;">
-        <input id="supLead" type="number" class="form-input" placeholder="Lead (days)" min="1" max="14" value="2" style="width:110px;">
-        <input id="supContact" class="form-input" placeholder="Contact" maxlength="50" style="min-width:140px;">
-        <input id="supLast" type="date" class="form-input">
+      <form id="supForm" onsubmit="return createSupplier(event)" class="admin-entry-form">
+        <div class="admin-entry-field"><label class="form-label" for="supName">Supplier name</label><input id="supName" class="form-input field-min-160" placeholder="Supplier name *" required maxlength="120" aria-label="Supplier name"></div>
+        <div class="admin-entry-field"><label class="form-label" for="supItems">Supplied items</label><input id="supItems" class="form-input field-min-160" placeholder="Supplied items *" required maxlength="255" aria-label="Supplied items"></div>
+        <div class="admin-entry-field"><label class="form-label" for="supLead">Delivery time (days)</label><input id="supLead" type="number" class="form-input" placeholder="Lead (days)" min="1" max="14" value="2" style="width:110px;" aria-label="Delivery days"></div>
+        <div class="admin-entry-field"><label class="form-label" for="supContact">Contact number</label><input id="supContact" class="form-input field-min-140" placeholder="Contact" maxlength="50" aria-label="Contact"></div>
+        <div class="admin-entry-field"><label class="form-label" for="supLast">Last delivery date</label><input id="supLast" type="date" class="form-input" aria-label="Last delivery"></div>
         <button type="submit" class="btn btn-primary btn-sm">Add</button>
       </form>
     </div>
 
+    @include('partials.table-filters', ['target' => 'supGrid', 'label' => 'suppliers', 'refresh' => "renderSup()"])
+
     <div class="suppliers-grid" id="supGrid"></div>
   </section>
 
-  <div id="supEditWrap" class="side-drawer hidden">
-    <div class="flex-between order-type-selector">
-      <h3 class="panel-heading">Edit supplier</h3>
-      <button onclick="closeSupplierEditor()" class="btn btn-ghost btn-sm">Close</button>
-    </div>
-    <div id="supEditBody"></div>
-  </div>
+  @include('partials.editor-drawer', ['drawerId' => 'supEditWrap', 'bodyId' => 'supEditBody', 'title' => 'Edit supplier', 'closeAction' => 'closeSupplierEditor()'])
 @endsection
 
-@push('scripts')
-  <script>
-    (async () => {
-      window.SESSION = await bootAdminPortal('Suppliers');
-      if (SESSION) {
-        renderSup();
-      }
-    })();
-  </script>
-@endpush
+@component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Suppliers'])
+renderSup();
+@endcomponent

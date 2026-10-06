@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Transaction;
+use App\Services\CheckoutService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -63,7 +65,7 @@ class GenerateSalesHistory extends Command
             $this->line("  Removed {$removed} previously generated transactions.");
         }
 
-        $this->receipt = $this->nextReceiptNumber();
+        $this->receipt = Transaction::nextReceiptSequence();
         $firstReceipt = $this->receipt;
 
         mt_srand(20260928); // deterministic demo data
@@ -104,7 +106,7 @@ class GenerateSalesHistory extends Command
                         orderType: $orderType,
                         payment: $payment,
                         total: $total,
-                        volume: $this->volumeLabel($slim, $round),
+                        volume: CheckoutService::volumeLabel($slim, $round),
                         date: $date->toDateString(),
                         time: sprintf('%02d:%02d:00', mt_rand(7, 18), mt_rand(0, 59)),
                         items: $this->refillItems($slim, $round),
@@ -324,32 +326,6 @@ class GenerateSalesHistory extends Command
         }
 
         return $items;
-    }
-
-    private function volumeLabel(int $slim, int $round): string
-    {
-        $parts = [];
-        if ($slim > 0) {
-            $parts[] = $slim . 'S';
-        }
-        if ($round > 0) {
-            $parts[] = $round . 'R';
-        }
-
-        return $parts === [] ? '0 gal' : implode('+', $parts);
-    }
-
-    private function nextReceiptNumber(): int
-    {
-        $highestSale = (int) DB::table('transactions')
-            ->selectRaw('COALESCE(MAX(CAST(SUBSTRING(receipt_number, 4) AS UNSIGNED)), 1010) AS highest')
-            ->value('highest');
-
-        $highestQueued = (int) DB::table('production_queue')
-            ->selectRaw('COALESCE(MAX(CAST(SUBSTRING(receipt_number, 4) AS UNSIGNED)), 1010) AS highest')
-            ->value('highest');
-
-        return max($highestSale, $highestQueued) + 1;
     }
 
     /**

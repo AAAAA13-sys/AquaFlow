@@ -14,17 +14,13 @@
     </header>
     <p class="auth-description">Cashiers sign in here to open the POS terminal.</p>
     <form class="auth-form" onsubmit="event.preventDefault(); doLogin();">
-      <label class="form-label" for="u">Cashier username</label>
-      <input id="u" class="form-input" placeholder="Cashier username" autocomplete="username">
-
-      <label class="form-label" for="p">Password</label>
-      <input id="p" type="password" class="form-input" placeholder="Password" autocomplete="current-password">
+      @include('partials.login-credentials', ['usernameLabel' => 'Cashier username'])
 
       <div id="err" class="auth-error hidden">Invalid username or password.</div>
 
       <button type="submit" class="btn btn-primary btn-block">Open Cashier Terminal</button>
     </form>
-    <p class="auth-footer-text">Are you the owner? <a href="{{ url('/owner/login') }}" class="auth-link">Go to Owner Login</p>
+    <p class="auth-footer-text">Are you the owner? <a href="{{ url('/owner/login') }}" class="auth-link">Go to Owner Login</a></p>
   </main>
 
   @include('partials.scripts-base')

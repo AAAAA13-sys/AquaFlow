@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\ContainerCustodyLog;
 use App\Models\Customer;
 use App\Models\InventoryItem;
 use App\Models\ProductionQueueItem;
 use App\Models\Transaction;
+use App\Models\TransactionItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -51,16 +53,21 @@ class CheckoutTest extends TestCase
 
     // ---------- Pricing: 12% VAT is inclusive ----------
 
-    public function test_the_shelf_price_is_the_gross_total(): void
+    public function test_u_s07_u_s11_the_shelf_price_is_the_gross_total(): void
     {
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload());
 
         $response->assertCreated()
             ->assertJsonPath('totals.total', 70)
-            ->assertJsonPath('totals.cash_change', 30);
+            ->assertJsonPath('totals.cash_change', 30)
+            ->assertJsonPath('transaction.items.0.quantity', 2)
+            ->assertJsonPath('transaction.items.0.line_total', 70)
+            ->assertJsonPath('transaction.cash_tendered', 100)
+            ->assertJsonPath('transaction.cash_change', 30)
+            ->assertJsonPath('transaction.by', $this->cashier->name);
     }
 
-    public function test_vat_is_extracted_from_the_total_not_added_on_top(): void
+    public function test_u_s14_vat_is_extracted_from_the_total_not_added_on_top(): void
     {
         // One refill at P35.00 -> vatable 31.25, VAT 3.75, total 35.00
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
@@ -74,7 +81,7 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('totals.vat', 3.75);
     }
 
-    public function test_vatable_and_vat_always_reconcile_to_the_total(): void
+    public function test_u_s09_vatable_and_vat_always_reconcile_to_the_total(): void
     {
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 1000,
@@ -125,12 +132,12 @@ class CheckoutTest extends TestCase
 
     // ---------- Containers: the station owns none ----------
 
-    public function test_a_refill_creates_no_custody_liability(): void
+    public function test_u_s17_u_s19_u_s20_a_refill_creates_no_custody_liability(): void
     {
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $issued = (int) $customer->issued_slim;
         $returned = (int) $customer->returned_slim;
-        $logs = \App\Models\ContainerCustodyLog::query()->count();
+        $logs = ContainerCustodyLog::query()->count();
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'customer_id' => $customer->id,
@@ -142,10 +149,10 @@ class CheckoutTest extends TestCase
         $customer->refresh();
         $this->assertSame($issued, (int) $customer->issued_slim);
         $this->assertSame($returned, (int) $customer->returned_slim);
-        $this->assertSame($logs, \App\Models\ContainerCustodyLog::query()->count());
+        $this->assertSame($logs, ContainerCustodyLog::query()->count());
     }
 
-    public function test_a_new_jug_is_retail_merchandise_that_depletes_stock(): void
+    public function test_u_s18_u_s33_a_new_jug_is_retail_merchandise_that_depletes_stock(): void
     {
         $before = $this->stock('5-Gal Replacement Slim Jugs');
 
@@ -187,7 +194,7 @@ class CheckoutTest extends TestCase
         $this->assertSame(250.0, (float) $prices['newR']);
     }
 
-    public function test_owner_managed_supplies_are_rejected_at_the_till(): void
+    public function test_u_s10_owner_managed_supplies_are_rejected_at_the_till(): void
     {
         foreach (['caps', 'seals', 'soap'] as $productId) {
             $this->actingAs($this->cashier)
@@ -201,7 +208,7 @@ class CheckoutTest extends TestCase
 
     // ---------- Inventory ----------
 
-    public function test_every_refilled_gallon_consumes_one_cap_and_one_seal(): void
+    public function test_u_s28_every_refilled_gallon_consumes_one_cap_and_one_seal(): void
     {
         $caps = $this->stock('Non-Spill Caps');
         $seals = $this->stock('Heat Shrink Seals');
@@ -302,7 +309,7 @@ class CheckoutTest extends TestCase
         ]);
     }
 
-    public function test_a_delivery_is_charged_to_the_account_automatically(): void
+    public function test_u_s13_a_delivery_is_charged_to_the_account_automatically(): void
     {
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $before = (float) $customer->debt_balance;
@@ -410,16 +417,100 @@ class CheckoutTest extends TestCase
         }
     }
 
-    public function test_queue_stage_can_be_advanced(): void
+    public function test_u_s24_u_s26_u_s27_queue_stage_can_be_advanced(): void
     {
         $receipt = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->json('transaction.no');
 
         $item = ProductionQueueItem::query()->where('receipt_number', $receipt)->firstOrFail();
         $this->assertSame(0, $item->stage);
 
-        $this->actingAs($this->cashier)
-            ->postJson('/api/queue/' . $item->id . '/advance')
+        $this->actingAs(User::where('username', 'admin')->firstOrFail())
+            ->postJson('/api/queue/'.$item->id.'/advance')
             ->assertOk()
             ->assertJsonPath('item.stage', 1);
+    }
+
+    public function test_duplicate_cart_entries_have_identical_priced_and_stored_lines(): void
+    {
+        $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'cash_tendered' => 1000,
+            'items' => [
+                ['product_id' => 'round', 'quantity' => 2],
+                ['product_id' => 'slim', 'quantity' => 1],
+                ['product_id' => 'round', 'quantity' => 3],
+            ],
+        ]))->assertCreated();
+
+        $stored = Transaction::query()->findOrFail($response->json('transaction.id'))->items()->orderBy('id')->get();
+        $lines = $response->json('totals.lines');
+        $this->assertCount(2, $stored);
+        foreach ($stored as $index => $item) {
+            // JSON decodes whole-number prices as integers; model casts are floats.
+            $lines[$index]['unit_price'] = (float) $lines[$index]['unit_price'];
+            $lines[$index]['line_total'] = (float) $lines[$index]['line_total'];
+            $this->assertSame($lines[$index], $item->only(['product_id', 'item_name', 'quantity', 'unit_price', 'line_total']));
+        }
+    }
+
+    public function test_receipts_continue_after_the_highest_queued_receipt(): void
+    {
+        ProductionQueueItem::query()->create([
+            'receipt_number' => 'OR-9000', 'customer_name' => 'Queue Customer',
+            'stage' => 0, 'elapsed_minutes' => 0, 'items_description' => '1S',
+            'order_type' => 'Walk-in', 'is_completed' => false,
+        ]);
+
+        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())
+            ->assertCreated()->assertJsonPath('transaction.no', 'OR-9001');
+    }
+
+    public function test_u_s15_insufficient_consumables_roll_back_the_entire_delivery(): void
+    {
+        InventoryItem::query()->where('item_name', 'Heat Shrink Seals')->update(['stock_on_hand' => 1]);
+        $customer = Customer::query()->where('name', '!=', 'Walk-in Guest')->firstOrFail();
+        $beforeCustomer = $customer->getAttributes();
+        $beforeStock = InventoryItem::query()->pluck('stock_on_hand', 'id')->all();
+        $transactions = Transaction::count();
+        $queue = ProductionQueueItem::count();
+        $items = TransactionItem::count();
+
+        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'customer_id' => $customer->id,
+            'order_type' => 'Delivery',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('items')
+            ->assertJsonPath('errors.items.0', 'Insufficient stock: Heat Shrink Seals is short by 1 pcs.');
+
+        $this->assertSame($transactions, Transaction::count());
+        $this->assertSame($items, TransactionItem::count());
+        $this->assertSame($queue, ProductionQueueItem::count());
+        $this->assertDatabaseCount('stock_movements', 0);
+        $this->assertSame($beforeCustomer, $customer->fresh()->getAttributes());
+        $this->assertSame($beforeStock, InventoryItem::query()->pluck('stock_on_hand', 'id')->all());
+    }
+
+    public function test_u_s15_insufficient_new_jug_stock_rejects_the_sale(): void
+    {
+        InventoryItem::query()->where('item_name', '5-Gal Replacement Slim Jugs')->update(['stock_on_hand' => 1]);
+        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'cash_tendered' => 500,
+            'items' => [['product_id' => 'newS', 'quantity' => 2]],
+        ]))->assertUnprocessable()->assertJsonValidationErrors('items');
+        $this->assertSame(1, $this->stock('5-Gal Replacement Slim Jugs'));
+    }
+
+    public function test_u_s15_exact_available_stock_can_be_sold(): void
+    {
+        InventoryItem::query()->where('item_name', 'Heat Shrink Seals')->update(['stock_on_hand' => 2]);
+        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->assertCreated();
+        $this->assertSame(0, $this->stock('Heat Shrink Seals'));
+    }
+
+    public function test_u_s25_unfinished_orders_from_yesterday_remain_visible(): void
+    {
+        ProductionQueueItem::create(['receipt_number' => 'OR-OLD', 'customer_name' => 'Waiting',
+            'stage' => 1, 'elapsed_minutes' => 0, 'items_description' => '1S', 'order_type' => 'Delivery',
+            'is_completed' => false])->forceFill(['created_at' => now()->subDay()])->save();
+        $this->actingAs($this->cashier)->getJson('/api/queue')->assertOk()
+            ->assertJsonFragment(['no' => 'OR-OLD']);
     }
 }

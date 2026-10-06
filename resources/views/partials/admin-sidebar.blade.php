@@ -9,6 +9,7 @@
       'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points'],
       'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities'],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null],
+      'employees'  => ['label' => 'Employees', 'hint' => 'Store team'],
       'users'      => ['label' => 'Staff & Access',  'hint' => 'Users'],
       'settings'   => ['label' => 'Settings',        'hint' => null],
   ]
@@ -16,16 +17,7 @@
 @php($active = request()->route('tab') ?? 'dashboard')
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-header-brand">
-      <div class="sidebar-brand-badge">AF</div>
-      <div>
-        <h2 id="brandName" class="sidebar-brand-title">{{ $stationName ?? 'AquaFlow' }}</h2>
-        <p class="sidebar-brand-subtitle">Station Owner Portal</p>
-      </div>
-    </div>
-    <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">&times;</button>
-  </div>
+  @include('partials.sidebar-header', ['subtitle' => 'Station Owner Portal'])
 
   <nav class="sidebar-nav" id="sideNav">
     @foreach ($tabs as $slug => $label)

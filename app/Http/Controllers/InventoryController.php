@@ -7,15 +7,14 @@ use App\Http\Requests\UpdateInventoryRequest;
 use App\Http\Resources\InventoryItemResource;
 use App\Models\InventoryItem;
 use App\Services\InventoryEngine;
+use App\Services\StockMovementService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
 
 class InventoryController extends Controller
 {
     public function __construct(
         private readonly InventoryEngine $engine,
-    ) {
-    }
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -31,16 +30,7 @@ class InventoryController extends Controller
     {
         $data = $request->validated();
 
-        $item = InventoryItem::query()->create([
-            'item_name' => $data['item_name'],
-            'category' => $data['category'],
-            'stock_on_hand' => $data['stock_on_hand'] ?? 0,
-            'unit' => $data['unit'] ?? 'pcs',
-            'lead_time_days' => $data['lead_time_days'] ?? 2,
-            'supplier_id' => $data['supplier_id'] ?? null,
-        ]);
-
-        $this->engine->recalculateItem($item);
+        $item = app(StockMovementService::class)->createItem($data, $request->user());
 
         return response()->json([
             'item' => new InventoryItemResource($item->refresh()->load('supplier')),
@@ -52,49 +42,7 @@ class InventoryController extends Controller
     {
         $data = $request->validated();
 
-        // Full-field edits (owner-managed catalogue fields).
-        if (array_key_exists('item_name', $data)) {
-            $duplicate = InventoryItem::query()
-                ->where('item_name', $data['item_name'])
-                ->where('id', '!=', $inventory->id)
-                ->exists();
-
-            if ($duplicate) {
-                throw ValidationException::withMessages([
-                    'item_name' => 'An item with this name already exists.',
-                ]);
-            }
-
-            $inventory->item_name = $data['item_name'];
-        }
-
-        foreach (['category', 'stock_on_hand', 'unit', 'supplier_id'] as $field) {
-            if (array_key_exists($field, $data)) {
-                $inventory->{$field} = $data[$field];
-            }
-        }
-
-        $leadChanged = false;
-        if (array_key_exists('lead_time_days', $data)) {
-            $inventory->lead_time_days = (int) $data['lead_time_days'];
-            $leadChanged = true;
-        }
-
-        $inventory->save();
-
-        if ($leadChanged || array_key_exists('item_name', $data) || array_key_exists('category', $data)) {
-            $this->engine->recalculateItem($inventory);
-        }
-
-        if (array_key_exists('direction', $data)) {
-            $inventory->refresh();
-            $delta = (int) $data['direction'] > 0
-                ? ($inventory->isPieces() ? 500 : 5)
-                : ($inventory->isPieces() ? -50 : -1);
-
-            $inventory->stock_on_hand = max(0, $inventory->stock_on_hand + $delta);
-            $inventory->save();
-        }
+        $this->engine->updateItem($inventory, $data);
 
         return response()->json([
             'item' => new InventoryItemResource($inventory->refresh()->load('supplier')),
@@ -104,7 +52,7 @@ class InventoryController extends Controller
 
     public function destroy(InventoryItem $inventory): JsonResponse
     {
-        $inventory->delete();
+        app(StockMovementService::class)->deleteItem($inventory);
 
         return response()->json([
             'ok' => true,

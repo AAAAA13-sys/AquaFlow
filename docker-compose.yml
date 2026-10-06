@@ -145,6 +145,16 @@ services:
     restart: "no"
     networks: [aquaflow]
 
+  frontend-test:
+    image: node:24-alpine
+    profiles: ["test"]
+    working_dir: /app
+    command: ["node", "tests/frontend-shared.cjs"]
+    volumes:
+      - ./public:/app/public:ro
+      - ./tests:/app/tests:ro
+    restart: "no"
+
   analytics:
     build: ./analytics
     environment:

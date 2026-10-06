@@ -4,16 +4,22 @@ namespace App\Services;
 
 use App\Models\DemandForecast;
 use App\Models\InventoryItem;
+use App\Models\StockMovement;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InventoryEngine
 {
     // Service Constants & Fallback Rates
     public const SERVICE_LEVEL_Z = 1.65;
+
     public const DEFAULT_REVIEW_PERIOD_DAYS = 7;
+
     public const FALLBACK_DAILY_DEMAND = 285.0;
+
     public const ASSUMED_DEMAND_CV = 0.3;
+
     public const FILTER_GALLON_RATING = 2000;
 
     private const FALLBACK_DAILY_RATES = [
@@ -26,6 +32,10 @@ class InventoryEngine
     // Demand Mapping & Profiles
     public function demandSeries(string $item): ?string
     {
+        if (in_array($item, ['SHRINK_SLIM', 'SHRINK_ROUND', 'CLEAR_COVER'], true)) {
+            return $item;
+        }
+
         return match (true) {
             str_contains($item, 'Caps') => 'Non-Spill Caps',
             str_contains($item, 'Seals') => 'Heat Shrink Seals',
@@ -44,12 +54,12 @@ class InventoryEngine
             $forecast = DemandForecast::latestFor($series);
             if ($forecast !== null) {
                 $daily = $forecast->forecastAverage();
-                $stdDev = $forecast->forecastStdDev();
+                $stdDev = $forecast->residual_std > 0 ? $forecast->residual_std : $forecast->forecastStdDev();
                 if ($stdDev <= 0.0) {
                     $stdDev = $daily * self::ASSUMED_DEMAND_CV;
                 }
 
-                return ['daily' => $daily, 'stddev' => $stdDev, 'source' => $series];
+                return ['daily' => $daily, 'stddev' => $stdDev, 'source' => $series, 'error_variances' => $forecast->model_diagnostics['forecast_error_variances'] ?? []];
             }
         }
 
@@ -143,10 +153,10 @@ class InventoryEngine
         $noun = match (true) {
             $quantity === 1 && $unit === 'pcs' => 'unit',
             $quantity === 1 => rtrim($unit, 's'),
-            default => str_ends_with($unit, 's') ? $unit : $unit . 's',
+            default => str_ends_with($unit, 's') ? $unit : $unit.'s',
         };
 
-        return $quantity . ' ' . $noun;
+        return $quantity.' '.$noun;
     }
 
     // Safety Stock & ROP Formulas
@@ -167,12 +177,24 @@ class InventoryEngine
         return (int) ceil($dailyDemand * (max(1, $leadTimeDays) + $reviewDays) + $safetyStock);
     }
 
+    private function profileSafetyStock(InventoryItem $item, array $profile): int
+    {
+        $lead = max(1, $item->lead_time_days);
+        $variances = $profile['error_variances'] ?? [];
+        $variance = 0.0;
+        for ($day = 0; $day < $lead; $day++) {
+            $variance += $variances === [] ? $profile['stddev'] ** 2 : max(0.0, (float) ($variances[$day] ?? end($variances)));
+        }
+
+        return (int) ceil(self::SERVICE_LEVEL_Z * sqrt($variance) * $this->priorityFactor($item->category));
+    }
+
     // Order Quantities & Recalculation
     public function recommendedOrderQuantity(InventoryItem $item): int
     {
         $profile = $this->demandProfile($item->item_name);
         $priority = $this->priorityFactor($item->category);
-        $safety = $this->safetyStock($profile['stddev'], $item->lead_time_days, $priority);
+        $safety = $this->profileSafetyStock($item, $profile);
         $target = $this->targetStock($profile['daily'], $item->lead_time_days, $safety);
 
         return (int) max(0, $target - $item->stock_on_hand);
@@ -182,7 +204,7 @@ class InventoryEngine
     {
         $profile = $this->demandProfile($item->item_name);
         $priority = $this->priorityFactor($item->category);
-        $safety = $this->safetyStock($profile['stddev'], $item->lead_time_days, $priority);
+        $safety = $this->profileSafetyStock($item, $profile);
 
         $item->safety_stock = $safety;
         $item->reorder_point = $this->reorderPoint($profile['daily'], $item->lead_time_days, $safety);
@@ -191,6 +213,68 @@ class InventoryEngine
         $item->save();
 
         return $item;
+    }
+
+    /** @param array<string,mixed> $data */
+    public function updateItem(InventoryItem $inventory, array $data): void
+    {
+        DB::transaction(function () use ($inventory, $data): void {
+            $inventory = InventoryItem::whereKey($inventory->id)->lockForUpdate()->firstOrFail();
+            $before = $inventory->stock_on_hand;
+            // Full-field edits (owner-managed catalogue fields).
+            if (array_key_exists('item_name', $data)) {
+                $duplicate = InventoryItem::query()
+                    ->where('item_name', $data['item_name'])
+                    ->where('id', '!=', $inventory->id)
+                    ->exists();
+
+                if ($duplicate) {
+                    throw ValidationException::withMessages([
+                        'item_name' => 'An item with this name already exists.',
+                    ]);
+                }
+
+                $inventory->item_name = $data['item_name'];
+            }
+
+            foreach (['category', 'stock_on_hand', 'unit', 'supplier_id'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $inventory->{$field} = $data[$field];
+                }
+            }
+
+            $leadChanged = false;
+            if (array_key_exists('lead_time_days', $data)) {
+                $inventory->lead_time_days = (int) $data['lead_time_days'];
+                $leadChanged = true;
+            }
+
+            $inventory->save();
+
+            if ($leadChanged || array_key_exists('item_name', $data) || array_key_exists('category', $data)) {
+                $this->recalculateItem($inventory);
+            }
+
+            if (array_key_exists('direction', $data)) {
+                $inventory->refresh();
+                $delta = (int) $data['direction'] > 0
+                    ? ($inventory->isPieces() ? 500 : 5)
+                    : ($inventory->isPieces() ? -50 : -1);
+
+                $inventory->stock_on_hand = max(0, $inventory->stock_on_hand + $delta);
+                $inventory->save();
+            }
+
+            $delta = $inventory->stock_on_hand - $before;
+            if ($delta !== 0) {
+                StockMovement::create([
+                    'inventory_item_id' => $inventory->id, 'type' => 'adjustment', 'qty' => $delta,
+                    'user_id' => auth()->id(), 'reason' => $data['reason'] ?? 'count_correction',
+                    'notes' => $data['notes'] ?? 'Inventory count correction',
+                ]);
+                $this->recalculateItem($inventory);
+            }
+        });
     }
 
     public function recalculateAll(): int

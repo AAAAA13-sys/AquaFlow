@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\InventoryItem;
 use App\Models\Product;
 use App\Models\ProductionQueueItem;
+use App\Models\StockMovement;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
@@ -38,12 +39,12 @@ class CheckoutService
     public const VAT_RATE = 0.12;
 
     public const PAYMENT_CASH = 'Cash';
+
     public const PAYMENT_ACCOUNT = 'Account';
 
     public function __construct(
         private readonly InventoryEngine $inventory,
-    ) {
-    }
+    ) {}
 
     /** Order type determines payment: walk-in is cash, delivery is on account. */
     public static function paymentFor(string $orderType): string
@@ -58,10 +59,9 @@ class CheckoutService
      */
     public function execute(CheckoutData $data, User $cashier): array
     {
-        $catalog = $this->loadCatalog($data->items);
-        $pricing = $this->price($data, $catalog);
-
-        return DB::transaction(function () use ($data, $cashier, $catalog, $pricing): array {
+        return DB::transaction(function () use ($data, $cashier): array {
+            $catalog = $this->loadCatalog($data->items);
+            $pricing = $this->price($data, $catalog);
             $customer = Customer::query()->lockForUpdate()->find($data->customerId);
 
             if ($customer === null) {
@@ -72,10 +72,10 @@ class CheckoutService
 
             $this->assertCustomerRules($customer, $data, $catalog);
 
-            $transaction = $this->createTransaction($data, $cashier, $pricing);
-            $this->createItems($transaction, $catalog);
-            $this->updateCustomerLedger($customer, $data, $pricing);
-            $this->deductStock($catalog, $pricing['gallons']);
+            $transaction = $this->createTransaction($data, $cashier, $pricing, $customer);
+            $this->createItems($transaction, $pricing['lines']);
+            $this->updateCustomerLedger($customer, $pricing);
+            $this->deductStock($catalog, $transaction, $cashier);
             $this->queueForProduction($transaction, $customer, $data, $pricing);
 
             return [
@@ -100,9 +100,9 @@ class CheckoutService
         }
 
         $products = Product::query()
-            ->where('is_active', true)
-            ->where('sold_at_pos', true)
+            ->soldAtPos()
             ->whereIn('id', array_keys($requested))
+            ->orderBy('id')->lockForUpdate()
             ->get()
             ->keyBy('id');
 
@@ -182,7 +182,7 @@ class CheckoutService
             'gallons' => $gallons,
             'slim_volume' => $slimGallons,
             'round_volume' => $roundGallons,
-            'volume' => $this->volumeLabel($slimGallons, $roundGallons),
+            'volume' => self::volumeLabel($slimGallons, $roundGallons),
             'units' => array_sum(array_map(
                 static fn (Product $product): int => (int) $product->getAttribute('requested_quantity'),
                 $catalog->all()
@@ -190,14 +190,14 @@ class CheckoutService
         ];
     }
 
-    private function volumeLabel(int $slim, int $round): string
+    public static function volumeLabel(int $slim, int $round): string
     {
         $parts = [];
         if ($slim > 0) {
-            $parts[] = $slim . 'S';
+            $parts[] = $slim.'S';
         }
         if ($round > 0) {
-            $parts[] = $round . 'R';
+            $parts[] = $round.'R';
         }
 
         return $parts === [] ? '0 gal' : implode('+', $parts);
@@ -230,7 +230,7 @@ class CheckoutService
 
             if ($blocked !== []) {
                 throw ValidationException::withMessages([
-                    'items' => 'Walk-in only: ' . implode(', ', $blocked) . '. New containers cannot be delivered.',
+                    'items' => 'Walk-in only: '.implode(', ', $blocked).'. New containers cannot be delivered.',
                 ]);
             }
         }
@@ -241,10 +241,10 @@ class CheckoutService
     /**
      * @param  array<string,mixed>  $pricing
      */
-    private function createTransaction(CheckoutData $data, User $cashier, array $pricing): Transaction
+    private function createTransaction(CheckoutData $data, User $cashier, array $pricing, Customer $customer): Transaction
     {
         return Transaction::query()->create([
-            'receipt_number' => $this->nextReceiptNumber(),
+            'receipt_number' => 'OR-'.Transaction::nextReceiptSequence(),
             'customer_id' => $data->customerId,
             'cashier_id' => $cashier->id,
             'order_type' => $data->orderType,
@@ -258,40 +258,21 @@ class CheckoutService
             'payment_method' => $pricing['payment_method'],
             'cash_tendered' => $pricing['cash_tendered'],
             'cash_change' => $pricing['cash_change'],
+            'balance_after' => $customer->debt_balance + ($data->orderType === 'Delivery' ? $pricing['total'] : 0),
+            'payment_status' => $data->orderType === 'Delivery' ? 'unpaid' : 'paid',
+            'delivery_address' => $data->orderType === 'Delivery' ? $customer->address : null,
             'transaction_date' => now()->toDateString(),
             'transaction_time' => now()->toTimeString(),
         ]);
     }
 
-    private function nextReceiptNumber(): string
-    {
-        $highestSale = (int) DB::table('transactions')
-            ->selectRaw('COALESCE(MAX(CAST(SUBSTRING(receipt_number, 4) AS UNSIGNED)), 1010) AS highest')
-            ->value('highest');
-
-        $highestQueued = (int) DB::table('production_queue')
-            ->selectRaw('COALESCE(MAX(CAST(SUBSTRING(receipt_number, 4) AS UNSIGNED)), 1010) AS highest')
-            ->value('highest');
-
-        return 'OR-' . (max($highestSale, $highestQueued) + 1);
-    }
-
     /**
-     * @param  Collection<string, Product>  $catalog
+     * @param  list<array<string,mixed>>  $lines
      */
-    private function createItems(Transaction $transaction, Collection $catalog): void
+    private function createItems(Transaction $transaction, array $lines): void
     {
-        foreach ($catalog as $product) {
-            $quantity = (int) $product->getAttribute('requested_quantity');
-
-            TransactionItem::query()->create([
-                'transaction_id' => $transaction->id,
-                'product_id' => $product->id,
-                'item_name' => $product->name,
-                'quantity' => $quantity,
-                'unit_price' => $product->price,
-                'line_total' => round($product->price * $quantity, 2),
-            ]);
+        foreach ($lines as $line) {
+            TransactionItem::query()->create(['transaction_id' => $transaction->id] + $line);
         }
     }
 
@@ -300,7 +281,7 @@ class CheckoutService
     /**
      * @param  array<string,mixed>  $pricing
      */
-    private function updateCustomerLedger(Customer $customer, CheckoutData $data, array $pricing): void
+    private function updateCustomerLedger(Customer $customer, array $pricing): void
     {
         // No container counters are touched: the station lends nothing, so a
         // refill creates no liability and a jug purchase creates no deposit.
@@ -325,29 +306,35 @@ class CheckoutService
      *
      * @param  Collection<string, Product>  $catalog
      */
-    private function deductStock(Collection $catalog, int $gallons): void
+    private function deductStock(Collection $catalog, Transaction $transaction, User $cashier): void
     {
+        $requirements = [];
+        $recipes = DB::table('product_consumables')->whereIn('product_id', $catalog->keys())->get();
+        foreach ($recipes as $recipe) {
+            $qty = (int) $catalog[$recipe->product_id]->getAttribute('requested_quantity') * $recipe->qty_per_sale;
+            $requirements[$recipe->inventory_item_id] = ($requirements[$recipe->inventory_item_id] ?? 0) + $qty;
+        }
         foreach ($catalog as $product) {
-            if ($product->inventory_item_id === null) {
-                continue;
+            if (! $recipes->contains('product_id', $product->id)) {
+                throw ValidationException::withMessages(['items' => 'No consumption recipe configured for '.$product->name.'.']);
             }
-
-            $consumed = (int) $product->getAttribute('requested_quantity')
-                * max(1, (int) $product->inventory_units_per_sale);
-
-            InventoryItem::query()
-                ->whereKey($product->inventory_item_id)
-                ->update(['stock_on_hand' => DB::raw('GREATEST(0, stock_on_hand - ' . $consumed . ')')]);
         }
-
-        if ($gallons <= 0) {
-            return;
+        $stock = InventoryItem::whereIn('id', array_keys($requirements))->orderBy('id')->lockForUpdate()->get();
+        foreach ($stock as $item) {
+            $qty = $requirements[$item->id];
+            if ($item->stock_on_hand < $qty) {
+                $short = $qty - $item->stock_on_hand;
+                throw ValidationException::withMessages(['items' => "Insufficient stock: {$item->item_name} is short by {$short} {$item->unit}."]);
+            }
         }
-
-        foreach (['Non-Spill Caps', 'Heat Shrink Seals'] as $itemName) {
-            InventoryItem::query()
-                ->where('item_name', $itemName)
-                ->update(['stock_on_hand' => DB::raw('GREATEST(0, stock_on_hand - ' . $gallons . ')')]);
+        foreach ($stock as $item) {
+            $qty = $requirements[$item->id];
+            $item->stock_on_hand -= $qty;
+            $item->save();
+            StockMovement::create(['inventory_item_id' => $item->id, 'type' => 'sale',
+                'qty' => -$qty, 'user_id' => $cashier->id, 'transaction_id' => $transaction->id,
+                'notes' => 'Sale '.$transaction->receipt_number]);
+            $this->inventory->recalculateItem($item);
         }
     }
 

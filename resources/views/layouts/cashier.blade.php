@@ -1,27 +1,19 @@
 @extends('layouts.base')
 
+@push('styles')
+  <link rel="stylesheet" href="{{ asset('css/cashier.css') }}?v={{ asset_version('css/cashier.css') }}">
+@endpush
+
 @section('content')
   {{-- Only the POS terminal locks to the viewport; the queue and history pages
        keep normal page scrolling. --}}
-  <div class="admin-layout @yield('shell-class')">
+  <div class="admin-layout @yield('shell-class') cashier-shell">
     <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
 
     @include('partials.cashier-sidebar')
 
     <div class="admin-main-container">
-      <header class="admin-topbar no-print">
-        <div class="admin-topbar-left">
-          <button id="sidebarToggleBtn" class="sidebar-toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation Menu">
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-            <span class="hamburger-bar"></span>
-          </button>
-          <h1 class="admin-topbar-title" id="pageTitle">@yield('topbar-title', 'POS Terminal')</h1>
-        </div>
-        <div class="admin-topbar-meta">
-          <span id="clock" class="header-clock"></span>
-        </div>
-      </header>
+      @include('partials.portal-topbar', ['defaultTitle' => 'POS Terminal', 'clockId' => 'clock', 'clockClass' => 'header-clock'])
 
       @yield('cashier-body')
     </div>

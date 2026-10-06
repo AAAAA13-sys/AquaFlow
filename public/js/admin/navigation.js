@@ -6,6 +6,7 @@ const SECTION_URLS = {
   inv: '/admin/inventory',
   cust: '/admin/customers',
   sup: '/admin/suppliers',
+  employees: '/admin/employees',
   users: '/admin/users',
   settings: '/admin/settings'
 };
@@ -41,10 +42,7 @@ async function bootAdminPortal(pageTitle) {
   const title = document.getElementById('pageTitle');
   if (title && pageTitle) title.textContent = pageTitle;
 
-  const clock = document.getElementById('adminClock');
-  const tick = () => { if (clock) clock.textContent = new Date().toLocaleString(); };
-  tick();
-  setInterval(tick, 1000);
+  startPortalClock('adminClock');
 
   try {
     await loadFromServer();

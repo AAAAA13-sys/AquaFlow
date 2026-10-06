@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\CustomerLedgerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Customer and receivables ledger.
@@ -63,6 +66,36 @@ class Customer extends Model
         return $this->pendingSlim() + $this->pendingRound();
     }
 
+    public function settleBalance(float $amount, User $cashier): float
+    {
+        return app(CustomerLedgerService::class)->settle($this, $amount, $cashier)['applied'];
+    }
+
+    public function recordReturn(string $kind): void
+    {
+        DB::transaction(function () use ($kind): void {
+            /** @var Customer $locked */
+            $locked = Customer::query()->lockForUpdate()->find($this->id);
+
+            $pending = $kind === 'slim' ? $locked->pendingSlim() : $locked->pendingRound();
+
+            if ($pending <= 0) {
+                throw ValidationException::withMessages([
+                    'kind' => "No pending {$kind} bottles to return.",
+                ]);
+            }
+
+            if ($kind === 'slim') {
+                $locked->returned_slim += 1;
+            } else {
+                $locked->returned_round += 1;
+            }
+
+            $locked->save();
+        });
+
+    }
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         if ($term === null || $term === '') {
@@ -70,8 +103,8 @@ class Customer extends Model
         }
 
         return $query->where(function (Builder $inner) use ($term): void {
-            $inner->where('name', 'like', '%' . $term . '%')
-                ->orWhere('contact', 'like', '%' . $term . '%');
+            $inner->where('name', 'like', '%'.$term.'%')
+                ->orWhere('contact', 'like', '%'.$term.'%');
         });
     }
 

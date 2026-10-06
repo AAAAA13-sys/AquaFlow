@@ -60,6 +60,7 @@ class InventoryItemResource extends JsonResource
             'ss' => (int) $this->safety_stock,
             'rop' => (int) $this->reorder_point,
             'target' => (int) $this->target_stock,
+            'supplier_id' => $this->supplier_id,
             'lead' => (int) $this->lead_time_days,
 
             // Canonical figures - the browser must not recompute these.

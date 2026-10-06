@@ -5,12 +5,19 @@ namespace App\Http\Resources;
 use App\Models\DemandForecast;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Collection;
 
 /**
  * @mixin DemandForecast
  */
 class DemandForecastResource extends JsonResource
 {
+    /** @return array<string, self> */
+    public static function forSeries(Collection $forecasts): array
+    {
+        return $forecasts->map(fn (DemandForecast $forecast): self => new self($forecast))->all();
+    }
+
     /**
      * @return array<string,mixed>
      */
@@ -24,6 +31,8 @@ class DemandForecastResource extends JsonResource
             'history' => $this->historical_data ?? [],
             'forecast' => $this->forecasted_data ?? [],
             'model' => [
+                'diagnostics' => $this->model_diagnostics ?? [],
+                'history_warning' => count($this->historical_data ?? []) < 30 ? 'Insufficient history (have '.count($this->historical_data ?? []).' days, need 30)' : null,
                 'order' => $this->model_order,
                 'method' => $this->method,
                 'differencing' => (int) $this->differencing,

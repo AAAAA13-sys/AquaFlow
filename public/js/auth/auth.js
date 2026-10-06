@@ -55,3 +55,38 @@ function guardAdmin() {
   if (s.role !== 'admin') { window.location.href = '/cashier'; return null; }
   return s;
 }
+
+// Shared credential controls for sign-in and account management.
+function togglePassword(id, button) {
+  const field = document.getElementById(id);
+  if (!field) return;
+  const show = field.type === 'password';
+  field.type = show ? 'text' : 'password';
+  button.textContent = show ? 'Hide' : 'Show';
+  button.setAttribute('aria-pressed', String(show));
+}
+
+function validNewPassword(value) {
+  return /^[\x21-\x7E]{8,64}$/.test(value) && /[a-z]/.test(value) && /[A-Z]/.test(value) && /[0-9]/.test(value);
+}
+
+function generateAccountPassword(id) {
+  const field = document.getElementById(id);
+  if (!field) return;
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let password;
+  do {
+    password = '';
+    while (password.length < 16) {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      for (const byte of bytes) {
+        if (byte < 248 && password.length < 16) password += alphabet[byte % alphabet.length];
+      }
+    }
+  } while (!validNewPassword(password));
+  field.value = password;
+  field.type = 'password';
+  const toggle = document.getElementById(id + 'Toggle');
+  if (toggle) { toggle.textContent = 'Show'; toggle.setAttribute('aria-pressed', 'false'); }
+  field.dispatchEvent(new Event('input', {bubbles:true}));
+}

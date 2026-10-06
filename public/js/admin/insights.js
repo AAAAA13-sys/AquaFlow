@@ -38,11 +38,11 @@ function orderQtyFrom(v) {
 
 // Metrics Computation Engine
 function computeInsights() {
-  const h = DB.history || DB.history30, f = DB.forecast7;
+  const h = (DB.history || DB.history30 || []).slice(-30), f = DB.forecast7 || [];
   const avg30 = avg(h), last7 = avg(h.slice(-7)), prev7 = avg(h.slice(-14, -7));
   const trend = (last7 - prev7) / Math.max(1, prev7) * 100;
-  const peak = Math.max(...h), peakDay = h.indexOf(peak) + 1;
-  const low = Math.min(...h);
+  const peak = h.length ? Math.max(...h) : 0, peakDay = h.indexOf(peak) + 1;
+  const low = h.length ? Math.min(...h) : 0;
   const fTotal = sum(f), fAvg = avg(f);
   const weekend = avg(h.filter((_, i) => (i + 1) % 7 === 0 || (i + 1) % 7 === 6));
   const weekday = avg(h.filter((_, i) => (i + 1) % 7 !== 0 && (i + 1) % 7 !== 6));
@@ -57,9 +57,9 @@ function computeInsights() {
 
   const custs = DB.customers.filter(c => c.name !== 'Walk-in Guest').map(c => {
     const p = pending(c);
-    const bottles = p.s + p.r;
+    const bottles = 0;
     return {
-      name: c.name, contact: c.contact, debt: c.debt, tx: c.tx, pS: p.s, pR: p.r, bottles, leakage: bottles * 200, exposure: c.debt + bottles * 200,
+      id: c.id, name: c.name, contact: c.contact, debt: c.debt, tx: c.tx, pS: 0, pR: 0, bottles, leakage: bottles * 200, exposure: c.debt + bottles * 200,
       returnRate: (c.issuedS + c.issuedR) ? Math.round((c.returnedS + c.returnedR) / (c.issuedS + c.issuedR) * 100) : 100, last: c.last
     };
   }).sort((a, b) => b.exposure - a.exposure);
@@ -115,14 +115,17 @@ function renderInsights() {
   const I = computeInsights();
   const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
-  setText('kRev', 'P' + Math.round(I.last7 * 35).toLocaleString());
-  setText('kRevSub', (I.trend >= 0 ? '+' : '') + I.trend.toFixed(1) + '% vs prior 7d avg');
-  setText('kGal', Math.round(I.last7) + ' gal/day');
+  const today = (DB.meta?.generated_at || new Date().toISOString()).slice(0, 10);
+  const sales = (DB.transactions || []).filter(t => t.date === today && t.type !== 'Debt Payment');
+  setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
+  setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
+  setText('kGal', Math.round(I.fTotal) + ' gal');
   setText('kGalSub', '30d avg ' + Math.round(I.avg30) + ' | 7d forecast ' + I.band(I.fAvg) + ' gal/day');
   const crit = I.runway.filter(r => r.status !== 'OK').length;
-  setText('invHealth', crit + ' item(s) need reorder');
-  setText('kLia', I.totalBottles + ' btls | P' + I.totalDebt.toLocaleString());
-  setText('kLiaSub', 'Jug replacement value P' + (I.totalBottles * 200).toLocaleString() + ' at P200/jug');
+  setText('invHealth', String(crit));
+  setText('kStockSub', crit ? 'items at or below their reorder point' : 'Stock is above reorder thresholds');
+  setText('kLia', money(I.totalDebt));
+  setText('kLiaSub', I.custs.filter(c => c.debt > 0).length + ' customers with outstanding balances');
 
   // Name the single biggest debtor. "P40,495 owed" is a number; naming the
   // customer turns it into somewhere to go.
@@ -131,64 +134,44 @@ function renderInsights() {
     ? 'Largest Balance: ' + topDebtor.name + ' — P' + topDebtor.debt.toLocaleString()
     : '');
 
-  const weekendWord = Math.abs(I.uplift) < 10 ? 'about the same on weekends as on weekdays'
-    : (I.uplift > 0 ? 'much more on weekends' : 'noticeably more on weekdays than weekends');
-  const weekendPhrase = (I.uplift >= 0 ? '+' : '\u2212') + Math.abs(I.uplift).toFixed(0) + '%';
-  const peakWord = I.weekend >= I.weekday ? 'before Friday' : 'early in the week';
-
   const insDemand = document.getElementById('insDemand');
   if (insDemand) {
-    insDemand.innerHTML =
-      '<div class="insight-row"><span>7-day sales trend</span><b class="' + (I.trend >= 0 ? 'text-green-700' : 'text-red-600') + '">' + (I.trend >= 0 ? 'UP ' : 'DOWN ') + Math.abs(I.trend).toFixed(1) + '%</b></div>' +
-      '<div class="insight-row"><span>Weekend sales</span><b>' + weekendPhrase + ' (' + Math.round(I.weekend) + ' vs ' + Math.round(I.weekday) + ' gal/day)</b></div>' +
-      '<div class="insight-row"><span>Busiest / quietest (30 days)</span><b>' + I.peak + ' gal (day ' + I.peakDay + ') / ' + I.low + ' gal</b></div>' +
-      '<div class="insight-row"><span>Expected sales next 7 days</span><b>' + I.fTotal.toLocaleString() + ' gal <span class="insight-sub">(' + I.band(I.fTotal) + ' at MAPE ' + I.mape.toFixed(1) + '%)</span></b></div>' +
-      callout(
-        I.uplift > 20
-          ? 'Prepare ' + Math.round((I.weekend - I.weekday) * 2) + ' extra gallons ' + peakWord + ' and add one delivery run.'
-          : 'Keep the normal filling schedule and spread stock evenly across the week.',
-        [
-          { text: 'Customers buy ' + weekendWord.toLowerCase() + ', and next week is worth roughly <b>P' + I.band(Math.round(I.fTotal * 35)) + '</b> at P35 per refill. The range is the model\'s own backtest error, so plan to the middle of it.' },
-          { risk: true, text: 'About <b>P' + Math.round((Math.abs(I.weekend - I.weekday) * 2) * 35).toLocaleString() + '</b> in lost sales plus walkouts to competitors.' }
-        ]
-      );
+    const hasHistory = (DB.history || DB.history30 || []).length > 0;
+    insDemand.innerHTML = hasHistory ?
+      '<div class="insight-row"><span>Sales trend · last 7 vs previous 7 days</span><b class="' + (I.trend >= 0 ? 'text-green-700' : 'text-red-600') + '">' + (I.trend >= 0 ? '+' : '−') + Math.abs(I.trend).toFixed(1) + '%</b></div>' +
+      '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' gal</b></div>' +
+      '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' gal</b></div>' +
+      '<p class="insight-note">Forecasts are estimates. Review the demand forecast before planning filling and delivery work.</p>' :
+      '<p class="overview-empty">No sales history yet. Sales patterns will appear as transactions are recorded.</p>';
   }
 
   const insRunway = document.getElementById('insRunway');
-  if (insRunway) {
+  if (insRunway && !I.runway.length) insRunway.innerHTML = '<p class="overview-empty">No inventory items recorded yet.</p>';
+  if (insRunway && I.runway.length) {
     insRunway.innerHTML = I.runway.slice(0, 4).map(r =>
-      '<div class="insight-row"><span>' + r.item + ' <span class="insight-sub">' + r.on.toLocaleString() + ' ' + r.unit + ' left</span></span>' +
-      '<b class="' + (r.days <= r.lead ? 'text-red-600' : r.status !== 'OK' ? 'text-yellow-700' : 'text-green-700') + '">' + r.days.toFixed(1) + ' days left</b></div>'
-    ).join('') + callout(
-      'See <b>Restock Advisories</b> above for the exact quantity and supplier — it is calculated by the inventory engine, not here.',
-      [
-        { text: I.runway[0].item + ' runs out first, in about ' + I.runway[0].days.toFixed(1) + ' days.' },
-        { risk: true, text: 'Refills stop even when demand is high, because every gallon needs a cap and a seal.' }
-      ]
-    );
+      '<div class="insight-row"><span>' + esc(r.item) + ' <span class="insight-sub">' + r.on.toLocaleString() + ' ' + esc(r.unit) + ' remaining</span></span>' +
+      '<b class="' + (r.days <= r.lead ? 'text-red-600' : r.status !== 'OK' ? 'text-yellow-700' : 'text-green-700') + '">' + (r.days === 999 ? 'No estimate' : r.days.toFixed(1) + ' days') + '</b></div>'
+    ).join('');
   }
 
   const insCollect = document.getElementById('insCollect');
   if (insCollect) {
-    const top3 = I.custs.slice(0, 3);
-    insCollect.innerHTML = top3.map((c, i) =>
-      '<div class="insight-row"><span>' + (i + 1) + '. ' + c.name + ' <span class="insight-sub">' + c.pS + 'S/' + c.pR + 'R bottles + P' + c.debt.toLocaleString() + '</span></span><b>P' + c.exposure.toLocaleString() + '</b></div>'
-    ).join('') + callout(
-      'Visit <b>' + I.custs[0].name + '</b> (' + I.custs[0].contact + ') and collect P' + I.custs[0].debt.toLocaleString() + '.',
-      [
-        { text: I.custs[0].name + ' holds ' + I.topShare + '% of everything owed (P' + I.totalExposure.toLocaleString() + ' total). ' + I.worstReturn.name + ' returns only ' + I.worstReturn.returnRate + '% of bottles.' },
-        { risk: true, text: 'Collect bottles before taking cash — each missing jug costs P250 to replace.' }
-      ]
-    );
+    const customers = I.custs.filter(c => c.debt > 0).slice(0, 3);
+    insCollect.innerHTML = customers.map((c, i) => '<div class="insight-row"><span>' + (i + 1) + '. ' + esc(c.name) + '</span><b>' + money(c.debt) + '</b></div>').join('') || '<p class="insight-note">No outstanding customer balances.</p>';
   }
 
   const insActions = document.getElementById('insActions');
   if (insActions) {
-    const urgent = I.runway[0];
-    insActions.innerHTML =
-      '<div class="advisory-card advisory-critical"><b>1. Order today:</b> ' + urgent.item + ' has only ' + urgent.days.toFixed(1) + ' days left and restocking takes ' + urgent.lead + ' days. <b>Restock Advisories</b> has the quantity. <button onclick="draftPO()" class="btn btn-primary btn-sm">Make a Purchase Request</button></div>' +
-      '<div class="advisory-card advisory-info"><b>2. Collect:</b> visit ' + I.custs[0].name + ' (' + I.custs[0].contact + ') - P' + I.custs[0].exposure.toLocaleString() + ' owed. <button onclick="showSection(\'cust\')" class="btn btn-ghost btn-sm">Open Balances</button></div>' +
-      '<div class="advisory-card advisory-watch"><b>3. Plan the week:</b> sales run ' + weekendPhrase + ' on weekends (' + Math.round(I.weekend) + ' vs ' + Math.round(I.weekday) + ' gal/day). Pre-fill ' + peakWord + ' and check the filters. <button onclick="showSection(\'arima\')" class="btn btn-ghost btn-sm">View Forecast</button></div>';
+    const urgent = I.runway.find(item => item.status !== 'OK');
+    const debtor = I.custs.find(customer => customer.debt > 0);
+    const action = (tone, label, title, detail, href, button) =>
+      '<article class="overview-action overview-action--' + tone + '"><span class="overview-action-label">' + label + '</span><h4>' + esc(title) + '</h4><p>' + esc(detail) + '</p><a class="btn btn-secondary btn-sm" href="' + href + '">' + button + ' &rarr;</a></article>';
+    insActions.innerHTML = action(urgent ? 'danger' : 'ok', 'STOCK', urgent ? 'Review low stock' : 'No stock alerts',
+      urgent ? urgent.item + ' has ' + urgent.on.toLocaleString() + ' ' + urgent.unit + ' remaining.' : 'Review stock quantities and reorder thresholds in Stock & Supplies.', '/admin/inventory', 'View stock') +
+      action(debtor ? 'watch' : 'ok', 'COLLECTIONS', debtor ? debtor.name : 'No outstanding balances',
+      debtor ? money(debtor.debt) + ' outstanding. Review the customer ledger before collection.' : 'Customer balances are clear.', '/admin/customers', 'View balances') +
+      action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gal forecast' : 'Forecast not available',
+      I.fTotal > 0 ? 'Projected refill demand over the next seven days. Check the forecast before planning.' : 'Record sales and update the forecast to start planning demand.', '/admin/arima', 'View forecast');
   }
 
   renderAdvisories();
@@ -204,23 +187,16 @@ function renderAdvisories() {
   if (Array.isArray(DB.advisories) && DB.advisories.length) {
     el.innerHTML = DB.advisories.slice(0, 3).map(advisory => {
       const critical = advisory.severity === 'critical';
-      return '<div class="advisory-card ' + (critical ? 'advisory-critical' : 'advisory-watch') + '">' +
-        '<b>' + (critical ? 'CRITICAL' : 'WATCH') + ':</b> ' + advisory.item + ' has ' +
-        Number(advisory.on_hand).toLocaleString() + ' ' + advisory.unit + ' left (' + advisory.days_left +
-        ' days), reorder at ' + Number(advisory.reorder_at).toLocaleString() +
-        '. Order ' + Number(advisory.order_quantity).toLocaleString() + ' ' + advisory.unit +
-        ' from ' + advisory.supplier + '.' +
-        '<button onclick="draftPO()" class="btn btn-primary btn-sm">Make a Purchase Request</button></div>';
+      return '<article class="advisory-card ' + (critical ? 'advisory-critical' : 'advisory-watch') + '">' +
+        '<div class="overview-advisory-head"><b>' + esc(advisory.item) + '</b><span>' + (critical ? 'Critical' : 'Low stock') + '</span></div>' +
+        '<p>' + Number(advisory.on_hand).toLocaleString() + ' ' + esc(advisory.unit) + ' on hand · Reorder at ' + Number(advisory.reorder_at).toLocaleString() + '</p>' +
+        '<p><strong>Suggested order: ' + Number(advisory.order_quantity).toLocaleString() + ' ' + esc(advisory.unit) + '</strong></p>' +
+        '<p class="overview-advisory-supplier">' + (advisory.supplier && advisory.supplier !== '-' ? esc(advisory.supplier) : 'Assign a supplier in Stock & Supplies') + '</p></article>';
     }).join('');
     return;
   }
 
-  const I = computeInsights();
-  const worst = I.runway[0], next = I.runway[1];
-  el.innerHTML =
-    '<div class="advisory-card advisory-critical">CRITICAL: ' + worst.item + ' is almost out (' + worst.on.toLocaleString() + ' left, reorder at ' + worst.rop + '). About ' + worst.days.toFixed(1) + ' days left. Order ' + worst.orderQty.toLocaleString() + ' units from ' + worst.supplier + '. <button onclick="draftPO()" class="btn btn-primary btn-sm">Make a Purchase Request</button></div>' +
-    '<div class="advisory-card advisory-watch">WATCH: ' + next.item + ' has ' + next.days.toFixed(1) + ' days left. Filters can clog - check the water flow now.</div>' +
-    '<div class="advisory-card advisory-info">' + I.custs[0].name + ': ' + I.custs[0].pS + 'S/' + I.custs[0].pR + 'R bottles owed + P' + I.custs[0].debt.toLocaleString() + ' cash owed.</div>';
+  el.innerHTML = '<div class="overview-empty"><b>No restock advisories</b><p>Stock alerts will appear here when an item reaches its reorder point.</p></div>';
 }
 
 
@@ -253,10 +229,7 @@ function remindLink(c) {
 // The exact wording requested for the reminder drawer. Kept in one place so the
 // drawer preview, the copy button and the outbound link never drift apart.
 function reminderTemplate(c, station) {
-  const name = (station || 'AquaFlow Station').trim();
-  return 'Hi ' + c.name + ', this is ' + name + '. You have ' + c.bottles +
-    ' pending bottles and an outstanding balance of P' + Number(c.debt).toLocaleString() +
-    '. Please let us know when we can schedule a pickup/refill!';
+  return 'Hi ' + c.name + ', this is ' + (station || 'AquaFlow Station').trim() + '. Your outstanding balance is ' + money(c.debt) + '. Please let us know when we can arrange payment.';
 }
 
 let remindCustomer = null;
@@ -273,7 +246,7 @@ function openRemindDrawer(id) {
   drawer.querySelector('[data-field="name"]').textContent = c.name;
   drawer.querySelector('[data-field="contact"]').textContent = c.contact || 'No contact on file';
   drawer.querySelector('[data-field="summary"]').textContent =
-    c.bottles + ' container(s) · P' + Number(c.debt).toLocaleString() + ' outstanding';
+    'P' + Number(c.debt).toLocaleString() + ' outstanding';
   drawer.querySelector('[data-field="template"]').textContent = text;
 
   const send = drawer.querySelector('[data-action="send"]');
@@ -337,27 +310,26 @@ function renderLedger() {
   const elS = document.getElementById('ledgerSlim'), elR = document.getElementById('ledgerRound'), elP = document.getElementById('ledgerPend');
   if (elS && slim) elS.textContent = slim.on + ' in station';
   if (elR && round) elR.textContent = round.on + ' in station';
-  if (elP) elP.textContent = I.totalBottles + ' with customers';
+  if (elP) elP.textContent = money(I.totalDebt);
   const tb = document.getElementById('topLiaBody');
   if (tb) {
-    tb.innerHTML = I.custs.slice(0, 4).map(c => {
+    tb.innerHTML = filterTableRows(I.custs.filter(c => c.debt > 0), 'topLiaBody').map(c => {
       const hasContact = !!dialNumber(c.contact);
 
       return '<tr>' +
-        '<td><span class="ledger-name">' + c.name + '</span>' +
+        '<td><span class="ledger-name">' + esc(c.name) + '</span>' +
           '<span class="cell-sub">' + (c.contact ? dialNumber(c.contact) : 'No contact on file') + '</span></td>' +
         '<td class="num ledger-balance"><span class="debt">P' + c.debt.toLocaleString() + '</span>' +
-          '<span class="num-unit">' + c.pS + ' slim / ' + c.pR + ' round containers</span></td>' +
+          '</td>' +
         '<td><div class="ledger-actions">' +
           '<button type="button" class="action-message" data-cust="' + c.id + '"' +
             (hasContact ? '' : ' aria-disabled="true" title="No contact number on file"') +
-            '>' + icon('i-message') + 'Remind</button>' +
-          '<button type="button" class="action-return" data-cust="' + c.id + '"' +
-            ' title="Record a returned 5-Gal jug">' + icon('i-return') + 'Log Return</button>' +
+            '>Remind</button>' +
           '<button class="btn btn-tertiary btn-sm" onclick="showSection(\'cust\')">Balances</button>' +
         '</div></td>' +
       '</tr>';
     }).join('');
+    showTableEmpty(tb, 3);
 
     // Delegated so re-rendering the ledger never leaves stale handlers.
     tb.querySelectorAll('[data-cust]').forEach(btn => {
@@ -422,7 +394,5 @@ function draftPO() {
     : DB.inventory.filter(v => statusOf(v)[0] !== 'OK').map(v => v.item + ',' + orderQtyFrom(v) + ',' + v.supplier);
 
   const csv = 'Item,SuggestedQty,Supplier\n' + rows.join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'draft-PO.csv'; a.click();
+  downloadCSV(csv, 'draft-PO.csv');
 }

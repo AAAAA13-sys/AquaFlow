@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import closing
 
 from flask import Flask, jsonify, request
 
@@ -25,11 +26,8 @@ def _connection():
 @app.get("/health")
 def health():
     try:
-        connection = _connection()
-        try:
+        with closing(_connection()) as connection:
             ok = db.health(connection)
-        finally:
-            connection.close()
         return jsonify({"ok": ok, "service": "aquaflow-analytics", "series": list(db.SERIES_DEFINITIONS)})
     except Exception as error:
         return jsonify({"ok": False, "error": str(error)}), 503
@@ -68,11 +66,8 @@ def forecast():
 
 @app.get("/forecast/<path:series_name>")
 def stored_forecast(series_name: str):
-    connection = _connection()
-    try:
+    with closing(_connection()) as connection:
         row = db.latest_forecast(connection, series_name)
-    finally:
-        connection.close()
 
     if row is None:
         return jsonify({"error": "No stored forecast for that series."}), 404

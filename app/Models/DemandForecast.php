@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * A stored ARIMA forecast produced by the Tier 3 Python service.
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 class DemandForecast extends Model
 {
     protected $fillable = [
+        'model_diagnostics',
         'series_name',
         'horizon_type',
         'forecast_date',
@@ -32,6 +34,7 @@ class DemandForecast extends Model
     {
         return [
             'historical_data' => 'array',
+            'model_diagnostics' => 'array',
             'forecasted_data' => 'array',
             'forecast_date' => 'date:Y-m-d',
             'differencing' => 'integer',
@@ -47,7 +50,7 @@ class DemandForecast extends Model
     }
 
     /** The newest row for each series, keyed by series name. */
-    public static function latestPerSeries(): \Illuminate\Support\Collection
+    public static function latestPerSeries(): Collection
     {
         $ids = static::query()
             ->selectRaw('MAX(id) as id')

@@ -100,6 +100,10 @@ const API = {
   },
 
   get(path) { return this.request(path); },
+  getWithQuery(path, params) {
+    const query = new URLSearchParams(params || {}).toString();
+    return this.get(path + (query ? '?' + query : ''));
+  },
   post(path, body) { return this.request(path, { method: 'POST', body: body || {} }); },
   patch(path, body) { return this.request(path, { method: 'PATCH', body: body || {} }); },
   put(path, body) { return this.request(path, { method: 'PUT', body: body || {} }); },
@@ -119,10 +123,7 @@ const API = {
   bootstrap() { return this.get('bootstrap'); },
 
   // Customers / receivables
-  customers(params) {
-    const query = new URLSearchParams(params || {}).toString();
-    return this.get('customers' + (query ? '?' + query : ''));
-  },
+  customers(params) { return this.getWithQuery('customers', params); },
   createCustomer(customer) { return this.post('customers', customer); },
   settleDebt(customerId, amount) { return this.post('customers/' + customerId + '/settle', { amount: amount }); },
   logReturn(customerId, kind) { return this.post('customers/' + customerId + '/returns', { kind: kind }); },
@@ -143,10 +144,7 @@ const API = {
   deleteSupplier(id) { return this.del('suppliers/' + id); },
 
   // Sales
-  transactions(params) {
-    const query = new URLSearchParams(params || {}).toString();
-    return this.get('transactions' + (query ? '?' + query : ''));
-  },
+  transactions(params) { return this.getWithQuery('transactions', params); },
   createTransaction(payload) { return this.post('transactions', payload); },
 
   // Production queue
@@ -171,47 +169,25 @@ const API = {
   deleteUser(id) { return this.del('users/' + id); },
 
   // ---- Local snapshot helpers ----------------------------------------
-  replaceCustomer(customer) {
-    const list = DB.customers || (DB.customers = []);
-    const index = list.findIndex(c => c.id === customer.id);
-    if (index >= 0) list[index] = customer;
-    else list.push(customer);
-  },
-
-  replaceInventory(item) {
-    const list = DB.inventory || (DB.inventory = []);
-    const index = list.findIndex(i => i.id === item.id);
+  replaceSnapshot(key, item, resolveId = row => row.id) {
+    const list = DB[key] || (DB[key] = []);
+    const index = list.findIndex(row => resolveId(row) === resolveId(item));
     if (index >= 0) list[index] = item;
     else list.push(item);
   },
 
-  removeInventory(id) {
-    if (!Array.isArray(DB.inventory)) return;
-    DB.inventory = DB.inventory.filter(i => i.id !== id);
+  removeSnapshot(key, id, resolveId = row => row.id) {
+    if (!Array.isArray(DB[key])) return;
+    DB[key] = DB[key].filter(row => resolveId(row) !== id);
   },
 
-  replaceSupplier(supplier) {
-    const list = DB.suppliers || (DB.suppliers = []);
-    const resolveId = s => (s.id !== undefined ? s.id : s.name);
-    const index = list.findIndex(s => resolveId(s) === resolveId(supplier));
-    if (index >= 0) list[index] = supplier;
-    else list.push(supplier);
-  },
+  supplierId(supplier) { return supplier.id !== undefined ? supplier.id : supplier.name; },
 
-  removeSupplier(idOrName) {
-    if (!Array.isArray(DB.suppliers)) return;
-    DB.suppliers = DB.suppliers.filter(s => (s.id !== undefined ? s.id : s.name) !== idOrName);
-  },
-
-  replaceUser(user) {
-    const list = DB.users || (DB.users = []);
-    const index = list.findIndex(u => u.id === user.id);
-    if (index >= 0) list[index] = user;
-    else list.push(user);
-  },
-
-  removeUser(id) {
-    if (!Array.isArray(DB.users)) return;
-    DB.users = DB.users.filter(u => u.id !== id);
-  }
+  replaceCustomer(customer) { this.replaceSnapshot('customers', customer); },
+  replaceInventory(item) { this.replaceSnapshot('inventory', item); },
+  removeInventory(id) { this.removeSnapshot('inventory', id); },
+  replaceSupplier(supplier) { this.replaceSnapshot('suppliers', supplier, this.supplierId); },
+  removeSupplier(idOrName) { this.removeSnapshot('suppliers', idOrName, this.supplierId); },
+  replaceUser(user) { this.replaceSnapshot('users', user); },
+  removeUser(id) { this.removeSnapshot('users', id); }
 };

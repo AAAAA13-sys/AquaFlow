@@ -7,44 +7,30 @@
 
 // ---------- Orders in Progress ----------
 
+let queueStatus = 'active', queuePage = 1, queueRequest = 0, queueSearchTimer;
 function renderQueuePage() {
-  const list = document.getElementById('queue');
-  if (!list) return;
-
-  const queue = DB.queue || [];
-
-  const count = document.getElementById('queueCount');
-  if (count) count.textContent = queue.length + (queue.length === 1 ? ' order' : ' orders');
-
-  list.innerHTML = queue.length
-    ? queue.map(q => {
-        const stage = Number(q.stage) || 0;
-
-        return '<div class="queue-card">' +
-          '<div class="flex-between"><b>' + q.no + '</b>' +
-          '<span class="queue-meta">' + q.cust + ' | ' + q.mins + ' min | ' + q.items + '</span></div>' +
-          '<div class="queue-stages">' + STAGES.map((s, i) =>
-            '<span class="pill ' + (i < stage ? 'pill-ok' : i === stage ? 'pill-info' : 'pill-neutral') + '">' + s + '</span>'
-          ).join('') + '</div>' +
-          (q.id
-            ? '<button class="btn btn-ghost btn-sm order-type-selector" onclick="advanceQueue(' + q.id + ')">' +
-              (stage >= STAGES.length - 1 ? 'Mark Sealed' : 'Advance to ' + STAGES[stage + 1]) + '</button>'
-            : '') +
-          '</div>';
-      }).join('')
-    : '<p class="cust-option-sub">No orders in progress right now.</p>';
-
-  const guide = document.getElementById('stageGuide');
-  if (guide) {
-    guide.innerHTML = STAGES.map((s, i) =>
-      '<div class="custody-row"><span>' + (i + 1) + '. ' + s + '</span><b>' +
-      (i === 0 ? 'Bottles arrive from the customer' :
-        i === 1 ? 'Rinse and sanitise' :
-          i === 2 ? 'Fill the jugs' : 'Cap, seal and hand over') +
-      '</b></div>'
-    ).join('');
-  }
+ const list=document.getElementById('queue'); if(!list) return;
+ const rows=DB.queue || [];
+ list.innerHTML=rows.map(q=>'<article class="queue-card"><div class="flex-between"><b>'+esc(q.no)+'</b><span class="pill '+(q.completed ? 'pill-ok' : 'pill-info')+'">'+(q.completed ? 'Delivered' : 'Active order')+'</span></div><h3>'+esc(q.cust)+'</h3><p>'+esc(q.items)+'</p><p class="queue-meta">'+esc(q.orderType)+' · '+(q.completed ? (q.delivered_at ? 'Delivered '+esc(new Date(q.delivered_at).toLocaleString()) : 'Legacy completed order · handover time unavailable') : Number(q.mins)+' min since order')+'</p>'+(q.completed ? '' : '<button class="btn btn-primary" onclick="deliverQueueOrder('+Number(q.id)+',this)">Mark delivered</button>')+'</article>').join('') || '<div class="cashier-empty"><b>No '+(queueStatus==='active' ? 'active orders' : 'delivered orders')+'</b><p>'+ (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.')+'</p></div>';
 }
+async function selectQueueStatus(status) {
+ queueStatus=status; queuePage=1;
+ for(const [id,value] of [['activeOrdersTab','active'],['deliveredOrdersTab','delivered']]) {
+  const button=document.getElementById(id), selected=status===value;
+  button.classList.toggle('btn-primary',selected); button.classList.toggle('btn-ghost',!selected); button.setAttribute('aria-pressed',String(selected));
+ }
+ document.getElementById('queueHeading').textContent=status==='active' ? 'Active orders' : 'Delivered';
+ await refreshQueuePage();
+}
+function searchQueue() { clearTimeout(queueSearchTimer); queueRequest++; queuePage=1; queueSearchTimer=setTimeout(refreshQueuePage,250); }
+async function deliverQueueOrder(id,button) {
+ if(!confirm('Confirm that the customer has received this order?')) return;
+ button.disabled=true;
+ try { await API.post('queue/'+id+'/deliver'); await refreshQueuePage(); }
+ catch(error) { alert(error.message || 'Unable to confirm delivery.'); }
+ finally { button.disabled=false; }
+}
+function changeQueuePage(delta) { queuePage=Math.max(1,queuePage+delta); refreshQueuePage(); }
 
 // ---------- Sales & Transactions ----------
 
@@ -64,8 +50,13 @@ async function historyRows() {
   const { days, type, pay } = historyFilters();
 
   try {
-    const data = await API.transactions({ days: days, type: type, pay: pay });
-    return Array.isArray(data.transactions) ? data.transactions : [];
+    const rows = [];
+    let page = 1, data;
+    do {
+      data = await API.transactions({days, type, pay, paginated:1, page:page++});
+      rows.push(...(data.transactions || []));
+    } while (data.has_more);
+    return rows;
   } catch (error) {
     console.warn('AquaFlow: history query failed, using cached data. ' + error.message);
 
@@ -81,51 +72,53 @@ async function historyRows() {
   }
 }
 
+let cashierHistoryRows = [], cashierHistoryPage = 1, cashierHistoryKey = '', cashierHistoryRequest = 0;
 async function renderHistoryPage() {
   const body = document.getElementById('hBody');
   if (!body) return;
-
-  const rows = await historyRows();
-  const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  body.innerHTML = rows.length
-    ? rows.map(t =>
-        '<tr>' +
-        '<td><b>' + t.no + '</b></td>' +
-        '<td>' + (t.date || '-') + '</td>' +
-        '<td>' + t.t + '</td>' +
-        '<td>' + t.cust + '</td>' +
-        '<td>' + t.type + '</td>' +
-        '<td>' + t.gal + '</td>' +
-        '<td class="num">' + money(t.vatable || 0) + '</td>' +
-        '<td class="num">' + money(t.vat || 0) + '</td>' +
-        '<td class="num"><b>' + money(t.total) + '</b></td>' +
-        '<td>' + t.pay + '</td>' +
-        '<td><button class="btn btn-ghost btn-sm" onclick="reprint(\'' + t.no + '\')">View</button></td>' +
-        '</tr>'
-      ).join('')
-    : '<tr><td colspan="11" class="cust-option-sub">No transactions for this filter.</td></tr>';
-
-  const gross = rows.reduce((sum, t) => sum + Number(t.total), 0);
-  const vat = rows.reduce((sum, t) => sum + Number(t.vat || 0), 0);
+  const request = ++cashierHistoryRequest;
+  const key = JSON.stringify({...historyFilters(), search:document.getElementById('hBodySearch')?.value || '', order:document.getElementById('hBodyOrder')?.value || 'newest'});
+  const fetched = await historyRows();
+  if (request !== cashierHistoryRequest) return;
+  cashierHistoryRows = filterTableRows(fetched, 'hBody');
+  if (key !== cashierHistoryKey) cashierHistoryPage = 1;
+  cashierHistoryKey = key;
+  renderHistoryRows();
+  const rows = cashierHistoryRows;
+  const revenue = rows.filter(t => t.type !== 'Debt Payment').reduce((sum, t) => sum + Number(t.total), 0);
+  const cash = rows.filter(t => t.pay === 'Cash').reduce((sum, t) => sum + Number(t.total), 0);
   const summary = document.getElementById('hSum');
-
-  if (summary) {
-    summary.innerHTML =
-      '<span class="pill pill-info">Gross ' + money(gross) + '</span>' +
-      '<span class="pill pill-info">VAT ' + money(vat) + '</span>' +
-      '<span class="pill pill-info">' + rows.length + ' transactions</span>';
-  }
+  if (summary) summary.innerHTML = '<article><span>Sales revenue</span><strong>' + money(revenue) + '</strong><small>Excludes debt payments</small></article><article><span>Cash recorded</span><strong>' + money(cash) + '</strong><small>Includes cash debt payments</small></article><article><span>Transactions</span><strong>' + rows.length + '</strong><small>Matching your filters</small></article>';
 }
 
+function renderHistoryRows() {
+  const rows = cashierHistoryRows, pages = Math.max(1, Math.ceil(rows.length / 20));
+  cashierHistoryPage = Math.max(1, Math.min(cashierHistoryPage, pages));
+  const start = (cashierHistoryPage - 1) * 20;
+  document.getElementById('hBody').innerHTML = rows.slice(start, start + 20).map((t, i) => '<tr><td><b>' + esc(t.no) + '</b></td><td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td><td>' + esc(t.cust || 'Walk-in Guest') + '</td><td>' + esc(t.type) + '</td><td>' + esc(t.gal) + '</td><td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td><td class="num"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td><td><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>').join('') || '<tr><td colspan="11" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
+  const nav = document.getElementById('historyPages');
+  if (nav) nav.innerHTML = '<span>' + (rows.length ? start + 1 : 0) + '–' + Math.min(rows.length, start + 20) + ' of ' + rows.length + ' records</span><div><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(-1)"' + (cashierHistoryPage === 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + cashierHistoryPage + ' of ' + pages + '</span><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(1)"' + (cashierHistoryPage === pages ? ' disabled' : '') + '>Next</button></div>';
+}
+function changeHistoryPage(delta) { cashierHistoryPage += delta; renderHistoryRows(); }
+function viewHistoryReceipt(index) { const tx = cashierHistoryRows[index]; if (tx) displayTransactionReceipt(tx, true); }
+
 async function exportHistoryCsv() {
-  const rows = await historyRows();
+  const rows = filterTableRows(await historyRows(), 'hBody');
 
   const csv = 'OR,Date,Time,Customer,Type,Gallons,Vatable,VAT,Total,Pay,Cashier\n' +
-    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].join(',')).join('\n');
+    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(value => { const cell = String(value ?? ''); return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell; }).join(',')).join('\n');
 
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = 'cashier-sales.csv';
-  a.click();
+  downloadCSV(csv, 'cashier-sales.csv');
+}
+
+async function refreshQueuePage() {
+ if(!document.getElementById('queue')) return;
+ const request=++queueRequest;
+ try {
+  const response=await API.getWithQuery('queue',{status:queueStatus,search:document.getElementById('queueSearch').value,page:queuePage});
+  if(request!==queueRequest) return;
+  DB.queue=response.queue || []; renderQueuePage();
+  document.getElementById('queueCount').textContent=response.total+' orders';
+  document.getElementById('queuePages').innerHTML='<button class="btn btn-ghost btn-sm" onclick="changeQueuePage(-1)"'+(queuePage===1 ? ' disabled' : '')+'>Previous</button><span>Page '+queuePage+'</span><button class="btn btn-ghost btn-sm" onclick="changeQueuePage(1)"'+(!response.has_more ? ' disabled' : '')+'>Next</button>';
+ } catch(error) { if(request===queueRequest) document.getElementById('queue').innerHTML='<p role="alert">'+esc(error.message || 'Unable to load orders.')+'</p>'; }
 }

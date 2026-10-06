@@ -84,6 +84,8 @@ class CatalogSeeder extends Seeder
             );
         }
 
+        app(\App\Services\RecipeService::class)->installDefaults(6000);
+
         SystemSetting::put(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station', 'Displayed name of the water station');
         SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, '3', 'Default days until new supplies arrive');
         SystemSetting::put(SystemSetting::KEY_SUS_TARGET, '81.67 (Grade A)', 'Target System Usability Scale rating');

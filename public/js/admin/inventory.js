@@ -1,13 +1,3 @@
-// Shared HTML escaping for user-supplied values inserted via innerHTML.
-function esc(value) {
-  return String(value === undefined || value === null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function supKey(s) {
   return (s && s.id !== undefined && s.id !== null) ? s.id : (s ? s.name : null);
 }
@@ -66,20 +56,23 @@ function setStockFilter(key) {
 function renderInvTable() {
   const body = document.getElementById('invBody');
   if (body) {
-    body.innerHTML = DB.inventory.map((v, i) => {
+    body.innerHTML = filterTableRows(DB.inventory, 'invBody').map(v => {
+      const i = DB.inventory.indexOf(v);
       const st = statusOf(v);
       return '<tr><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
         '<td>' + esc(v.cat) + '</td><td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
         '<td class="num">' + v.ss + '</td><td class="num" id="rop' + i + '">' + v.rop + '</td>' +
         '<td><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
         '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
-        '<td style="white-space:nowrap;"><button onclick="stkAdj(' + i + ',1)" class="btn btn-secondary btn-sm">+ In</button> ' +
-        '<button onclick="stkAdj(' + i + ',-1)" class="btn btn-secondary btn-sm">- Adj</button>' +
-        (v.id ? ' <button onclick="openInventoryEditor(' + v.id + ')" class="btn btn-secondary btn-sm">Edit</button>' +
+        '<td style="white-space:nowrap;">' +
+        (v.id ? ' <button onclick="openStockDetail(' + v.id + ')" class="btn btn-secondary btn-sm">History</button> <button onclick="openInventoryEditor(' + v.id + ')" class="btn btn-secondary btn-sm">Edit</button>' +
         ' <button onclick="deleteInventoryItem(' + v.id + ')" class="btn btn-secondary btn-sm">Del</button>' : '') + '</td></tr>';
     }).join('');
+    showTableEmpty(body, 8);
   }
 
+  const summary = document.getElementById('inventorySummary');
+  if (summary) summary.innerHTML = '<article><span>Stock items</span><strong>' + DB.inventory.length + '</strong><small>Supplies and retail stock</small></article><article><span>Need reordering</span><strong>' + DB.inventory.filter(v => statusOf(v)[0] !== 'OK').length + '</strong><small>At or below the reorder threshold</small></article><article><span>Out of stock</span><strong>' + DB.inventory.filter(v => Number(v.on) <= 0).length + '</strong><small>Items with no available quantity</small></article>';
   const crit = DB.inventory.filter(v => statusOf(v)[0] !== 'OK');
   const health = document.getElementById('invHealth');
   if (health) health.textContent = crit.length + ' item(s) need reorder';
@@ -88,7 +81,7 @@ function renderInvTable() {
 
   const dash = document.getElementById('invBodyDash');
   if (dash) {
-    const rows = stockFiltered();
+    const rows = filterTableRows(stockFiltered(), 'invBodyDash');
     if (!rows.length) {
       dash.innerHTML = '<tr><td colspan="5" class="empty-cell">Nothing matches this filter.</td></tr>';
     } else {
@@ -144,24 +137,9 @@ async function updLead(i, val) {
 
 // Stock Adjustments
 async function stkAdj(i, d) {
-  const v = DB.inventory[i];
-
-  if (v.id) {
-    try {
-      const result = await API.adjustInventory(v.id, d > 0 ? 1 : -1);
-      API.replaceInventory(result.item);
-      renderInvTable(); renderInsights(); saveDB();
-      return;
-    } catch (error) {
-      alert(error.message || 'Could not update the stock level.');
-      return;
-    }
-  }
-
-  v.on = Math.max(0, v.on + (d > 0 ? (v.unit === 'pcs' ? 500 : 5) : (v.unit === 'pcs' ? -50 : -1)));
-  renderInvTable();
-  renderInsights();
-  saveDB();
+  const item = DB.inventory[i];
+  if (!item?.id) { alert('Connect to the server to record a stock movement.'); return; }
+  await openStockDetail(item.id, d > 0 ? 'restock' : 'adjustment');
 }
 
 
@@ -276,7 +254,12 @@ async function deleteInventoryItem(id) {
 function renderSup() {
   const grid = document.getElementById('supGrid');
   if (!grid) return;
-  grid.innerHTML = DB.suppliers.map(s => {
+  const summary = document.getElementById('supplierSummary');
+  if (summary) {
+    const leads = DB.suppliers.map(s => Number(s.lead)).filter(n => n > 0);
+    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : '—') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
+  }
+  grid.innerHTML = filterTableRows(DB.suppliers, 'supGrid').map(s => {
     const key = supKey(s);
     const keyAttr = (s.id !== undefined && s.id !== null) ? s.id : "'" + String(s.name).replace(/'/g, "\\'") + "'";
     return '<div class="card"><h3 class="panel-heading">' + esc(s.name) + '</h3>' +
@@ -286,7 +269,7 @@ function renderSup() {
       '<div class="insight-row"><span>Last delivery</span><b>' + esc(s.last) + '</b></div>' +
       '<div class="drawer-actions" style="margin-top:.5rem;"><button onclick="openSupplierEditor(' + keyAttr + ')" class="btn btn-ghost btn-sm">Edit</button>' +
       ' <button onclick="deleteSupplier(' + keyAttr + ')" class="btn btn-ghost btn-sm">Delete</button></div></div>';
-  }).join('');
+  }).join('') || '<p class="empty-cell">No matching suppliers.</p>';
 }
 
 async function createSupplier(event) {

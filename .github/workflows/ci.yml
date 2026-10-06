@@ -102,6 +102,19 @@ jobs:
       - name: Run engine tests
         run: python -m pytest tests -q
 
+  frontend:
+    name: Frontend shared behavior (Node 24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check JavaScript syntax
+        run: find public/js resources/js -name '*.js' -print0 | xargs -0 -n 1 node --check
+      - name: Run shared frontend contracts
+        run: node tests/frontend-shared.cjs
+
   # ---------------------------------------------------------------------------
   # The four-tier Docker stack must actually build. This is the job that keeps
   # the Dockerfiles honest even though the images are not published here.

@@ -28,6 +28,11 @@ class TransactionResource extends JsonResource
             'vat' => (float) $this->vat_amount,
             'total' => (float) $this->total_amount,
             'pay' => $this->payment_method,
+            'cash_tendered' => $this->cash_tendered,
+            'cash_change' => $this->cash_change,
+            'balance_after' => $this->balance_after,
+            'payment_status' => $this->payment_status,
+            'delivery_address' => $this->delivery_address,
             'by' => $this->whenLoaded('cashier', fn () => $this->cashier->name, ''),
             'items' => TransactionItemResource::collection($this->whenLoaded('items')),
         ];

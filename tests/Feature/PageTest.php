@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,7 +26,7 @@ class PageTest extends TestCase
 
     private function js(string $relative): string
     {
-        return (string) file_get_contents(base_path('public/' . $relative));
+        return (string) file_get_contents(base_path('public/'.$relative));
     }
 
     public function test_guests_are_sent_to_the_right_login_screen(): void
@@ -77,10 +78,10 @@ class PageTest extends TestCase
         // Tapping a tile must list the item on the same stage.
         $response->assertOk()
             ->assertSee('id="productGrid"', false)
-            ->assertSee('Bought Items', false)
+            ->assertSee('Order items', false)
             ->assertSee('id="boughtItems"', false)
             ->assertSee('id="boughtTotal"', false)
-            ->assertSee('Running Total', false)
+            ->assertSee('Order total', false)
             // Walk-in / Delivery is a segmented toggle at the top of stage 2.
             ->assertSee('class="stage-segment"', false)
             ->assertSee('Walk-In', false)
@@ -203,9 +204,10 @@ class PageTest extends TestCase
         $this->actingAs($this->cashier)->get('/cashier/queue')
             ->assertOk()
             ->assertSee('Orders in Progress &amp; Queue', false)
-            ->assertSee('Today&rsquo;s Queue', false)
+            ->assertSee('Active orders', false)
+            ->assertSee('Delivered', false)
             ->assertSee('id="queue"', false)
-            ->assertSee('id="stageGuide"', false)
+            ->assertDontSee('id="stageGuide"', false)
             // The "Production Line" explainer banner was removed.
             ->assertDontSee('Production Line', false)
             ->assertDontSee('Advance each order', false);
@@ -371,7 +373,7 @@ class PageTest extends TestCase
     {
         foreach (['customer-custody', 'products-intake', 'payment-print'] as $step) {
             $this->actingAs($this->cashier)
-                ->get('/cashier/' . $step)
+                ->get('/cashier/'.$step)
                 ->assertRedirect('/cashier');
         }
     }
@@ -402,7 +404,7 @@ class PageTest extends TestCase
 
         foreach ($tabs as $tab => $marker) {
             $this->actingAs($this->owner)
-                ->get('/admin/' . $tab)
+                ->get('/admin/'.$tab)
                 ->assertOk()
                 ->assertSee($marker, false);
         }
@@ -443,5 +445,59 @@ class PageTest extends TestCase
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonPath('db', true);
+    }
+
+    public function test_tables_have_search_and_chronological_sort_controls(): void
+    {
+        $pages = [
+            '/admin/dashboard' => ['invBodyDash', 'topLiaBody'],
+            '/admin/inventory' => ['invBody'],
+            '/admin/customers' => ['custBody'],
+            '/admin/users' => ['usersBody'],
+            '/admin/sales' => ['salesBody'],
+            '/admin/suppliers' => ['supGrid'],
+            '/cashier/history' => ['hBody'],
+        ];
+
+        foreach ($pages as $url => $targets) {
+            $response = $this->actingAs($this->owner)->get($url)->assertOk();
+            foreach ($targets as $target) {
+                $response->assertSee('id="'.$target.'Search"', false)
+                    ->assertSee('id="'.$target.'Order"', false)
+                    ->assertSee('New to Old')->assertSee('Old to New');
+            }
+        }
+    }
+
+    public function test_add_forms_start_closed_and_have_accessible_toggle_buttons(): void
+    {
+        foreach (['inventory' => 'invForm', 'suppliers' => 'supForm', 'users' => 'userForm'] as $page => $form) {
+            $this->actingAs($this->owner)->get('/admin/'.$page)->assertOk()
+                ->assertSee('aria-expanded="false" aria-controls="'.$form.'Panel"', false)
+                ->assertSee('id="'.$form.'Panel" class="card form-card hidden"', false)
+                ->assertSee('onclick="toggleAddForm(this)"', false);
+        }
+    }
+
+    public function test_u_s23_u_s33_u_s48_dashboard_uses_the_approved_msme_model(): void
+    {
+        $this->actingAs($this->owner)->get('/admin/dashboard')->assertOk()
+            ->assertSee('Sales Revenue Today')->assertSee('New Slim Jugs')->assertSee('New Round Jugs')
+            ->assertSee('Outstanding Customer Balances')->assertDontSee('Pending Bottles (All)');
+    }
+
+    public function test_u_s40_u_s49_u_s50_forecast_views_and_exports_are_available(): void
+    {
+        $this->actingAs($this->owner)->get('/admin/arima')->assertOk()
+            ->assertSee('Daily')->assertSee('Weekly')->assertSee('Monthly')->assertSee('Print / Save PDF')
+            ->assertSee('saveForecastView()', false)->assertSee('exportReport()', false);
+    }
+
+    public function test_u_s47_forecasts_are_scheduled_at_two_am(): void
+    {
+        $events = app(Schedule::class)->events();
+        $forecast = array_values(array_filter($events, fn ($event) => str_contains($event->command ?? '', 'aquaflow:forecast')));
+        $this->assertCount(1, $forecast);
+        $this->assertSame('0 2 * * *', $forecast[0]->expression);
     }
 }

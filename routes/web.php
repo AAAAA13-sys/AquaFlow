@@ -8,7 +8,9 @@ use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\QueueController;
+use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
@@ -37,7 +39,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'users', 'settings'])
             ->name('admin.tab');
     });
 });
@@ -47,7 +49,8 @@ Route::middleware('auth')->group(function (): void {
 | API (session authenticated, same origin)
 |--------------------------------------------------------------------------
 */
-Route::prefix('api')->group(function (): void {    Route::get('health', HealthController::class)->name('api.health');
+Route::prefix('api')->group(function (): void {
+    Route::get('health', HealthController::class)->name('api.health');
     Route::get('auth/session', [AuthController::class, 'session'])->name('api.session');
 
     // Login is rate limited to slow down credential stuffing.
@@ -56,7 +59,7 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
         Route::post('auth/login-owner', [AuthController::class, 'loginOwner'])->name('api.login.owner');
     });
 
-    Route::middleware('auth')->group(function (): void {
+    Route::middleware(['auth', 'throttle:api'])->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
@@ -72,13 +75,20 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
         Route::post('inventory', [InventoryController::class, 'store'])
             ->middleware('owner')
             ->name('api.inventory.store');
-        Route::patch('inventory/{inventory}', [InventoryController::class, 'update'])->name('api.inventory.update');
+        Route::patch('inventory/{inventory}', [InventoryController::class, 'update'])->middleware('owner')->name('api.inventory.update');
         Route::delete('inventory/{inventory}', [InventoryController::class, 'destroy'])
             ->middleware('owner')
             ->name('api.inventory.destroy');
         Route::post('inventory/recalculate', [InventoryController::class, 'recalculate'])
             ->middleware('owner')
             ->name('api.inventory.recalculate');
+
+        Route::middleware('owner')->group(function (): void {
+            Route::get('products/recipes', [RecipeController::class, 'index']);
+            Route::put('products/{product}/recipe', [RecipeController::class, 'update']);
+            Route::get('inventory/{inventory}/movements', [StockMovementController::class, 'index']);
+            Route::post('inventory/{inventory}/movements', [StockMovementController::class, 'store']);
+        });
 
         // Suppliers directory
         Route::get('suppliers', [SupplierController::class, 'index'])->name('api.suppliers.index');
@@ -96,9 +106,17 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
         Route::get('transactions', [TransactionController::class, 'index'])->name('api.transactions.index');
         Route::post('transactions', [TransactionController::class, 'store'])->name('api.transactions.store');
 
+        Route::middleware('owner')->group(function (): void {
+            Route::get('employees', [\App\Http\Controllers\EmployeeController::class, 'index']);
+            Route::post('employees', [\App\Http\Controllers\EmployeeController::class, 'store']);
+            Route::patch('employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update']);
+            Route::delete('employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'destroy']);
+        });
+        Route::post('queue/{queueItem}/deliver', [QueueController::class, 'deliver']);
+
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');
-        Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->name('api.queue.advance');
+        Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->middleware('owner')->name('api.queue.advance');
 
         // Settings
         Route::get('settings', [SettingsController::class, 'index'])->name('api.settings.index');
@@ -112,7 +130,7 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
             ->middleware('owner')
             ->name('api.forecast.store');
         Route::post('forecast/run', [ForecastController::class, 'run'])
-            ->middleware('owner')
+            ->middleware(['owner', 'throttle:forecast'])
             ->name('api.forecast.run');
 
         // Replenishment advisories
@@ -133,4 +151,3 @@ Route::prefix('api')->group(function (): void {    Route::get('health', HealthCo
             ->name('api.users.destroy');
     });
 });
-

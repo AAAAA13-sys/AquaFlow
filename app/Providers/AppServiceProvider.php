@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\SystemSetting;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         // API responses use explicit top-level keys ({customers: [...]},
         // {transaction: {...}}), so resources must not add a "data" wrapper.
         JsonResource::withoutWrapping();
+        RateLimiter::for('api', fn ($request) => Limit::perMinute(config('rate_limits.api', 120))->by('user:'.$request->user()->id));
+        RateLimiter::for('forecast', fn ($request) => Limit::perMinute(config('rate_limits.forecast', 3))->by('forecast:'.$request->user()->id));
 
         // Share station branding and settings with the shells that need them.
         View::composer(

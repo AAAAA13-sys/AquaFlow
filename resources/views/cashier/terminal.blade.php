@@ -15,7 +15,7 @@
       <div class="card stage-card">
         <div class="stage-toolbar">
           <input id="custSearch" oninput="renderCustList()" class="form-input"
-                 placeholder="Search name or address..." autocomplete="off">
+                 aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <button type="button" onclick="pickWalkIn()" class="btn btn-primary btn-sm stage-fasttrack"
                   title="Start a walk-in cash sale without choosing a customer (F2)">
             Quick Walk-In
@@ -52,11 +52,11 @@
 
       <div class="card stage-card cart-tray">
         <div class="flex-between">
-          <h3 class="panel-heading">Bought Items</h3>
+          <h3 class="panel-heading">Order items</h3>
           <span id="boughtCount" class="order-receipt-tag">0 items</span>
         </div>
         <div id="boughtItems" class="cart-items-container scroll-region"></div>
-        <div class="total-due-banner"><span>Running Total:</span><b id="boughtTotal">&#8369;0</b></div>
+        <div class="total-due-banner"><span>Order total:</span><b id="boughtTotal">&#8369;0</b></div>
       </div>
     </section>
 
@@ -98,7 +98,7 @@
           {{-- Walk-in: cash only --}}
           <div id="cashPanel">
             <label class="form-label" for="tender">Amount Tendered</label>
-            <input id="tender" type="number" value="0" min="0" oninput="renderPOS()" class="form-input tender-input">
+            <input id="tender" type="number" step="0.01" value="0" min="0" oninput="renderPOS()" class="form-input tender-input">
 
             <div class="quick-cash-row">
               <button type="button" class="exact" onclick="applyQuickCash('exact')">Exact</button>
@@ -119,7 +119,7 @@
           {{-- Delivery: charged straight to the customer's ledger --}}
           <div id="deliveryPanel" class="hidden">
             <div class="ledger-notice">
-              &#128203; Automatically charged to customer account. Driver will collect or bill on delivery.
+              Automatically charged to customer account. Driver will collect or bill on delivery.
             </div>
 
             <div class="active-customer-box">
@@ -148,7 +148,7 @@
               </div>
               <div class="breakdown-row" style="margin-top:0.5rem;">
                 <span>Payment Amount</span>
-                <input id="debtPay" type="number" value="0" min="0" oninput="renderPOS()" class="text-right">
+                <input id="debtPay" aria-label="Debt payment amount" type="number" step="0.01" value="0" min="0" oninput="renderPOS()" class="text-right">
               </div>
               <div class="breakdown-row">
                 <span>Remaining Balance</span>
@@ -181,9 +181,9 @@
   <div id="registerModal" class="overlay-modal hidden">
     <div class="auth-card" style="max-width:400px;">
       <h3 class="panel-heading">Register New Customer</h3>
-      <label class="form-label">Full Name</label>
+      <label class="form-label" for="regName">Full Name</label>
       <input id="regName" class="form-input" placeholder="e.g. Juan Dela Cruz">
-      <label class="form-label">Address</label>
+      <label class="form-label" for="regAddr">Address</label>
       <input id="regAddr" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">
         <button onclick="closeRegisterModal()" class="btn btn-ghost">Cancel</button>
@@ -193,38 +193,12 @@
   </div>
 
   {{-- Thermal receipt modal --}}
-  <div id="receipt" class="overlay-modal hidden">
-    <div class="receipt-card">
-      <div class="receipt-header">
-        <h2 class="receipt-brand">{{ strtoupper($stationName ?? 'AQUAFLOW STATION') }}</h2>
-        <p class="receipt-sub">Water Refilling Station</p>
-        <p id="rMeta" class="receipt-meta"></p>
-      </div>
-      <div id="rBody" class="receipt-body"></div>
-      <div class="receipt-footer">
-        THANK YOU FOR YOUR PATRONAGE!<br>
-        VAT inclusive sales. This serves as your official receipt.
-      </div>
-      <div class="button-grid-2 no-print order-type-selector">
-        <button onclick="printReceipt()" class="btn btn-ghost">Print</button>
-        <button onclick="closeReceipt()" class="btn btn-primary">New Sale</button>
-      </div>
-    </div>
-  </div>
+  @include('partials.receipt-modal', ['closeAction' => 'closeReceipt()', 'closeLabel' => 'New Sale'])
 @endsection
 
-@push('scripts')
-  <script>
-    (async () => {
-      window.SESSION = await bootCashierPortal();
-      if (SESSION) {
-        renderProducts();
-        setType(POS.type);
-        renderPOS();
-        posStep(1);
-      }
-    })();
-  </script>
-
-
-@endpush
+@component('partials.page-startup', ['portal' => 'cashier'])
+renderProducts();
+setType(POS.type);
+renderPOS();
+posStep(1);
+@endcomponent

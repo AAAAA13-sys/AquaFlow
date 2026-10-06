@@ -13,7 +13,7 @@ from statsmodels.tsa.stattools import acf, adfuller, pacf
 warnings.filterwarnings("ignore")
 
 # Constants & Thresholds
-MIN_POINTS_FOR_ARIMA = 21
+MIN_POINTS_FOR_ARIMA = 30
 MIN_POINTS_FOR_SEASONAL = 14
 MAX_P = 3
 MAX_Q = 3
@@ -54,8 +54,12 @@ class ForecastResult:
     acf_values: list[float] = field(default_factory=list)
     pacf_values: list[float] = field(default_factory=list)
 
+    model_diagnostics: dict[str, object] = field(default_factory=dict)
+
     def as_dict(self) -> dict[str, object]:
         return {
+            "model_diagnostics": self.model_diagnostics,
+            "history_warning": f"Insufficient history (have {len(self.history)} days, need 30)" if len(self.history) < 30 else None,
             "history": self.history,
             "forecast": self.forecast,
             "order": f"ARIMA{self.order}",
@@ -91,6 +95,7 @@ class _FitOutcome:
     fitted: object
     seasonal: bool
     factors: list[float]
+    candidates: list[dict[str, object]] = field(default_factory=list)
 
 
 # Series Preprocessing & Cleaning
@@ -177,7 +182,7 @@ def choose_differencing(values: list[float]) -> int:
     current = list(values)
     for d in range(MAX_D + 1):
         _, pvalue = adf_test(current)
-        if pvalue < ADF_ALPHA or len(current) < MIN_POINTS_FOR_ARIMA:
+        if pvalue < ADF_ALPHA or len(current) < 8:
             return d
         current = list(np.diff(current))
     return MAX_D
@@ -215,9 +220,10 @@ def _reseasonalize(forecast: list[float], factors: list[float], end_weekday: int
 
 
 # Model Selection & Fitting
-def select_order(values: list[float], d: int) -> tuple[int, int, float]:
+def select_order(values: list[float], d: int, candidates: list[dict[str, object]] | None = None) -> tuple[int, int, float]:
     best_order = (1, d, 1)
     best_aic = float("inf")
+    best_bic = float("inf")
 
     for p in range(MAX_P + 1):
         for q in range(MAX_Q + 1):
@@ -226,9 +232,15 @@ def select_order(values: list[float], d: int) -> tuple[int, int, float]:
             try:
                 fitted = ARIMA(np.asarray(values, dtype=float), order=(p, d, q)).fit()
                 aic = float(fitted.aic)
+                bic = float(fitted.bic)
+                if not math.isfinite(aic) or not math.isfinite(bic):
+                    continue
+                if candidates is not None:
+                    candidates.append({"order": [p, d, q], "aic": round(aic, 2), "bic": round(bic, 2)})
             except Exception:
                 continue
-            if aic < best_aic:
+            if (aic, bic) < (best_aic, best_bic):
+                best_bic = bic
                 best_aic = aic
                 best_order = (p, d, q)
 
@@ -250,8 +262,11 @@ def _fit_and_forecast(values: list[float], horizon: int, end_weekday: int | None
         factors = weekday_factors(values, end_weekday)
         working = _deseasonalize(values, factors, end_weekday)
 
-    d = choose_differencing(working)
-    p, q, aic = select_order(working, d)
+    d = max(choose_differencing(values), choose_differencing(working))
+    candidates: list[dict[str, object]] = []
+    p, q, aic = select_order(working, d, candidates)
+    if not math.isfinite(aic):
+        return None
     order = (p, d, q)
 
     fitted = _fit(working, order)
@@ -275,6 +290,7 @@ def _fit_and_forecast(values: list[float], horizon: int, end_weekday: int | None
         fitted=fitted,
         seasonal=bool(factors),
         factors=factors,
+        candidates=candidates,
     )
 
 
@@ -316,7 +332,7 @@ def _naive_result(
     method: str = "naive_mean",
 ) -> ForecastResult:
     recent = history[-7:] if len(history) >= 7 else history
-    baseline = max(0.0, fmean(recent))
+    baseline = max(0.0, fmean(recent)) if recent else 0.0
     statistic, pvalue = adf_test(history)
     return ForecastResult(
         history=history,
@@ -346,6 +362,8 @@ def analyze(
     if horizon < 1:
         raise ValueError("Horizon must be at least 1 day")
 
+    if not values:
+        return _naive_result([], horizon, CleaningReport(0, 0, 0, 0), method="naive_insufficient_data")
     history, cleaning = clean_series(values)
 
     if len(history) < MIN_POINTS_FOR_ARIMA or len(set(history)) < 2:
@@ -388,4 +406,12 @@ def analyze(
         seasonal_factors=[round(factor, 3) for factor in outcome.factors],
         acf_values=acf_values,
         pacf_values=pacf_values,
+        model_diagnostics={
+            "candidates": outcome.candidates,
+            "bic": round(float(outcome.fitted.bic), 2),
+            "forecast_error_variances": [max(0.0, float(value)) for value in outcome.fitted.get_forecast(horizon).var_pred_mean],
+            "differenced_series": np.diff(history, n=outcome.order[1]).tolist() if outcome.order[1] else history,
+            "stationarity": {"raw_adf_statistic": statistic, "raw_adf_pvalue": pvalue,
+                "differenced_adf": list(adf_test(np.diff(history, n=outcome.order[1]).tolist())) if outcome.order[1] else [statistic, pvalue]},
+        },
     )

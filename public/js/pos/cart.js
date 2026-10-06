@@ -52,13 +52,7 @@ function isDelivery() {
   return POS.type === 'Delivery';
 }
 
-/** Jugs of the customer's that the station is still holding. */
-function jugsInCustody(customer) {
-  return Math.max(0, customer.issuedS - customer.returnedS) +
-    Math.max(0, customer.issuedR - customer.returnedR);
-}
 
-const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const peso = n => '₱' + Number(n).toLocaleString();
 
 function setType(t) {
@@ -130,13 +124,11 @@ function renderCustList() {
 
     list.innerHTML = rows.map(c => {
       const sel = c.id === POS.custId;
-      const custody = jugsInCustody(c);
       const debt = Number(c.debt);
 
       return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
-        '<b class="cust-row-name">' + c.name + '</b>' +
-        '<span class="cust-row-addr">' + c.addr + '</span>' +
-        '<span class="cust-row-stat">' + icon('i-package') + ' ' + custody + ' jug' + (custody === 1 ? '' : 's') + '</span>' +
+        '<b class="cust-row-name">' + esc(c.name) + '</b>' +
+        '<span class="cust-row-addr">' + esc(c.addr) + '</span>' +
         '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
         '</button>';
     }).join('');
@@ -153,14 +145,12 @@ function renderCustList() {
     return;
   }
 
-  const custody = jugsInCustody(c);
   const debt = Number(c.debt);
 
   card.className = 'active-customer-banner';
   card.innerHTML =
-    '<b class="cust-detail-name">' + c.name + '</b>' +
-    '<span class="cust-detail">' + c.addr + '</span>' +
-    '<span class="cust-detail">' + icon('i-package') + ' ' + custody + ' jug' + (custody === 1 ? '' : 's') + ' in custody</span>' +
+    '<b class="cust-detail-name">' + esc(c.name) + '</b>' +
+    '<span class="cust-detail">' + esc(c.addr) + '</span>' +
     '<span class="cust-detail ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
     (debt > 0 ? icon('i-alert') + ' ' + peso(debt) + ' debt' : icon('i-check-circle') + ' No balance') + '</span>';
 }
@@ -239,7 +229,7 @@ function renderProducts() {
       (disabled || outOfStock ? ' disabled' : '') +
       ' onclick="addProduct(\'' + product.id + '\')">' +
       '<span>' +
-      '<span class="product-info-name">' + product.name + '</span>' +
+      '<span class="product-info-name">' + esc(product.name) + '</span>' +
       '<span class="product-info-sub">' + productSubtitle(product) + '</span>' +
       stockLine +
       walkInBadge +
@@ -399,8 +389,8 @@ function renderPOS() {
     sumCustomer.className = 'active-customer-banner' + (c === null ? ' empty' : '');
     sumCustomer.innerHTML = c === null
       ? '<span class="cust-detail">No customer selected yet.</span>'
-      : '<b class="cust-detail-name">' + c.name + '</b>' +
-        '<span class="cust-detail">' + c.addr + '</span>' +
+      : '<b class="cust-detail-name">' + esc(c.name) + '</b>' +
+        '<span class="cust-detail">' + esc(c.addr) + '</span>' +
         '<span class="cust-detail">' + (isDelivery() ? icon('i-truck') + ' Delivery' : icon('i-walkin') + ' Walk-in') + '</span>' +
         '<span class="cust-detail">Existing debt: ' + money(Number(c.debt)) + '</span>';
   }

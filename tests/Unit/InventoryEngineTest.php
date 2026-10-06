@@ -15,7 +15,7 @@ class InventoryEngineTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->engine = new InventoryEngine();
+        $this->engine = new InventoryEngine;
     }
 
     public function test_safety_stock_scales_with_demand_variance_and_lead_time(): void
@@ -47,7 +47,7 @@ class InventoryEngineTest extends TestCase
         $this->assertSame(1.0, $this->engine->priorityFactor('Unknown'));
     }
 
-    public function test_reorder_point_is_demand_over_lead_time_plus_safety(): void
+    public function test_u_s44_reorder_point_is_demand_over_lead_time_plus_safety(): void
     {
         // 200/day x 3 days + 100 safety = 700
         $this->assertSame(700, $this->engine->reorderPoint(200.0, 3, 100));

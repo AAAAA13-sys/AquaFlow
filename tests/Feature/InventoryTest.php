@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\DemandForecast;
 use App\Models\InventoryItem;
 use App\Models\User;
+use App\Services\InventoryEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -69,7 +70,7 @@ class InventoryTest extends TestCase
         $response = $this->actingAs($this->cashier)->getJson('/api/inventory');
 
         $response->assertOk()
-            ->assertJsonCount(7, 'inventory')
+            ->assertJsonCount(10, 'inventory')
             ->assertJsonStructure(['inventory' => [['id', 'item', 'on', 'ss', 'rop', 'target', 'lead', 'status']], 'advisories']);
 
         $first = $response->json('inventory.0');
@@ -83,8 +84,8 @@ class InventoryTest extends TestCase
         $ropBefore = $caps->reorder_point;
         $safetyBefore = $caps->safety_stock;
 
-        $response = $this->actingAs($this->cashier)
-            ->patchJson('/api/inventory/' . $caps->id, ['lead_time_days' => 5]);
+        $response = $this->actingAs($this->owner)
+            ->patchJson('/api/inventory/'.$caps->id, ['lead_time_days' => 5]);
 
         $response->assertOk();
 
@@ -97,8 +98,8 @@ class InventoryTest extends TestCase
 
     public function test_lead_time_out_of_range_is_rejected(): void
     {
-        $this->actingAs($this->cashier)
-            ->patchJson('/api/inventory/' . $this->item('Non-Spill Caps')->id, ['lead_time_days' => 99])
+        $this->actingAs($this->owner)
+            ->patchJson('/api/inventory/'.$this->item('Non-Spill Caps')->id, ['lead_time_days' => 99])
             ->assertStatus(422);
     }
 
@@ -107,14 +108,14 @@ class InventoryTest extends TestCase
         $caps = $this->item('Non-Spill Caps');
         $before = $caps->stock_on_hand;
 
-        $this->actingAs($this->cashier)
-            ->patchJson('/api/inventory/' . $caps->id, ['direction' => 1])
+        $this->actingAs($this->owner)
+            ->patchJson('/api/inventory/'.$caps->id, ['direction' => 1])
             ->assertOk();
 
         $this->assertSame($before + 500, $caps->refresh()->stock_on_hand);
 
-        $this->actingAs($this->cashier)
-            ->patchJson('/api/inventory/' . $caps->id, ['direction' => -1])
+        $this->actingAs($this->owner)
+            ->patchJson('/api/inventory/'.$caps->id, ['direction' => -1])
             ->assertOk();
 
         $this->assertSame($before + 450, $caps->refresh()->stock_on_hand);
@@ -126,8 +127,8 @@ class InventoryTest extends TestCase
         $item->update(['stock_on_hand' => 0]);
 
         for ($i = 0; $i < 3; $i++) {
-            $this->actingAs($this->cashier)
-                ->patchJson('/api/inventory/' . $item->id, ['direction' => -1])
+            $this->actingAs($this->owner)
+                ->patchJson('/api/inventory/'.$item->id, ['direction' => -1])
                 ->assertOk();
         }
 
@@ -142,10 +143,10 @@ class InventoryTest extends TestCase
 
         $response = $this->actingAs($this->owner)->postJson('/api/inventory/recalculate');
 
-        $response->assertOk()->assertJsonPath('updated', 7);
+        $response->assertOk()->assertJsonPath('updated', 10);
     }
 
-    public function test_advisories_endpoint_returns_a_draft_purchase_order(): void
+    public function test_u_s46_advisories_endpoint_returns_a_draft_purchase_order(): void
     {
         // Force a shortage so there is something to advise on.
         $this->item('Non-Spill Caps')->update(['stock_on_hand' => 10]);
@@ -191,8 +192,8 @@ class InventoryTest extends TestCase
                 $listed['days_left'],
                 $advisory['days_left'],
                 "Days-of-cover diverged for {$advisory['item']}: list says "
-                    .var_export($listed['days_left'], true) . ', advisory says '
-                    .var_export($advisory['days_left'], true) . '.'
+                    .var_export($listed['days_left'], true).', advisory says '
+                    .var_export($advisory['days_left'], true).'.'
             );
             $this->assertSame($listed['daily_demand'], $advisory['daily_demand']);
         }
@@ -203,7 +204,7 @@ class InventoryTest extends TestCase
         $caps = $this->item('Non-Spill Caps');
         $caps->update(['stock_on_hand' => 260]);
 
-        $cover = app(\App\Services\InventoryEngine::class)->daysRemaining($caps->refresh());
+        $cover = app(InventoryEngine::class)->daysRemaining($caps->refresh());
 
         // Days Remaining = Current Stock Quantity / ARIMA Projected Daily Consumption
         $this->assertEqualsWithDelta(
@@ -214,9 +215,9 @@ class InventoryTest extends TestCase
         $this->assertSame(1.0, round($cover['days_exact'], 1));
     }
 
-    public function test_items_at_or_below_the_reorder_point_are_flagged_reorder_now(): void
+    public function test_u_s45_items_at_or_below_the_reorder_point_are_flagged_reorder_now(): void
     {
-        $engine = app(\App\Services\InventoryEngine::class);
+        $engine = app(InventoryEngine::class);
         $caps = $this->item('Non-Spill Caps');
         $this->actingAs($this->owner)->postJson('/api/inventory/recalculate')->assertOk();
         $caps->refresh();
@@ -234,7 +235,7 @@ class InventoryTest extends TestCase
 
     public function test_quantity_labels_are_pluralised(): void
     {
-        $engine = app(\App\Services\InventoryEngine::class);
+        $engine = app(InventoryEngine::class);
 
         $this->assertSame('1 unit', $engine->quantityLabel(1, 'pcs'));
         $this->assertSame('2 pcs', $engine->quantityLabel(2, 'pcs'));
@@ -249,10 +250,37 @@ class InventoryTest extends TestCase
 
         $caps = $this->item('Non-Spill Caps');
 
-        // stddev of [200,210,220,230,400,410,220] ~= 86.8, lead 2, priority 1.25
-        // safety = ceil(1.65 * 86.8 * sqrt(2) * 1.25) ~= 254
-        $this->assertGreaterThan(200, $caps->safety_stock);
-        $this->assertLessThan(320, $caps->safety_stock);
+        // Forecast error variance accumulates across lead time: sigma=40, L=2.
+        $this->assertSame((int) ceil(1.65 * 40 * sqrt(2) * 1.25), $caps->safety_stock);
         $this->assertGreaterThan($caps->safety_stock, $caps->reorder_point);
+    }
+
+    public function test_u_s31_supplier_updates_preserve_optional_and_nullable_fields(): void
+    {
+        $this->actingAs($this->owner)->postJson('/api/suppliers', [])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name', 'supplied_items']);
+
+        $response = $this->actingAs($this->owner)->postJson('/api/suppliers', [
+            'name' => 'Refactor Supplier', 'supplied_items' => 'Caps',
+            'contact' => '555', 'last_delivery' => '2026-01-01',
+        ])->assertCreated();
+        $id = $response->json('supplier.id');
+        $this->patchJson('/api/suppliers/'.$id, ['contact' => null, 'last_delivery' => null])
+            ->assertOk();
+        $this->assertDatabaseHas('suppliers', [
+            'id' => $id, 'name' => 'Refactor Supplier', 'supplied_items' => 'Caps',
+            'contact' => '-', 'last_delivery' => null,
+        ]);
+        $this->patchJson('/api/suppliers/'.$id, ['lead_time_days' => 15])
+            ->assertUnprocessable()->assertJsonValidationErrors('lead_time_days');
+        $this->actingAs($this->cashier)->patchJson('/api/suppliers/'.$id, [])->assertForbidden();
+    }
+
+    public function test_u_s43_cumulative_forecast_error_variance_sets_the_buffer(): void
+    {
+        DemandForecast::latestFor('Non-Spill Caps')->update(['model_diagnostics' => ['forecast_error_variances' => [100, 400]]]);
+        $item = $this->item('Non-Spill Caps');
+        app(InventoryEngine::class)->recalculateItem($item);
+        $this->assertSame((int) ceil(1.65 * sqrt(500) * 1.25), $item->fresh()->safety_stock);
     }
 }

@@ -289,7 +289,8 @@ button {
   z-index: 20;
 }
 
-.header-left {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -329,12 +330,6 @@ button {
 
 .header-meta .divider {
   color: #475569;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .logout-btn {
@@ -382,7 +377,9 @@ button {
   gap: 0.75rem;
 }
 
-.sidebar-header-brand {
+.sidebar-header-brand,
+.admin-topbar-left,
+.header-brand-group {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -567,13 +564,6 @@ button {
   gap: 1rem;
 }
 
-.admin-topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
 .sidebar-toggle-btn {
   display: none;
   flex-direction: column;
@@ -743,7 +733,8 @@ button {
   margin-top: 0.5rem;
 }
 
-.button-grid-2 {
+.button-grid-2,
+.products-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
@@ -752,13 +743,6 @@ button {
 .button-grid-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.5rem;
-}
-
-/* Product Cards Grid */
-.products-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
@@ -805,7 +789,8 @@ button {
 }
 
 /* Color themed product cards */
-.prod-theme-blue {
+.prod-theme-blue,
+.kpi-blue {
   background-color: #E0F2FE;
   border-color: #7DD3FC;
 }
@@ -832,7 +817,8 @@ button {
   background-color: #C2410C;
 }
 
-.prod-theme-yellow {
+.prod-theme-yellow,
+.kpi-yellow {
   background-color: #FEF9C3;
   border-color: #FDE047;
 }
@@ -860,7 +846,8 @@ button {
 }
 
 /* Container Intake Box */
-.intake-controls-box {
+.intake-controls-box,
+.tender-amount-box {
   background-color: var(--surface-bg);
   border: 1px solid var(--border-line);
   border-radius: 12px;
@@ -1101,7 +1088,8 @@ button {
   margin-top: 0.15rem;
 }
 
-.dashboard-row-2col {
+.dashboard-row-2col,
+.dashboard-row-3col {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.75rem;
@@ -1112,13 +1100,6 @@ button {
   .dashboard-row-2col {
     grid-template-columns: 1fr 1fr;
   }
-}
-
-.dashboard-row-3col {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
 }
 
 @media (min-width: 1024px) {
@@ -1195,6 +1176,18 @@ table.clean td {
   gap: 0.75rem;
   padding: 1rem;
   margin-bottom: 1rem;
+}
+
+.form-card {
+  margin-bottom: 1rem;
+}
+
+.field-min-140 {
+  min-width: 140px;
+}
+
+.field-min-160 {
+  min-width: 160px;
 }
 
 .filter-group {
@@ -1295,11 +1288,6 @@ table.clean td {
 ============================================================================= */
 
 /* KPI / ledger colour variants used on the Dashboard tab */
-.kpi-blue {
-  background-color: #E0F2FE;
-  border-color: #7DD3FC;
-}
-
 .kpi-green {
   background-color: #DCFCE7;
   border-color: #86EFAC;
@@ -1308,11 +1296,6 @@ table.clean td {
 .kpi-red {
   background-color: #FEE2E2;
   border-color: #FCA5A5;
-}
-
-.kpi-yellow {
-  background-color: #FEF9C3;
-  border-color: #FDE047;
 }
 
 .kpi-red .kpi-label,
@@ -1479,13 +1462,6 @@ body.pos-lock .pos-layout {
 }
 
 /* Terminal header */
-.header-brand-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
 .header-logo-badge {
   width: 32px;
   height: 32px;
@@ -1559,7 +1535,8 @@ body.pos-lock .pos-layout {
   background-color: var(--surface-subtle);
 }
 
-.pos-step.active {
+.pos-step.active,
+.seg-btn.active {
   background-color: var(--brand-primary);
   border-color: var(--brand-primary);
   color: var(--surface-white);
@@ -1685,7 +1662,8 @@ body.pos-lock .pos-layout {
   font-weight: 700;
 }
 
-.cust-option-sub {
+.cust-option-sub,
+.receipt-sub {
   font-size: 0.7rem;
   color: var(--text-muted);
 }
@@ -1705,14 +1683,6 @@ body.pos-lock .pos-layout {
   color: #0C4A6E;
   border-radius: 9999px;
   padding: 0.2rem 0.65rem;
-}
-
-.tender-amount-box {
-  background-color: var(--surface-bg);
-  border: 1px solid var(--border-line);
-  border-radius: 12px;
-  padding: 0.65rem;
-  margin-top: 0.5rem;
 }
 
 /* Recent sales audit feed + production queue */
@@ -1788,11 +1758,6 @@ body.pos-lock .pos-layout {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-}
-
-.receipt-sub {
-  font-size: 0.7rem;
-  color: var(--text-muted);
 }
 
 .receipt-meta {
@@ -2273,12 +2238,6 @@ button.product-item .product-info-price {
   background-color: var(--surface-subtle);
 }
 
-.seg-btn.active {
-  background-color: var(--brand-primary);
-  border-color: var(--brand-primary);
-  color: var(--surface-white);
-}
-
 .cashier-viewport .products-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow-y: auto;
@@ -2367,3 +2326,7 @@ button.product-item .product-info-price {
   margin-top: 0.5rem;
 }
 
+.credential-control { display: flex; gap: 8px; align-items: center; }
+.credential-control input { flex: 1; min-width: 0; }
+.credential-control button { flex-shrink: 0; }
+.credential-hint { color: #64748b; font-size: 12px; line-height: 1.6; margin: 8px 0; }

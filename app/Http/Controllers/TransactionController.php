@@ -17,16 +17,15 @@ class TransactionController extends Controller
 {
     public function __construct(
         private readonly CheckoutService $checkout,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $query = Transaction::query()->with(['customer', 'cashier']);
+        $query = Transaction::query()->with(['customer', 'cashier', 'items']);
 
         $days = $request->integer('days', 0);
-        if ($days > 0) {
-            $query->whereDate('transaction_date', '>=', today()->subDays($days - 1));
+        if ($request->has('days')) {
+            $query->whereDate('transaction_date', '>=', today()->subDays(max(1, $days) - 1));
         }
 
         $type = $request->string('type')->toString();
@@ -39,15 +38,13 @@ class TransactionController extends Controller
             $query->where('payment_method', $pay);
         }
 
-        return response()->json([
-            'transactions' => TransactionResource::collection(
-                $query->orderByDesc('transaction_date')
-                    ->orderByDesc('transaction_time')
-                    ->orderByDesc('id')
-                    ->limit(200)
-                    ->get()
-            ),
-        ]);
+        if ($request->boolean('paginated')) {
+            $page = $query->newestFirst()->paginate(200);
+
+            return response()->json(['transactions' => TransactionResource::collection($page->items()), 'has_more' => $page->hasMorePages()]);
+        }
+
+        return response()->json(['transactions' => TransactionResource::collection($query->newestFirst()->limit(200)->get())]);
     }
 
     public function store(CheckoutRequest $request): JsonResponse
@@ -58,11 +55,11 @@ class TransactionController extends Controller
         );
 
         return response()->json([
-            'transaction' => new TransactionResource($result['transaction']),
+            'transaction' => new TransactionResource($result['transaction']->load(['customer', 'cashier', 'items'])),
             'customer' => new CustomerResource($result['customer']),
             'totals' => $result['totals'],
             'queue' => ProductionQueueItemResource::collection(
-                ProductionQueueItem::query()->activeToday()->orderBy('id')->limit(20)->get()
+                ProductionQueueItem::query()->activeToday()->orderBy('id')->get()
             ),
         ], 201);
     }

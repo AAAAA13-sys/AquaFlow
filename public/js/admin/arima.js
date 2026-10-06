@@ -3,6 +3,9 @@ const ARIMA_SERIES = {
   'Refill gallons': 'Refill Gallons',
   'Heat Shrink Seals': 'Heat Shrink Seals',
   'Non-Spill Caps': 'Non-Spill Caps',
+  'SHRINK_SLIM': 'SHRINK_SLIM',
+  'SHRINK_ROUND': 'SHRINK_ROUND',
+  'CLEAR_COVER': 'CLEAR_COVER',
   'Sediment Filters': 'Sediment Filters'
 };
 
@@ -74,18 +77,19 @@ function renderForecast() {
   // Pill labels are written for a station owner, not a statistician. The exact
   // figures stay in the tooltip and in the explanation below, so a reviewer can
   // still read ARIMA order, MAPE and the Ljung-Box result.
-  const mapeNum = Number(model.mape);
+  const mapeNum = model.mape == null ? NaN : Number(model.mape);
   const mapePill = Number.isFinite(mapeNum)
     ? '<span class="pill ' + (mapeNum <= 10 ? 'pill-ok' : mapeNum <= 20 ? 'pill-warn' : 'pill-bad') +
-      '" title="MAPE ' + mapeNum + '% — average error when the model was tested on days it had not seen">Usually right by ' +
-      (100 - mapeNum).toFixed(0) + '%</span>'
+      '" title="MAPE ' + mapeNum + '% — average error when the model was tested on days it had not seen">Average test error: ' +
+      mapeNum.toFixed(1) + '%</span>'
     : '';
   const residOk = model.ljung_box_pvalue > 0.05;
-  const residPill = '<span class="pill ' + (residOk ? 'pill-ok' : 'pill-warn') +
-    '" title="Ljung-Box p ' + model.ljung_box_pvalue + '">Pattern is reliable</span>';
+  const residPill = model.ljung_box_pvalue == null ? '' : '<span class="pill ' + (residOk ? 'pill-ok' : 'pill-warn') +
+    '" title="Residual diagnostic: Ljung-Box p ' + model.ljung_box_pvalue + '">' + (residOk ? 'No residual pattern detected' : 'Residual pattern detected') + '</span>';
 
-  const metaHtml =
-    '<span class="pill pill-info" title="' + (model.order || 'ARIMA') + '">Smart prediction model</span> ' +
+  const warning = model.history_warning || (String(model.method).startsWith('naive') ? 'Fallback estimate; ARIMA requires sufficient reliable history.' : '');
+  const metaHtml = warning ? '<span class="pill pill-warn">' + esc(warning) + '</span>' :
+    '<span class="pill pill-info" title="' + (model.order || 'ARIMA') + '">Forecast model</span> ' +
     seasonalPill + ' ' + mapePill + ' ' + residPill;
 
   if (meta) meta.innerHTML = metaHtml;
@@ -105,7 +109,7 @@ function renderForecast() {
     '<b>How reliable is this?</b> When AquaFlow was tested on days it had not seen before, its answer was off by about ' + (model.mape ?? '-') +
     '% on average <span class="term-hint">(MAPE ' + (model.mape ?? '-') + '%)</span>' +
     (model.ljung_box_pvalue !== undefined
-      ? ', and the weekly pattern it found ' + (residOk ? 'holds up on its own' : 'still needs more data') +
+      ? ', and its residual test ' + (residOk ? 'found no significant remaining pattern' : 'found a remaining pattern') +
         ' <span class="term-hint">(Ljung-Box p = ' + model.ljung_box_pvalue + ')</span>'
       : '') + '. Treat it as a good guide, not an exact number.</p>';
   }
@@ -124,8 +128,8 @@ function renderDemandChart() {
   const fc = (record && record.forecast) ? record.forecast : DB.forecast7;
   if (!hist || !fc) return;
 
-  const last14 = hist.slice(-14);
-  const labels = [...last14.map((_, i) => 'D' + (i + 17)), ...fc.map((_, i) => 'F' + (i + 1))];
+  const last14 = hist.slice(-30);
+  const labels = [...last14.map((_, i) => 'D' + (i + Math.max(1, hist.length - 29))), ...fc.map((_, i) => 'F' + (i + 1))];
   if (chDemand) chDemand.destroy();
   chDemand = new Chart(el, {
     type: 'bar',
@@ -133,7 +137,7 @@ function renderDemandChart() {
       labels,
       datasets: [
         { label: 'History', data: [...last14, ...Array(fc.length).fill(null)], backgroundColor: '#0EA5E9' },
-        { label: 'Forecast', type: 'line', data: [...Array(last14.length - 1).fill(null), last14[last14.length - 1], ...fc], borderColor: '#F59E0B', borderDash: [6, 4], tension: 0.3 }
+        { label: 'Forecast', type: 'line', data: [...Array(Math.max(0, last14.length - 1)).fill(null), ...(last14.length ? [last14[last14.length - 1]] : []), ...fc], borderColor: '#F59E0B', borderDash: [6, 4], tension: 0.3 }
       ]
     },
     options: {
@@ -167,9 +171,10 @@ function renderArimaChart() {
   let labels, hData, fData;
 
   if (hz === 1) {
-    labels = [...hist.map((_, i) => 'D' + (i + 1)), ...fc.map((_, i) => 'F' + (i + 1))];
-    hData = [...hist, ...Array(fc.length).fill(null)];
-    fData = [...Array(hist.length - 1).fill(null), hist[hist.length - 1], ...fc];
+    const recent = hist.slice(-30);
+    labels = [...recent.map((_, i) => 'D' + (Math.max(0, hist.length - 30) + i + 1)), ...fc.map((_, i) => 'F' + (i + 1))];
+    hData = [...recent, ...Array(fc.length).fill(null)];
+    fData = [...Array(Math.max(0, recent.length - 1)).fill(null), ...(recent.length ? [recent[recent.length - 1]] : []), ...fc];
   } else {
     const hAgg = agg(hist, hz), fAgg = agg(fc, hz);
     const p = hz === 7 ? 'W' : 'M';
@@ -223,13 +228,26 @@ async function runForecast() {
   }
 }
 
-function exportReport() {
+async function reportSales() {
+  const sales = [];
+  let page = 1;
+  let response;
+  do {
+    response = await API.transactions({ paginated: 1, page: page++ });
+    sales.push(...response.transactions);
+  } while (response.has_more);
+  return sales;
+}
+
+async function exportReport() {
   const record = currentSeriesRecord();
   if (!record) {
     alert('No forecast available to export.');
     return;
   }
 
+  let sales;
+  try { sales = await reportSales(); } catch (error) { alert(error.message); return; }
   const history = record.history || [];
   const forecast = record.forecast || [];
   const rows = ['Day,History,Forecast'];
@@ -250,9 +268,31 @@ function exportReport() {
     '# ADF p-value,' + (model.adf_pvalue ?? '') + '\n' +
     '# Ljung-Box p-value,' + (model.ljung_box_pvalue ?? '') + '\n';
 
-  const csv = header + rows.join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = 'arima-report-' + String(record.series).replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.csv';
-  a.click();
+  const cell = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+  const section = (title, columns, values) => '\n\n' + title + '\n' + columns.map(cell).join(',') + '\n' + values.map(row=>row.map(cell).join(',')).join('\n');
+  const csv = header + rows.join('\n') +
+    section('Inventory',['Item','Stock','Unit','Safety stock','Reorder point','Supplier'],DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) +
+    section('Sales',['Receipt','Date','Customer','Total','Payment'],sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) +
+    section('Advisories',['Item','Supplier','Order quantity'],(DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_qty]));
+  downloadCSV(csv, 'arima-report-' + String(record.series).replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-' + new Date().toISOString().replace(/[:.]/g, '-') + '.csv');
+}
+
+function saveForecastView() {
+  try { localStorage.setItem('aquaflow.forecastView', document.getElementById('fHorizon').value); } catch (_) {}
+  renderArimaChart(); renderForecast();
+}
+function restoreForecastView() {
+  const select = document.getElementById('fHorizon');
+  if (!select) return;
+  try { const value = localStorage.getItem('aquaflow.forecastView'); if (['Daily','Weekly','Monthly'].includes(value)) select.value = value; } catch (_) {}
+}
+async function exportReportPDF() {
+  const popup = window.open('', '_blank');
+  if (!popup) { alert('Allow popups to open the printable report.'); return; }
+  let sales;
+  try { sales = await reportSales(); } catch (error) { popup.close(); alert(error.message); return; }
+  const table = (title, headers, rows) => '<h2>' + esc(title) + '</h2><table><thead><tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(cell => '<td>' + esc(String(cell ?? '')) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+  const forecasts = Object.entries(DB.forecasts || {}).flatMap(([name, record]) => (record.forecast || []).map((value, index) => [name, index + 1, value, record.model?.mape]));
+  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AquaFlow report ' + new Date().toISOString().slice(0,10) + '</title><style>body{font:12px sans-serif}table{border-collapse:collapse;width:100%;margin-bottom:20px}th,td{border:1px solid #ccc;padding:6px;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><h1>AquaFlow Report</h1><p>Generated ' + esc(new Date().toLocaleString()) + '</p>' + table('Sales', ['Receipt','Date','Customer','Total','Payment'], sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) + table('Inventory', ['Item','On hand','Unit','Safety stock','Reorder point','Supplier'], DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) + table('Forecasts',['Series','Day','Demand','MAPE'],forecasts) + table('Advisories',['Item','Supplier','Order quantity'],(DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_qty])) + '</body></html>');
+  popup.document.close(); popup.focus(); popup.print();
 }

@@ -14,20 +14,16 @@
     </header>
     <p class="auth-description">Owner sign in here to open the Owner's portal.</p>
     <form class="auth-form" onsubmit="event.preventDefault(); doOwnerLogin();">
-      <label class="form-label" for="u">Owner username</label>
-      <input id="u" class="form-input" placeholder="Owner username" autocomplete="username">
+      @include('partials.login-credentials', ['usernameLabel' => 'Owner username'])
 
-      <label class="form-label" for="p">Password</label>
-      <input id="p" type="password" class="form-input" placeholder="Password" autocomplete="current-password">
-
-      <label class="form-label" for="pin">Owner PIN (4 digits)</label>
-      <input id="pin" type="password" inputmode="numeric" maxlength="4" class="form-input" placeholder="Owner PIN">
+      <label class="form-label" for="pin">Owner PIN (4–12 digits)</label>
+      <input id="pin" type="password" inputmode="numeric" required minlength="4" maxlength="12" pattern="[0-9]{4,12}" class="form-input" placeholder="Owner PIN">
 
       <div id="err" class="auth-error hidden">Invalid owner login.</div>
 
       <button type="submit" class="btn btn-primary btn-block">Open Owner Portal</button>
     </form>
-    <p class="auth-footer-text">Are you the Staff? <a href="{{ url('/') }}" class="auth-link">Go to Cashier Login</p>
+    <p class="auth-footer-text">Are you the Staff? <a href="{{ url('/') }}" class="auth-link">Go to Cashier Login</a></p>
   </main>
 
   @include('partials.scripts-base')

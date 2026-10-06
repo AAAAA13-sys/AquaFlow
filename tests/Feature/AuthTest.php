@@ -32,7 +32,7 @@ class AuthTest extends TestCase
             ->assertSee('Owner PIN');
     }
 
-    public function test_cashier_can_log_in(): void
+    public function test_u_s01_cashier_can_log_in(): void
     {
         $response = $this->postJson('/api/auth/login', [
             'username' => 'cashier',
@@ -65,7 +65,7 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_owner_can_log_in_with_the_pin(): void
+    public function test_u_s02_owner_can_log_in_with_the_pin(): void
     {
         $this->postJson('/api/auth/login-owner', [
             'username' => 'admin',
@@ -90,7 +90,7 @@ class AuthTest extends TestCase
         $this->postJson('/api/transactions', [])->assertStatus(401);
     }
 
-    public function test_logout_invalidates_the_session(): void
+    public function test_u_s05_logout_invalidates_the_session(): void
     {
         $cashier = User::query()->where('username', 'cashier')->firstOrFail();
 

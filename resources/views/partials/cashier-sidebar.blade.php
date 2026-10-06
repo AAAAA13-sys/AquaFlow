@@ -5,16 +5,7 @@
 ])
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-header-brand">
-      <div class="sidebar-brand-badge">AF</div>
-      <div>
-        <h2 id="brandName" class="sidebar-brand-title">{{ $stationName ?? 'AquaFlow' }}</h2>
-        <p class="sidebar-brand-subtitle">Cashier Terminal</p>
-      </div>
-    </div>
-    <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">&times;</button>
-  </div>
+  @include('partials.sidebar-header', ['subtitle' => 'Cashier Terminal'])
 
   <nav class="sidebar-nav" id="sideNav">
     @foreach ($items as $item)

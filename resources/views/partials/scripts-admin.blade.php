@@ -5,3 +5,6 @@
 <script src="{{ asset('js/admin/customers.js') }}?v={{ asset_version('js/admin/customers.js') }}"></script>
 <script src="{{ asset('js/admin/sales.js') }}?v={{ asset_version('js/admin/sales.js') }}"></script>
 <script src="{{ asset('js/admin/settings.js') }}?v={{ asset_version('js/admin/settings.js') }}"></script>
+<script src="{{ asset('js/admin/stock.js') }}?v={{ asset_version('js/admin/stock.js') }}"></script>
+
+<script src="{{ asset('js/admin/employees.js') }}?v={{ asset_version('js/admin/employees.js') }}"></script>

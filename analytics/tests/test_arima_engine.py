@@ -52,7 +52,7 @@ class TestCleanSeries:
 
 
 class TestStationarity:
-    def test_white_noise_is_stationary(self) -> None:
+    def test_US36_white_noise_is_stationary(self) -> None:
         _, pvalue = adf_test(white_noise())
         assert pvalue < 0.05
 
@@ -61,7 +61,7 @@ class TestStationarity:
         _, pvalue = adf_test(values)
         assert pvalue > 0.05
 
-    def test_chooses_differencing_for_trend(self) -> None:
+    def test_US37_chooses_differencing_for_trend(self) -> None:
         values = [float(index * 10) for index in range(60)]
         assert choose_differencing(values) >= 1
 
@@ -70,7 +70,7 @@ class TestStationarity:
 
 
 class TestAnalyze:
-    def test_forecasts_expected_horizon(self) -> None:
+    def test_US39_forecasts_expected_horizon(self) -> None:
         result = analyze(seasonal_series(), horizon=7)
         assert len(result.forecast) == 7
         assert result.method == "arima"
@@ -144,3 +144,31 @@ class TestAccuracy:
         assert mae == pytest.approx(10.0)
         assert rmse == pytest.approx(10.0)
         assert mape == pytest.approx(10.0)
+
+
+def test_US35_never_fits_arima_with_fewer_than_30_days(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("ARIMA must not fit below 30 days")
+    monkeypatch.setattr(arima_engine, "_fit_and_forecast", forbidden)
+    result = arima_engine.analyze(list(range(1, 30)), 7)
+    assert result.method == "naive_insufficient_data"
+    assert result.as_dict()["history_warning"] == "Insufficient history (have 29 days, need 30)"
+
+
+def test_US38_selection_records_aic_and_bic(monkeypatch):
+    class Fit:
+        aic = 12.0
+        bic = 14.0
+    class Candidate:
+        def __init__(self, *args, **kwargs): pass
+        def fit(self): return Fit()
+    monkeypatch.setattr(arima_engine, "ARIMA", Candidate)
+    candidates = []
+    arima_engine.select_order(list(range(40)), 1, candidates)
+    assert candidates and all("aic" in row and "bic" in row for row in candidates)
+
+
+def test_US35_empty_history_returns_explicit_fallback():
+    result = arima_engine.analyze([], 7)
+    assert result.forecast == [0.0] * 7
+    assert result.as_dict()["history_warning"] == "Insufficient history (have 0 days, need 30)"

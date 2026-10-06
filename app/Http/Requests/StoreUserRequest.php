@@ -19,11 +19,11 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => ['required', 'string', 'max:50', 'alpha_dash', 'unique:users,username'],
-            'password' => ['required', 'string', 'min:4', 'max:255'],
+            'username' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:users,username'],
+            'password' => ['required', ...CredentialRules::password()],
             'role' => ['required', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN])],
             'name' => ['required', 'string', 'max:100'],
-            'pin' => ['nullable', 'string', 'min:4', 'max:12'],
+            'pin' => ['nullable', ...CredentialRules::pin()],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

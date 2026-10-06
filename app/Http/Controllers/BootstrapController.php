@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\DemandForecastResource;
 use App\Http\Resources\InventoryItemResource;
-use App\Http\Resources\ProductResource;
 use App\Http\Resources\ProductionQueueItemResource;
+use App\Http\Resources\ProductResource;
 use App\Http\Resources\SupplierResource;
 use App\Http\Resources\TransactionResource;
 use App\Http\Resources\UserResource;
@@ -27,8 +27,7 @@ class BootstrapController extends Controller
 {
     public function __construct(
         private readonly InventoryEngine $inventory,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {
@@ -53,18 +52,14 @@ class BootstrapController extends Controller
             'transactions' => TransactionResource::collection(
                 Transaction::query()
                     ->with(['customer', 'cashier'])
-                    ->orderByDesc('transaction_date')
-                    ->orderByDesc('transaction_time')
-                    ->orderByDesc('id')
+                    ->newestFirst()
                     ->limit(50)
                     ->get()
             ),
             'queue' => ProductionQueueItemResource::collection(
-                ProductionQueueItem::query()->activeToday()->orderBy('id')->limit(20)->get()
+                ProductionQueueItem::query()->activeToday()->orderBy('id')->get()
             ),
-            'forecasts' => $forecasts->map(
-                fn (DemandForecast $forecast): DemandForecastResource => new DemandForecastResource($forecast)
-            )->all(),
+            'forecasts' => DemandForecastResource::forSeries($forecasts),
             'history' => $refill?->historical_data ?? [],
             'history30' => $refill?->historical_data ?? [],
             'forecast7' => $refill?->forecasted_data ?? [],
@@ -81,6 +76,8 @@ class BootstrapController extends Controller
             'settings' => SystemSetting::allValues(),
             'meta' => [
                 'generated_at' => now()->toIso8601String(),
+                'sales_today_total' => (float) Transaction::whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->sum('total_amount'),
+                'sales_today_count' => Transaction::whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->count(),
                 'station' => SystemSetting::value(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station'),
             ],
         ];

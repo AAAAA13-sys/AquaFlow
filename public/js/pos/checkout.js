@@ -204,10 +204,7 @@ async function bootCashierPortal() {
 
   const who = document.getElementById('who');
   if (who) who.textContent = session.name;
-  const clock = document.getElementById('clock');
-  const tick = () => { if (clock) clock.textContent = new Date().toLocaleString(); };
-  tick();
-  setInterval(tick, 1000);
+  startPortalClock('clock');
 
   try {
     await loadFromServer();
@@ -292,8 +289,8 @@ async function settleDebt() {
     updateDebtPanel();
     renderPOS();
     showStageError(null);
-    alert('Debt payment recorded: ' + peso(result.applied) +
-      '. Remaining balance ' + peso(result.customer.debt) + '.');
+    DB.transactions.unshift(result.transaction);
+    reprint(result.transaction.no);
   } catch (error) {
     showStageError(error.message || 'Could not record the payment.');
   }
@@ -351,30 +348,30 @@ async function syncInventory() {
   }
 }
 
-function showServerReceipt(result) {
-  const meta = document.getElementById('rMeta');
-  const body = document.getElementById('rBody');
-  const box = document.getElementById('receipt');
+function receiptContents(tx) {
+  const line = (label, value, total = false) => '<div class="receipt-line' + (total ? ' total' : '') + '"><span>' + esc(label) + '</span><span>' + esc(value) + '</span></div>';
+  const debtPayment = tx.type === 'Debt Payment';
+  return line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
+    (tx.delivery_address ? line('Delivery address', tx.delivery_address) : '') +
+    (tx.items || []).map(item => line(item.quantity + ' × ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
+    (debtPayment ? '' : line('Vatable sales', money(tx.vatable || 0)) + line('12% VAT (inclusive)', money(tx.vat || 0))) +
+    line(debtPayment ? 'Payment received' : 'Total', money(tx.total), true) +
+    line('Payment method', tx.pay === 'Account' ? 'Charged to account' : tx.pay) +
+    (tx.pay === 'Cash' && tx.cash_tendered != null && Number(tx.cash_tendered) >= Number(tx.total) ? line('Cash tendered', money(tx.cash_tendered)) + line('Change', money(tx.cash_change || 0)) : '') +
+    (tx.balance_after != null ? line('Account balance after transaction', money(tx.balance_after)) : '') +
+    line('Cashier', tx.by || '—');
+}
+
+function displayTransactionReceipt(tx, reprint = false) {
+  const meta = document.getElementById('rMeta'), body = document.getElementById('rBody'), box = document.getElementById('receipt');
   if (!meta || !body || !box) return;
-
-  const tx = result.transaction;
-  const totals = result.totals;
-  const onAccount = tx.pay === 'Account';
-
-  meta.textContent = tx.no + ' | ' + new Date().toLocaleString() + ' | ' + (tx.by || '');
-
-  body.innerHTML =
-    POS.cart.map(i => '<div class="receipt-line"><span>' + i.q + 'x ' + i.name + '</span><span>' + money(i.q * i.price) + '</span></div>').join('') +
-    '<div class="receipt-line"><span>Vatable Sales</span><span>' + money(totals.vatable) + '</span></div>' +
-    '<div class="receipt-line"><span>12% VAT (incl.)</span><span>' + money(totals.vat) + '</span></div>' +
-    '<div class="receipt-line total"><span>Gross Total</span><span>' + money(totals.total) + '</span></div>' +
-    '<div class="receipt-line"><span>Customer</span><span>' + tx.cust + '</span></div>' +
-    '<div class="receipt-line"><span>Order type</span><span>' + tx.type + '</span></div>' +
-    (onAccount
-      ? '<div class="receipt-line"><span>CHARGED TO ACCOUNT</span><span>Balance ' + money(result.customer.debt) + '</span></div>'
-      : '<div class="receipt-line"><span>Cash / Tendered ' + money(totals.cash_tendered) + '</span><span>Change ' + money(totals.cash_change) + '</span></div>');
-
+  meta.textContent = tx.no + '\n' + (tx.date || '') + ' ' + (tx.t || '') + (reprint ? '\nREPRINT' : '');
+  body.innerHTML = receiptContents(tx);
   box.classList.remove('hidden');
+}
+
+function showServerReceipt(result) {
+  displayTransactionReceipt({...result.transaction, ...result.totals});
 }
 
 async function completeSale(sessionName) {
@@ -458,21 +455,8 @@ function closeDrawerReceipt() {
 }
 
 function reprint(no) {
-  const x = DB.transactions.find(t => t.no === no);
-  if (!x) return;
-
-  const meta = document.getElementById('rMeta');
-  const body = document.getElementById('rBody');
-  const box = document.getElementById('receipt');
-  if (!meta || !body || !box) return;
-
-  meta.textContent = x.no + ' | ' + x.date + ' ' + x.t + ' | ' + x.cust;
-  body.innerHTML =
-    '<div class="receipt-line"><span>' + x.type + ' ' + x.gal + '</span><span>' + money(x.total) + '</span></div>' +
-    '<div class="receipt-line"><span>Payment</span><span>' + x.pay + '</span></div>' +
-    '<div class="receipt-line"><span>Cashier</span><span>' + x.by + '</span></div>';
-
-  box.classList.remove('hidden');
+  const tx = DB.transactions.find(t => t.no === no);
+  if (tx) displayTransactionReceipt(tx, true);
 }
 
 /**

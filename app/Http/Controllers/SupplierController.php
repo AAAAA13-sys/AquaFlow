@@ -6,6 +6,7 @@ use App\Http\Requests\StoreSupplierRequest;
 use App\Http\Requests\UpdateSupplierRequest;
 use App\Http\Resources\SupplierResource;
 use App\Models\Supplier;
+use App\Services\SupplierService;
 use Illuminate\Http\JsonResponse;
 
 class SupplierController extends Controller
@@ -21,15 +22,7 @@ class SupplierController extends Controller
 
     public function store(StoreSupplierRequest $request): JsonResponse
     {
-        $data = $request->validated();
-
-        $supplier = Supplier::query()->create([
-            'name' => $data['name'],
-            'supplied_items' => $data['supplied_items'],
-            'lead_time_days' => $data['lead_time_days'] ?? 2,
-            'contact' => ($data['contact'] ?? null) ?: '-',
-            'last_delivery' => $data['last_delivery'] ?? null,
-        ]);
+        $supplier = app(SupplierService::class)->create($request->validated());
 
         return response()->json(['supplier' => new SupplierResource($supplier)], 201);
     }
@@ -38,19 +31,14 @@ class SupplierController extends Controller
     {
         $data = $request->validated();
 
-        if (array_key_exists('contact', $data) && ($data['contact'] === null || $data['contact'] === '')) {
-            $data['contact'] = '-';
-        }
-
-        $supplier->fill($data);
-        $supplier->save();
+        app(SupplierService::class)->update($supplier, $data);
 
         return response()->json(['supplier' => new SupplierResource($supplier->refresh())]);
     }
 
     public function destroy(Supplier $supplier): JsonResponse
     {
-        $supplier->delete();
+        app(SupplierService::class)->delete($supplier);
 
         return response()->json(['ok' => true]);
     }
