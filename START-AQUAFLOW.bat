@@ -1,12 +1,15 @@
 @echo off
+setlocal enabledelayedexpansion
 REM ===================================================================
-REM  AquaFlow - one-click launcher (self-contained)
+REM  AquaFlow - one-click launcher (Docker)
 REM
-REM  Starts MySQL, the Python ARIMA service and the Laravel web app,
-REM  then opens the cashier login. Re-running is safe: anything already
-REM  running is skipped.
+REM  Brings up the whole four-tier stack: MySQL, Laravel, the Python
+REM  ARIMA service, nginx and the scheduler. On the very first run it
+REM  also builds the images and loads the schema + 90 days of demo data.
 REM
-REM  DB credentials are read from the gitignored .env - no secrets here.
+REM  Re-running is safe: anything already up is left alone.
+REM
+REM  Secrets live in the gitignored .env - never in this file.
 REM ===================================================================
 
 title AquaFlow
@@ -14,111 +17,158 @@ cd /d "%~dp0"
 
 echo.
 echo   ============================================
-echo      AquaFlow  -  starting up
+echo      AquaFlow  -  starting up  (Docker)
 echo   ============================================
 echo.
 
-REM --- locate PHP (XAMPP) ----------------------------------------
-where php >nul 2>nul
+REM --- locate the docker CLI (Docker Desktop does not always add it) ---
+where docker >nul 2>nul
 if errorlevel 1 (
-    if exist "C:\xampp\php\php.exe" (
-        set "PATH=C:\xampp\php;%PATH%"
+    if exist "%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin\docker.exe" (
+        set "PATH=%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin;%LOCALAPPDATA%\Programs\DockerDesktop\resources\cli-plugins;%PATH%"
+    ) else if exist "%ProgramFiles%\Docker\Docker\resources\bin\docker.exe" (
+        set "PATH=%ProgramFiles%\Docker\Docker\resources\bin;%PATH%"
     ) else (
-        echo   [!!] PHP 8.2+ not found. Install XAMPP or add php to PATH.
+        echo   [!!] Docker was not found.
+        echo        Install Docker Desktop, then run this again.
         pause
         exit /b 1
     )
 )
 
-REM --- preflight ---------------------------------------------------
-if not exist "vendor\autoload.php" (
-    echo   [..] Installing PHP dependencies ^(first run^)...
-    composer install --no-interaction --no-progress
-    if errorlevel 1 ( echo   [!!] composer install failed & pause & exit /b 1 )
+REM --- make sure the engine is actually up -----------------------------
+docker info >nul 2>nul
+if errorlevel 1 (
+    echo   [..] Docker Desktop is not running - starting it...
+    if exist "%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe" (
+        start "" "%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe"
+    ) else if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
+        start "" "%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
+    ) else (
+        echo   [!!] Could not find Docker Desktop. Start it, then run this again.
+        pause
+        exit /b 1
+    )
+    call :waitdocker 120
+    docker info >nul 2>nul
+    if errorlevel 1 (
+        echo   [!!] The Docker engine did not come up in time.
+        echo        Start Docker Desktop, wait for the whale icon, then run this again.
+        pause
+        exit /b 1
+    )
+)
+echo   [ok]  Docker engine is running
+
+REM --- .env (gitignored; holds the DB password and the app key) --------
+if not exist ".env" (
+    copy /y ".env.example" ".env" >nul
+    echo   [..] Created .env from .env.example
 )
 
-if not exist ".env" (
-    echo   [!!] .env missing - copy .env.example to .env and set DB credentials.
+REM --- build the images if they are not there yet ----------------------
+set "IMGFOUND="
+for /f "usebackq delims=" %%I in (`docker compose images -q app 2^>nul`) do set "IMGFOUND=%%I"
+if not defined IMGFOUND (
+    echo   [..] Building images - first run only, this takes a few minutes
+    docker compose build
+    if errorlevel 1 (
+        echo   [!!] Image build failed. See the output above.
+        pause
+        exit /b 1
+    )
+)
+echo   [ok]  Images ready
+
+REM --- APP_KEY ----------------------------------------------------------
+findstr /R /C:"^APP_KEY=base64:" ".env" >nul 2>nul
+if errorlevel 1 (
+    echo   [..] Generating an application key...
+    set "NEWKEY="
+    REM The placeholder only satisfies compose's required-variable check;
+    REM --show prints a real key without touching any .env inside the image.
+    set "APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    for /f "usebackq delims=" %%K in (`docker compose run --rm -T app php artisan key:generate --show 2^>nul`) do set "NEWKEY=%%K"
+    if defined NEWKEY (
+        findstr /V /B /C:"APP_KEY=" ".env" > ".env.tmp"
+        >>".env.tmp" echo APP_KEY=!NEWKEY!
+        move /y ".env.tmp" ".env" >nul
+        echo   [ok]  APP_KEY written to .env
+    ) else (
+        echo   [!!] Could not generate an APP_KEY.
+        pause
+        exit /b 1
+    )
+)
+
+REM --- start the stack --------------------------------------------------
+echo   [..] Starting the stack
+docker compose up -d
+if errorlevel 1 (
+    echo   [!!] docker compose up failed. See the output above.
     pause
     exit /b 1
 )
 
-if not exist ".venv\Scripts\python.exe" (
-    echo   [..] Creating Python environment ^(first run^)...
-    python -m venv .venv
-    .venv\Scripts\python.exe -m pip install -r analytics\requirements.txt --quiet
-)
+REM --- wait for the app container to report healthy ---------------------
+echo   [..] Waiting for the app to come up
+set /a "_n=0"
+:health_loop
+docker compose ps app 2>nul | findstr /C:"healthy" >nul 2>nul
+if not errorlevel 1 goto :health_ok
+set /a "_n+=1"
+if !_n! geq 40 goto :health_slow
+ping -n 3 127.0.0.1 >nul
+goto :health_loop
 
-REM --- read DB settings from .env ---------------------------------
-for /f "usebackq tokens=1,* delims==" %%A in (`findstr /B /C:"DB_HOST=" /C:"DB_PORT=" /C:"DB_DATABASE=" /C:"DB_USERNAME=" /C:"DB_PASSWORD=" .env`) do (
-    set "AQ_%%A=%%B"
-)
-if not defined AQ_DB_HOST     set "AQ_DB_HOST=127.0.0.1"
-if not defined AQ_DB_PORT     set "AQ_DB_PORT=3306"
-if not defined AQ_DB_DATABASE set "AQ_DB_DATABASE=aquaflow_db"
-if not defined AQ_DB_USERNAME set "AQ_DB_USERNAME=root"
-if not defined AQ_DB_PASSWORD set "AQ_DB_PASSWORD="
+:health_slow
+echo   [!!] The app is taking longer than usual. It may still be starting.
+goto :after_health
 
-set "AQUAFLOW_DB_HOST=%AQ_DB_HOST%"
-set "AQUAFLOW_DB_PORT=%AQ_DB_PORT%"
-set "AQUAFLOW_DB_NAME=%AQ_DB_DATABASE%"
-set "AQUAFLOW_DB_USER=%AQ_DB_USERNAME%"
-set "AQUAFLOW_DB_PASSWORD=%AQ_DB_PASSWORD%"
+:health_ok
+echo   [ok]  App is healthy
 
-REM --- helper: is a port listening? -------------------------------
-call :port 3306 && (
-    echo   [ok]  MySQL already running
-    goto :mysql_done
+:after_health
+REM --- first run: schema + demo data ------------------------------------
+docker compose exec -T app php artisan migrate:status >nul 2>nul
+if errorlevel 1 (
+    echo.
+    echo   [..] First run detected - creating the schema and loading
+    echo        90 days of demo data ^(about a minute^)...
+    docker compose --profile setup run --rm migrate
+    if errorlevel 1 (
+        echo   [!!] Setup failed. See the output above.
+        pause
+        exit /b 1
+    )
+    echo   [ok]  Database ready
 )
-echo   [..] Starting MySQL
-start "" /min "C:\xampp\mysql\bin\mysqld.exe" --defaults-file="C:\xampp\mysql\bin\my.ini"
-call :wait 3306 40
-call :port 3306 && echo   [ok]  MySQL up || echo   [!!] MySQL failed - start it from the XAMPP control panel
-:mysql_done
-
-REM --- tier 3: Python ARIMA service -------------------------------
-call :port 5000 && (
-    echo   [ok]  analytics already running
-    goto :analytics_done
-)
-echo   [..] Starting analytics service
-start "" /min ".venv\Scripts\python.exe" analytics\service.py
-call :wait 5000 40
-call :port 5000 && echo   [ok]  analytics up || echo   [!!] analytics failed - forecasts unavailable
-:analytics_done
-
-REM --- tier 2: Laravel web app ------------------------------------
-call :port 8000 && (
-    echo   [ok]  web app already running
-    goto :web_done
-)
-echo   [..] Starting web app
-start "" /min php artisan serve --port=8000
-call :wait 8000 30
-call :port 8000 && echo   [ok]  web app up || echo   [!!] web app failed to start
-:web_done
 
 echo.
-echo   Cashier POS  http://127.0.0.1:8000              cashier / 1234
-echo   Owner portal http://127.0.0.1:8000/owner/login  admin / 1234  PIN 2468
+echo   ============================================
+echo      AquaFlow is running
+echo   ============================================
 echo.
-start "" "http://127.0.0.1:8000"
+echo   Cashier POS     http://localhost:8080               cashier / 1234
+echo   Owner portal    http://localhost:8080/owner/login   admin / 1234  PIN 2468
+echo.
+echo   Stop the app      docker compose down
+echo   Wipe all data     docker compose down -v
+echo   Run the tests     docker compose --profile test up -d test
+echo                     docker compose exec test php artisan test
+echo.
+start "" "http://localhost:8080"
 echo   Opened in your browser.
-echo   To stop: run  php artisan serve  ^ Ctrl+C  in that window,
-echo   or close the analytics window. MySQL is left alone.
 echo.
 exit /b 0
 
-REM --- subroutines -------------------------------------------------
-:port
-netstat -ano | findstr ":%~1 " | findstr LISTENING >nul 2>nul
-exit /b %errorlevel%
-
-:wait
-set /a "_n=0"
-:wait_loop
-call :port %1 || (
-    set /a "_n+=1"
-    if %_n% lss %2 ( ping -n 2 127.0.0.1 >nul & goto wait_loop )
-)
-goto :eof
+REM --- subroutines -------------------------------------------------------
+:waitdocker
+set /a "_d=0"
+:waitdocker_loop
+docker info >nul 2>nul
+if not errorlevel 1 exit /b 0
+set /a "_d+=1"
+if !_d! geq %1 exit /b 1
+ping -n 3 127.0.0.1 >nul
+goto :waitdocker_loop

@@ -79,6 +79,21 @@ docker --version
 docker compose version
 ```
 
+## One-click start (Windows)
+
+Double-click **`START-AQUAFLOW.bat`**. It:
+
+1. finds Docker Desktop (and starts it if the engine is not running),
+2. builds the images on the first run,
+3. brings the four-tier stack up,
+4. creates the schema and loads 90 days of demo data on the first run,
+5. waits until the app reports healthy, then opens <http://localhost:8080>.
+
+Re-running is safe: anything already up is left alone, and an existing database is
+never touched.
+
+`START-AQUAFLOW-XAMPP.bat` is the previous XAMPP launcher, kept for reference only.
+
 ## Quick start (Docker)
 
 ```bash
