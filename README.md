@@ -311,11 +311,10 @@ the ISO/IEC 25010 assessment.
 - **The Flask development server** is used for the analytics tier locally;
   production containers should front it with gunicorn/waitress.
 - **No product management screen** — the catalog is seeded.
-- **The Docker stack has not been built on the author's machine.** Windows WSL 2
-  and Docker Desktop are not installed there, so `docker compose build` is
-  unverified locally; the code itself was verified through the legacy path
-  (`php artisan test`). The CI pipeline builds every image on each push, which is
-  where the Dockerfiles are proven.
+- **The Docker stack is verified locally** (Windows 11 + Docker Desktop, WSL 2
+  backend): all six images build, every container reports healthy, `/api/health`
+  answers 200 through nginx, and the PHP (110) and Python (22) suites pass inside
+  the containers. The legacy XAMPP path still works but is no longer supported.
 
 ---
 
@@ -330,6 +329,18 @@ the ISO/IEC 25010 assessment.
 | 4 - Dynamic SS & ROP engine | Complete |
 | 5 - Testing & system evaluation | Complete (SUS field study pending participants) |
 | 6 - Backend integration & deployment | Complete |
+
+**2026-10-06 — Docker stack verified end-to-end.** Building and running the
+Compose stack for the first time surfaced four defects that no amount of reading
+would have caught: `expose_php` written into an Apache config (Apache refused to
+start), a `chown` of directories that `.dockerignore` strips, nginx forwarding
+`Host` without the port (so Laravel emitted `http://localhost/...` assets while
+the stack runs on `:8080`), and a folded YAML scalar that left a line-leading
+`&&` and broke the migrate service. Also fixed: the worker inherited an HTTP
+healthcheck it could never pass, and a missing `.env` made phpdotenv warn on
+every test. Verified: six images build, all containers healthy, `/api/health`
+200 through nginx, ARIMA forecast via the analytics tier (MAPE 8.85%), 110 PHP
+tests and 22 Python tests green inside the containers.
 
 **2026-10-06 — Docker-first workflow and CI/CD.** The project now runs through
 Docker Compose rather than XAMPP. `docker/app/Dockerfile` gained a separate
