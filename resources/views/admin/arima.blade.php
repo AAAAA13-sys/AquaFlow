@@ -5,11 +5,9 @@
 
 @section('admin-content')
   <section id="s-arima">
-    <h2 class="auth-title">Demand Forecast <span class="pill pill-info">smart prediction</span></h2>
+    <h2 class="auth-title">Demand Forecast</h2>
     <p class="auth-description">
-      AquaFlow studies your past sales and predicts how much you will need for the next
-      7 days, so you can buy and prepare in advance.
-      <span class="term-hint">Powered by an ARIMA model fitted to your sales history.</span>
+        Using the ARIMA model, your past sales are analyzed to predict how much you will need for the next 7 days, allowing you to buy and prepare in advance.
     </p>
 
     <div class="card filter-toolbar no-print">

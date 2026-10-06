@@ -1,0 +1,87 @@
+Module 1: Authentication & Access Control (US-01 to US-06),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-01,"As a cashier, I want to sign in with username + password so I can open the POS terminal.",Session issued with role=cashier; redirect to /cashier/terminal; failed attempts return validation error.,✅ Built,—
+US-02,"As an owner, I want to authenticate with username + password + 4-digit PIN so executive controls stay secure.",/admin/dashboard accessible only after all three factors pass; session carries role=owner.,✅ Built,—
+US-03,"As an owner, I want a valid password + wrong PIN rejected so staff can't reach managerial screens.","Inline error banner ""Invalid Owner PIN""; no session created; attempt logged.",✅ Built,—
+US-04,"As an owner, I want cashiers blocked from /admin/* so they can't change prices or see metrics.",HTTP 403 or redirect to POS; EnsureUserIsOwner middleware on every admin route.,✅ Built,—
+US-05,"As an authenticated user, I want to log out so the next operator can't inherit my session.","Session flushed, cookies invalidated, redirect to login.",✅ Built,—
+US-06,"As an owner, I want to create/update/deactivate cashier accounts so only active employees get POS access.",User CRUD table in admin portal; bcrypt-hashed passwords; deactivated users fail login.,✅ Built,—
+Module 2: POS Order Intake & Transaction Processing (US-07 to US-16),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-07,"As a cashier, I want to process a walk-in refill (Slim or Round) so walk-in sales are recorded fast.",Transaction row written; caps/seals/wraps auto-deducted per recipe; receipt generated.,✅ Built,—
+US-08,"As a cashier, I want to log delivery orders against a customer profile so dispatched jugs are traceable.",Transaction flagged order_type=delivery with customer_id; delivery address shown on slip.,✅ Built,—
+US-09,"As a cashier, I want to add both Slim and Round refills to one ticket so mixed orders bill together.","Dynamic cart panel; line items with unit price, quantity, running total.",✅ Built,—
+US-10,"As a cashier, I want to sell caps, seals, soap, or faucets without a refill so OTC retail is tracked.",Non-refill transaction; stock decremented for retail SKUs only.,✅ Built,"MSME design: POS buttons streamlined to refills & new jugs; consumables tracked via recipes & owner inventory."
+US-11,"As a cashier, I want to input cash tendered and see live change calculation so rush-hour mental math errors are avoided.","Change = Tendered − Total displayed live; cash drawer log; quick-cash pills (Exact/₱50/₱100/₱500/₱1,000).",✅ Built,—
+US-12,"As a cashier, I want delivery orders to be automatically charged to the customer's account so drivers can collect payment on delivery without the cashier handling cash upfront.",Delivery transactions saved as payment_status=unpaid; amount added to customers.debt_balance; walk-in sales always require cash and can never accrue debt.,✅ Built,—
+US-13,"As a cashier, I want a delivery order's account charge to appear on the customer ledger so receivables stay accurate.",Ledger entry created per delivery; running balance shown on customer card; settlement logged separately.,✅ Built,—
+US-14,"As a cashier, I want an order slip with subtotal + 12% VAT so customers get compliant receipts.","Print stylesheet isolating receipt; station header, items, VAT, grand total.",✅ Built,—
+US-15,"As a manager, I want checkout aborted when stock is insufficient so no partial DB state remains.",DB transaction rolled back; UI alert names the exact SKU short by N units.,✅ Built,—
+US-16,"As a cashier, I want a live list of today's completed transactions so I can reconcile cash at shift end.","Summary table: order count, cash collected, credit issued, per-transaction detail.",✅ Built,—
+Module 3: Returnable Container Custody (US-17 to US-23),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-17,"As a cashier, I want to log Gallons Out and Empties In at checkout so container transfers are documented.",Net custody delta written to container_custody_logs per delivery checkout.,🔧 Needs Adjustment,"Repo removed custody counters. Either restore custody tables + Fig 4 deficit branch, or rewrite this story for the MSME edition (station owns no jugs)."
+US-18,"As a cashier, I want separate custody balances per container shape so mismatches are prevented.","Two balance fields: slim_jugs_pending, round_jugs_pending.",🔧 Needs Adjustment,"Depends on US-17. If custody model is dropped, replace with ""new jug retail stock per shape"" tracking."
+US-19,"As a cashier, I want zero liability when empties = dispatched so the account stays balanced.","Custody delta = 0 logged; customer record unchanged; receipt notes ""Balanced"".",🔧 Needs Adjustment,Only meaningful if custody is restored; otherwise obsolete.
+US-20,"As a cashier, I want to log returned empties outside a refill order so pending balances update.",Standalone return entry decrements pending balance; ledger row created.,🔧 Needs Adjustment,"README explicitly says ""Empty Containers Returned intake... gone."" Restore or drop."
+US-21,"As a cashier, I want to flag cracked jugs so unusable containers don't clear the customer's obligation incorrectly.",Defective-container entry deducts depot usable stock; scrap reason logged.,🔧 Needs Adjustment,"README says ""damaged-bottle write-off... gone."" Either restore scrap logging, or fold into general stock adjustment (US-30)."
+US-22,"As a cashier, I want to record partial/full debt payments so cash received clears receivables.",debt_balance reduced; Debt Payment transaction row; receipt shows remaining balance.,✅ Built,—
+US-23,"As an owner, I want a table of customers with high container deficits so drivers prioritize collections.",Who to Visit First widget ranking customers by missing jugs and uncollected pesos.,🔧 Needs Adjustment,"Custody ledger removed in repo. Restore the widget, or replace with ""customers with outstanding debt balances"" ranking."
+Module 4: Production Queue (US-24 to US-27),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-24,"As station staff, I want batches tracked through Unload → Wash → Fill → Seal so bottlenecks are visible.",Status badge per queue item progressing through 4 stages.,✅ Built,—
+US-25,"As staff, I want to see all queued walk-in + delivery orders so jugs are processed in arrival order.","Queue table: Ticket #, customer, bottle count, container type, elapsed wait time.",✅ Built,—
+US-26,"As staff, I want one-click advancement to the next stage so cashiers know when an order is ready.",POST /api/queue/{id}/advance; badge updates in real time; timestamp logged.,✅ Built,—
+US-27,"As a cashier, I want to mark an order fulfilled/delivered so the ticket clears from the board.",Queue item archived; moves to completed transactions log.,✅ Built,—
+Module 5: Consumable Inventory & Lead Time (US-28 to US-33),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-28,"As an owner, I want caps, seals, and water auto-deducted per transaction so stock counts stay accurate.",inventory_items.current_stock updated via product→inventory recipe after each checkout.,✅ Built,—
+US-29,"As an owner, I want to log vendor deliveries so stock is credited on arrival.","Restock form: supplier, lot #, qty added, new stock level; ledger entry.",✅ Built,—
+US-30,"As an owner, I want to record physical-count discrepancies with a reason so inventory reflects shelf reality.",Adjustment modal (damage/spoilage/shrinkage); audit log row with user + timestamp + reason.,✅ Built,"Stock adjustments and lead-time updates recalculate ROP/SS immediately."
+US-31,"As an owner, I want vendor profiles (contact, catalog, baseline lead time) so procurement is centralized.","Supplier CRUD table with active vendors, supplied SKUs, contact numbers.",✅ Built,—
+US-32,"As an owner, I want to edit per-supplier lead times so thresholds adapt to delivery delays.",Editable lead-time field; saving triggers ROP/SS recalculation on dependent SKUs.,✅ Built,—
+US-33,"As an owner, I want on-hand filled Slim/Round jugs shown so the station never runs out of ready stock.",Summary cards: filled vs empty jugs by shape in depot storage.,🔧 Needs Adjustment,"Depends on whether station owns jugs. If not, repurpose card to show ""new jug retail stock per shape."""
+Module 6: Data Aggregation & Preprocessing (US-34 to US-37),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-34,"As the backend, I want to aggregate POS transactions into daily counts so forecasting has clean input.","SQL aggregation producing chronological [date, daily_gallons] array sent to Tier 3.",✅ Built,—
+US-35,"As the analytics service, I want ≥30 consecutive days enforced before fitting so reliability is guaranteed.","Guard returning ""Insufficient history (have N days, need 30)"" if unmet.",✅ Built,"ARIMA engine gracefully enforces minimum points and falls back with a friendly indicator."
+US-36,"As the analytics engine, I want ADF run on raw series so non-stationarity is detected before fitting.",ADF statistic + p-value logged; auto-differencing if p > 0.05.,✅ Built,—
+US-37,"As the analytics engine, I want first/second-order differencing until stationary so ARIMA assumptions hold.",Differenced series persisted; d-order selected and logged; ADF re-run to confirm.,✅ Built,—
+Module 7: ARIMA Forecasting Engine (US-38 to US-42),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-38,"As the analytics engine, I want (p,d,q) evaluated against AIC/BIC so the optimal model is chosen.","Best-order selection logged (e.g., ARIMA(1,1,1)); AIC/BIC comparison table stored.",✅ Built,—
+US-39,"As the analytics engine, I want a 7-day gallon-refill forecast so near-term volume is quantified.",7 numeric values written to demand_forecasts with timestamps.,✅ Built,—
+US-40,"As an owner, I want to toggle Daily/Weekly/Monthly views so I can plan short- and long-range.",Aggregated forecast outputs served per horizon; toggle persists in UI.,✅ Built,"Daily/Weekly/Monthly forecast view switcher with aggregated demand chart."
+US-41,"As an owner, I want MAPE/MAE/RMSE shown so I know the model's reliability.","Confidence badge (e.g., ""MAPE: 7.9% — High Confidence""); metrics table.",✅ Built,"MAPE, MAE, RMSE, AIC, and Ljung-Box diagnostic metrics calculated and stored."
+US-42,"As the analytics engine, I want consumable depletion projected from forecasted refills so supply needs are clear.",7-day projected caps/seals/wraps/filter requirement array from refill forecast × recipe.,✅ Built,—
+Module 8: Dynamic Inventory Optimization (US-43 to US-47),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-43,"As an owner, I want SS computed from forecast variability × lead time so buffers adapt to demand.",SS = Z × σ_leadtime × priority_factor per SKU (use cumulative forecast-error variance).,✅ Built,—
+US-44,"As an owner, I want ROP = (Forecast Daily Demand × Lead Time) + SS so thresholds reflect real conditions.",inventory_items.reorder_point updated after every forecast run.,✅ Built,—
+US-45,"As an owner, I want below-ROP items flagged immediately so low stock is visible at a glance.","Color-coded badges (Warning at ROP, Critical below SS) on dashboard.",✅ Built,"Color-coded stock pills and severity-ranked advisory system active on dashboard and inventory."
+US-46,"As an owner, I want directives saying what to buy, how much, and from whom so ordering needs no math.","Advisory card, e.g. ""Order 800 Non-Spill Caps from EastPack now; 2.0 days of buffer left.""",✅ Built,—
+US-47,"As an admin, I want a nightly artisan command to refresh forecasts so dashboards are updated daily.",Scheduled aquaflow:forecast at 02:00.,✅ Built,"Command aquaflow:forecast scheduled daily at 02:00."
+"Module 9: Dashboard, Visualization & Reporting (US-48 to US-50)",,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-48,"As an owner, I want KPI cards for revenue, projected demand, restock alerts, and unreturned jugs.","Top-row responsive cards: daily revenue (₱), 7-day forecast gallons, active alert count, total pending jugs.",✅ Built,—
+US-49,"As an owner, I want past 30 days plotted against the 7-day ARIMA projection so patterns are easy to read.","Interactive chart: solid bars = history, dashed line = forecast; model label + MAPE.",✅ Built,"Interactive dual-dataset Chart.js visualization rendered on Dashboard & ARIMA tabs."
+US-50,"As an owner, I want to export forecasts, transactions, and inventory to CSV/PDF so records can be archived.","Export Report button producing timestamped CSV/PDF with sales history, forecasts, advisories.",✅ Built,"Export Report button downloads detailed CSV report with model diagnostics and data points."
+Module 5 Addendum: Consumable Consumption Rules (US-51 to US-58),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-51,"As the system, I want to deduct 3 slim shrink wraps automatically when a slim refill is sold so wrap inventory reflects actual usage.",Each Slim refill line decrements SHRINK_SLIM by 3 × qty; movement logged (type sale).,❌ New,Add product_consumables recipe row for Slim refill → 3× SHRINK_SLIM.
+US-52,"As the system, I want to deduct 1 round shrink wrap automatically when a round refill is sold so wrap inventory reflects actual usage.",Each Round refill line decrements SHRINK_ROUND by 1 × qty; movement logged.,❌ New,Add recipe row Round refill → 1× SHRINK_ROUND.
+US-53,"As the system, I want to deduct 1 clear plastic cover for every jug dispatched (slim or round) so cover stock stays accurate.",Every refill or new-jug sale decrements CLEAR_COVER by 1 × qty; movement logged.,❌ New,Add recipe rows for all 4 SKUs → 1× CLEAR_COVER.
+US-54,"As the system, I want new Slim and Round jug sales to consume the same shrink wraps as refills (3 for Slim, 1 for Round) so a jug leaving the station is fully accounted for.",New Slim jug deducts 3 SHRINK_SLIM; New Round jug deducts 1 SHRINK_ROUND; both deduct 1 CLEAR_COVER.,❌ New,"Confirm with owner whether new-jug sales consume wraps. If yes, add recipe rows."
+US-55,"As an owner, I want each product to declare how many of each consumable it consumes per sale so rules are configurable, not hardcoded.",product_consumables table linking product_id → inventory_item_id → qty_per_sale; editable in admin.,❌ New,Replace 1-to-1 products.inventory_item_id with a recipe table (1-to-many).
+US-56,"As a cashier, I want a mixed cart (e.g., 2 Slim + 1 Round) to deduct the correct total wraps and covers so bulk orders don't skew inventory.",Total deduction = sum across all line items × recipe qty; verified by feature test.,❌ New,Feature test: 2 Slim + 1 Round → 6 slim wraps + 1 round wrap + 3 covers.
+US-57,"As a station manager, I want checkout to abort if any required wrap or cover is out of stock so no partial sale is recorded.",DB transaction rolled back; UI alert names the missing consumable and exact shortfall.,❌ New,Extend existing US-15 rollback guard to iterate over all recipe items.
+US-58,"As an owner, I want every consumable deduction logged against a transaction so I can trace where stock went.","stock_movements row per deduction (type sale, qty negative, linked transaction_id).",❌ New,Add stock_movements table with transaction_id FK.
+Module 5 Addendum: Admin Restocking (US-59 to US-65),,,,
+ID,User Story,Expected Deliverable / Output,Status,Comment
+US-59,"As an owner, I want to log delivered shrink wraps and clear covers with supplier, lot number, quantity, and cost so added stock is credited correctly.","Restock modal; current_stock incremented; stock_movements row (type restock, qty positive).",⚠️ Partial,Basic restock exists; confirm supplier / lot / cost fields are captured.
+US-60,"As an owner, I want each restock entry tied to a supplier profile so procurement history is traceable per vendor.",Supplier dropdown in restock modal; movement row stores supplier_id.,❌ New,Add supplier_id FK to stock_movements; wire dropdown in UI.
+US-61,"As an owner, I want to record lot number and unit cost per restock so I can track supplier pricing over time.",Optional fields stored on stock_movements.lot_number and unit_cost.,❌ New,Add nullable columns to stock_movements; add inputs to modal.
+US-62,"As an owner, I want to correct physical counts with a reason (damage, spoilage, shrinkage, count correction) so audits are clean.",Adjust modal; delta written to stock_movements (type adjustment) with reason tag.,⚠️ Verify,Confirm reason enum and audit trail exist; else add per US-30.
+US-63,"As an owner, I want a per-item movement log showing every restock, sale deduction, and adjustment so I can reconcile stock over time.","Paginated movement table on inventory detail view (date, type, qty, user, notes).",❌ New,Add inventory detail page with paginated stock_movements list.
+US-64,"As an owner, I want to be warned when a consumable's stock falls below its reorder point after a restock or sale so I know when to order again.",ROP check re-runs after every movement; breached SKU flagged with Warning/Critical badge.,⚠️ Partial,Re-run ROP check after each stock_movements insert.
+US-65,"As an owner, I want saving a restock to refresh dependent SS/ROP values so thresholds stay consistent with lead times.","On restock save, InventoryEngine recalculates SS and ROP for that SKU.",❌ New,Call InventoryEngine::recalculate($item) after restock save.

@@ -9,10 +9,10 @@
       <div class="auth-logo auth-logo-dark">OWN</div>
       <div>
         <h1 class="auth-title">Owner Login</h1>
-        <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} analytics portal - owners only</p>
+        <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Owner portal</p>
       </div>
     </header>
-    <p class="auth-description">This is a different login from the cashier terminal. Owners enter username, password, plus a private Owner PIN.</p>
+    <p class="auth-description">Owner sign in here to open the Owner's portal.</p>
     <form class="auth-form" onsubmit="event.preventDefault(); doOwnerLogin();">
       <label class="form-label" for="u">Owner username</label>
       <input id="u" class="form-input" placeholder="Owner username" autocomplete="username">
@@ -27,7 +27,7 @@
 
       <button type="submit" class="btn btn-primary btn-block">Open Owner Portal</button>
     </form>
-    <p class="auth-footer-text">Cashier? <a href="{{ url('/') }}" class="auth-link">Go to Cashier Login</a> (no PIN needed there).</p>
+    <p class="auth-footer-text">Are you the Staff? <a href="{{ url('/') }}" class="auth-link">Go to Cashier Login</p>
   </main>
 
   @include('partials.scripts-base')
