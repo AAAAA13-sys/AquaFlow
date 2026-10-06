@@ -48,5 +48,16 @@ echo "[test] database ready: {$name}\n";
 # The image bakes a config cache; clear it so compose env vars apply.
 php artisan config:clear >/dev/null 2>&1 || true
 
+# Laravel bootstraps LoadEnvironmentVariables for every test. .dockerignore keeps
+# .env out of the image (it holds secrets), but when the file is missing phpdotenv
+# emits a PHP warning that PHPUnit surfaces on every single test - 100+ spurious
+# warnings. The test container holds no secrets (phpunit.xml and the compose
+# environment carry the real config), so a minimal placeholder is all that is
+# needed to keep the run clean. This mirrors CI, which copies .env.example.
+if [ ! -f .env ]; then
+  printf 'APP_ENV=testing\n' > .env
+  echo "[test] wrote a minimal .env (real config comes from phpunit.xml + compose)"
+fi
+
 echo "[test] ready - run:  docker compose exec test php artisan test"
 exec "$@"

@@ -35,17 +35,25 @@ RUN composer install \
 # ------------------------------------------------------------------ php base
 FROM php:8.2-apache AS php-base
 
-# PDO MySQL driver + hardened Apache defaults
+# PDO MySQL driver + hardened Apache defaults.
+#
+# `expose_php` is a PHP ini directive, NOT an Apache one - putting it in the
+# Apache conf makes Apache refuse to start ("Invalid command 'expose_php'").
+# PHP settings go in a conf.d drop-in; only real Apache directives go above.
 RUN docker-php-ext-install pdo_mysql \
     && a2enmod headers rewrite \
     && { \
          echo 'ServerTokens Prod'; \
          echo 'ServerSignature Off'; \
-         echo 'expose_php Off'; \
          echo 'Header always set X-Content-Type-Options "nosniff"'; \
          echo 'Header always set Referrer-Policy "same-origin"'; \
        } > /etc/apache2/conf-available/aquaflow-hardening.conf \
-    && a2enconf aquaflow-hardening
+    && a2enconf aquaflow-hardening \
+    && { \
+         echo 'expose_php=Off'; \
+         echo 'display_errors=Off'; \
+         echo 'log_errors=On'; \
+       } > /usr/local/etc/php/conf.d/aquaflow-hardening.ini
 
 # Serve Laravel's public/ directory instead of the framework root
 RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
@@ -71,6 +79,11 @@ COPY . .
 COPY --from=vendor-dev /app/vendor ./vendor
 COPY docker/app/test-entrypoint.sh /usr/local/bin/aquaflow-test-entrypoint
 RUN chmod +x /usr/local/bin/aquaflow-test-entrypoint \
+    && mkdir -p storage/framework/cache/data \
+                storage/framework/sessions \
+                storage/framework/views \
+                storage/logs \
+                bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
 ENTRYPOINT ["/usr/local/bin/aquaflow-test-entrypoint"]
@@ -84,7 +97,14 @@ WORKDIR /var/www/html
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
 
-RUN chown -R www-data:www-data storage bootstrap/cache \
+# Laravel writes here at runtime. .dockerignore deliberately keeps local logs and
+# caches out of the image, so the directories must be recreated before chown.
+RUN mkdir -p storage/framework/cache/data \
+             storage/framework/sessions \
+             storage/framework/views \
+             storage/logs \
+             bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
     && php artisan config:clear
 
 EXPOSE 80
