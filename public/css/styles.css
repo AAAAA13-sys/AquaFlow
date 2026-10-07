@@ -1,19 +1,28 @@
 /* AquaFlow Professional Semantic Design System */
 :root {
-  --brand-primary: #0EA5E9;
-  --brand-hover: #0284C7;
+  --brand-primary: #1D4ED8;
+  --brand-hover: #1D4ED8;
   --brand-dark: #0F172A;
-  --brand-light: #E0F2FE;
+  --brand-light: #DBEAFE;
+
+  /* The canvas is a real light grey, not near-white. It was #F8FAFC, which put
+     white cards on a white page behind a 0.04-alpha shadow: no surface could be
+     told from any other and the app read as one flat white sheet. */
   --surface-white: #FFFFFF;
-  --surface-bg: #F8FAFC;
+  --surface-bg: #EAEFF6;
   --surface-card: #FFFFFF;
-  --surface-subtle: #F1F5F9;
-  --text-dark: #0F172A;
-  --text-slate: #334155;
-  --text-muted: #64748B;
-  --text-dim: #94A3B8;
-  --border-line: #E2E8F0;
-  --border-subtle: #CBD5E1;
+  --surface-subtle: #F3F6FA;
+
+  /* Text was one shade too light across the board. Darkened so secondary copy
+     is legible without relying on low opacity. */
+  --text-dark: #0B1220;
+  --text-slate: #1E293B;
+  --text-muted: #475569;
+  --text-dim: #64748B;
+
+  /* Cards need a visible edge to read as separate from the grey canvas. */
+  --border-line: #D3DAE5;
+  --border-subtle: #BFC8D6;
   --success-bg: #DCFCE7;
   --success-text: #166534;
   --success-border: #86EFAC;
@@ -118,7 +127,10 @@ button {
   background: var(--surface-card);
   border: 1px solid var(--border-line);
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  /* A real shadow plus a defined edge. The old 0.04-alpha shadow over a
+     near-white canvas was invisible, which is why every panel merged into a
+     single flat white sheet. */
+  box-shadow: 0 1px 2px rgba(11, 18, 32, 0.05), 0 4px 12px rgba(11, 18, 32, 0.06);
   padding: 1rem;
 }
 
@@ -153,11 +165,6 @@ button {
   color: #0C4A6E;
 }
 
-.pill-debt {
-  background-color: var(--debt-bg);
-  color: var(--debt-text);
-}
-
 .pill-neutral {
   background-color: var(--surface-subtle);
   color: var(--text-dim);
@@ -174,12 +181,15 @@ button {
   padding: 1.5rem;
 }
 
+/* Both sign-in screens now sit on royal blue. The cashier theme was a pale
+   blue wash so light the card barely separated from it, while the owner theme
+   was a dark navy gradient - two looks for one job. One brand backdrop. */
 .cashier-auth-theme {
-  background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 40%, #F8FAFC 100%);
+  background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 55%, #3B82F6 100%);
 }
 
 .owner-auth-theme {
-  background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 60%, #0C4A6E 100%);
+  background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 60%, #2563EB 100%);
 }
 
 .auth-card {
@@ -188,7 +198,7 @@ button {
   background: var(--surface-white);
   border: 1px solid var(--border-line);
   border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 40px -12px rgba(11, 18, 32, 0.35);
   padding: 2.25rem;
 }
 
@@ -275,77 +285,6 @@ button {
 }
 
 /* =============================================================================
-   APPLICATION HEADER / NAVBAR (Cashier Terminal)
-============================================================================= */
-.app-header {
-  background-color: var(--brand-dark);
-  color: var(--surface-white);
-  padding: 0.65rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.header-left,
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-brand-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background-color: var(--brand-primary);
-  color: var(--surface-white);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.header-title {
-  font-size: 0.925rem;
-  font-weight: 700;
-  color: var(--surface-white);
-}
-
-.header-meta {
-  font-size: 0.825rem;
-  color: #CBD5E1;
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.header-meta .status-indicator {
-  color: #4ADE80;
-  font-weight: 700;
-}
-
-.header-meta .divider {
-  color: #475569;
-}
-
-.logout-btn {
-  background-color: #1E293B;
-  color: var(--surface-white);
-  border: none;
-  font-size: 0.8rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 8px;
-}
-
-.logout-btn:hover {
-  background-color: #334155;
-}
-
-/* =============================================================================
    ADMIN SIDEBAR LAYOUT
 ============================================================================= */
 .admin-layout {
@@ -354,10 +293,20 @@ button {
   background-color: var(--surface-bg);
 }
 
+/* -----------------------------------------------------------------------
+   THE CHROME IS ROYAL BLUE.
+
+   Blue confined to small accents (buttons, links) never occupied real surface
+   area, so the app read as an undifferentiated grey/white sheet. Tinting the
+   canvas grey did not help either - it only swapped "all white" for "all grey".
+   Giving royal blue the two large fixed surfaces it can own - the navigation
+   rail and the header bar - produces the intended blue/grey balance, with the
+   working area staying light grey and white.
+   --------------------------------------------------------------------- */
 .admin-sidebar {
   width: 260px;
-  background-color: var(--brand-dark);
-  color: var(--surface-white);
+  background-color: var(--brand-primary);
+  color: #FFFFFF;
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -365,12 +314,11 @@ button {
   height: 100vh;
   flex-shrink: 0;
   z-index: 30;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-header {
   padding: 1.25rem 1.25rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -386,12 +334,13 @@ button {
   min-width: 0;
 }
 
+/* The badge inverts to white so the brand mark separates from the blue rail. */
 .sidebar-brand-badge {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background-color: var(--brand-primary);
-  color: var(--surface-white);
+  background-color: #FFFFFF;
+  color: var(--brand-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,20 +352,22 @@ button {
 .sidebar-brand-title {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--surface-white);
+  color: #FFFFFF;
   line-height: 1.2;
 }
 
 .sidebar-brand-subtitle {
   font-size: 0.725rem;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .sidebar-close-btn {
   display: none;
   background: transparent;
   border: none;
-  color: var(--text-dim);
+  /* The rail is royal blue, so this must be light - the dark token it
+     inherited measured 1.4:1 and was effectively invisible. */
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
@@ -426,13 +377,17 @@ button {
 }
 
 .sidebar-close-btn:hover {
-  color: var(--surface-white);
-  background-color: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.18);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 1rem 0.75rem;
+  /* Right padding lives on the links rather than the container, so an active
+     link can run flush to the rail edge and read as a folder tab. Leaving it
+     here and cancelling it with a negative margin would be clipped by the
+     `overflow-y: auto` below. */
+  padding: 1rem 0 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -446,7 +401,10 @@ button {
   gap: 0.75rem;
   padding: 0.7rem 0.85rem;
   border-radius: 10px;
-  color: #CBD5E1;
+  /* Keeps inactive links inset from the rail's right edge; the active link
+     drops this so it can meet the edge. */
+  margin-right: 0.75rem;
+  color: rgba(255, 255, 255, 0.86);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
@@ -455,18 +413,35 @@ button {
 }
 
 .sidebar-link:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--surface-white);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
 }
 
+/* The active item is a folder tab that opens into the workspace.
+   Its fill is --surface-bg (the same canvas the page content sits on) rather
+   than pure white: a #FFF tab butted against the #EAEFF6 canvas put two
+   different colours side by side and read as a seam. Matching them makes the
+   tab look like part of the panel it opens.
+   Small fillet where the tab emerges from the rail (its left side), straight
+   on the outer edge so it merges seamlessly into the same-coloured canvas. */
 .sidebar-link.active {
-  background-color: var(--brand-primary);
-  color: var(--surface-white);
+  background-color: var(--surface-bg);
+  color: var(--brand-primary);
+  border-radius: 6px 0 0 6px;
+  margin-right: 0;
+  padding-right: 1.4rem;
+  box-shadow: -6px 0 14px -4px rgba(9, 20, 56, 0.32);
+}
+
+/* The badge sits at the far right of the tab, so it needs the same clearance
+   the squared-off edge removed. */
+.sidebar-link.active .sidebar-badge {
+  margin-right: 0.85rem;
 }
 
 .sidebar-footer {
   padding: 1rem 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -478,9 +453,10 @@ button {
   gap: 0.15rem;
 }
 
+/* 0.72 alpha over royal blue measured 4.25:1 - just under AA. 0.8 clears it. */
 .sidebar-user-label {
   font-size: 0.6875rem;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -488,7 +464,7 @@ button {
 .sidebar-user-name {
   font-size: 0.825rem;
   font-weight: 600;
-  color: var(--surface-white);
+  color: #FFFFFF;
 }
 
 .sidebar-action-row {
@@ -497,26 +473,61 @@ button {
   gap: 0.5rem;
 }
 
-.sidebar-pos-link {
+/* ---------------------------------------------------------------------
+   ONE RULE FOR BOTH "LEAVE THE TERMINAL" CONTROLS
+
+   The owner portal's "POS Terminal" link and the cashier portal's
+   "ÃƒÂ¢Ã¢â‚¬Â Ã‚Â Owner Portal" link are the same control doing opposite jobs, so they must
+   be pixel-identical. They were two separate rules that drifted: the back link
+   picked up the 44px minimum height that .sidebar-logout-btn inherits, while
+   the POS link did not, so going one way looked bigger than coming back.
+   Grouping them here means a future change lands on both at once.
+   --------------------------------------------------------------------- */
+.sidebar-pos-link,
+.sidebar-back-link {
   flex: 1;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--surface-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  /* Same floor the Logout button inherits, so all three controls in the row
+     share one height and keep a finger-sized target. */
+  min-height: 44px;
   padding: 0.45rem 0.65rem;
   border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
   font-size: 0.8rem;
   font-weight: 600;
   text-align: center;
   text-decoration: none;
+  white-space: nowrap;
   transition: background-color 0.15s ease;
 }
 
-.sidebar-pos-link:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.sidebar-pos-link:hover,
+.sidebar-back-link:hover {
+  background-color: rgba(255, 255, 255, 0.28);
 }
 
+/* Focus ring is white because both controls sit on the royal-blue rail. */
+.sidebar-pos-link:focus-visible,
+.sidebar-back-link:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+.sidebar-back-arrow {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Logout inverts against the blue rail: a white chip with red text. A solid
+   red block on royal blue fought the brand colour, and red is meant to be the
+   scarce accent, not a second large surface. */
 .sidebar-logout-btn {
-  background-color: #EF4444;
-  color: var(--surface-white);
+  background-color: #FFFFFF;
+  color: #B91C1C;
   border: none;
   padding: 0.45rem 0.75rem;
   border-radius: 8px;
@@ -527,9 +538,10 @@ button {
 }
 
 .sidebar-logout-btn:hover {
-  background-color: #DC2626;
+  background-color: #FEE2E2;
 }
 
+.sidebar-backdrop.open {
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -539,9 +551,8 @@ button {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
+  display: none;
 }
-
-.sidebar-backdrop.open {
   opacity: 1;
   visibility: visible;
   display: block;
@@ -554,9 +565,11 @@ button {
   flex-direction: column;
 }
 
+/* The header completes the blue frame with the rail, so everything below
+   reads as a distinct light-grey workspace instead of one continuous sheet. */
 .admin-topbar {
-  background-color: var(--surface-white);
-  border-bottom: 1px solid var(--border-line);
+  background-color: var(--brand-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
   padding: 0.85rem 1.25rem;
   display: flex;
   align-items: center;
@@ -572,8 +585,8 @@ button {
   width: 38px;
   height: 38px;
   padding: 8px;
-  background-color: var(--surface-bg);
-  border: 1px solid var(--border-line);
+  background-color: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
@@ -581,22 +594,22 @@ button {
 }
 
 .sidebar-toggle-btn:hover {
-  background-color: #E2E8F0;
-  border-color: #CBD5E1;
+  background-color: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .hamburger-bar {
   display: block;
   width: 100%;
   height: 2px;
-  background-color: var(--text-dark);
+  background-color: #FFFFFF;
   border-radius: 2px;
 }
 
 .admin-topbar-title {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: #FFFFFF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -604,7 +617,7 @@ button {
 
 .admin-topbar-meta {
   font-size: 0.825rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.86);
   flex-shrink: 0;
 }
 
@@ -641,10 +654,12 @@ button {
     box-shadow: 6px 0 25px rgba(0, 0, 0, 0.4);
   }
 
+  /* Matches the desktop rule: right padding stays on the links so the active
+     tab still meets the rail edge on mobile, where the rail is off-canvas. */
   .sidebar-nav {
     flex-direction: column;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 0.75rem 0 0.75rem 0.75rem;
     gap: 0.35rem;
   }
 
@@ -688,7 +703,7 @@ button {
 /* Customer Card */
 .active-customer-box {
   background-color: var(--brand-light);
-  border: 1px solid #7DD3FC;
+  border: 1px solid #93C5FD;
   border-radius: 12px;
   padding: 0.5rem 0.65rem;
   font-size: 0.825rem;
@@ -703,32 +718,6 @@ button {
   overflow-y: auto;
 }
 
-.custody-summary-box {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.825rem;
-}
-
-.custody-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.4rem 0.65rem;
-}
-
-.policy-notice {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  background-color: var(--surface-bg);
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.5rem 0.65rem;
-  margin-top: 0.5rem;
-}
-
 .order-type-selector {
   margin-top: 0.5rem;
 }
@@ -737,12 +726,6 @@ button {
 .products-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-}
-
-.button-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.5rem;
 }
 
@@ -763,7 +746,8 @@ button {
 
 .product-info-sub {
   font-size: 0.6875rem;
-  opacity: 0.75;
+  /* Was opacity 0.75, which faded the caption toward the card. */
+  color: var(--text-muted);
 }
 
 .product-info-price {
@@ -791,12 +775,12 @@ button {
 /* Color themed product cards */
 .prod-theme-blue,
 .kpi-blue {
-  background-color: #E0F2FE;
-  border-color: #7DD3FC;
+  background-color: #DBEAFE;
+  border-color: #93C5FD;
 }
 
 .prod-theme-blue .product-add-button {
-  background-color: #0284C7;
+  background-color: #1D4ED8;
 }
 
 .prod-theme-teal {
@@ -806,11 +790,6 @@ button {
 
 .prod-theme-teal .product-add-button {
   background-color: #0F766E;
-}
-
-.prod-theme-orange {
-  background-color: #FFEDD5;
-  border-color: #FDBA74;
 }
 
 .prod-theme-orange .product-add-button {
@@ -827,11 +806,6 @@ button {
   background-color: #A16207;
 }
 
-.prod-theme-purple {
-  background-color: #EDE9FE;
-  border-color: #C4B5FD;
-}
-
 .prod-theme-purple .product-add-button {
   background-color: #6D28D9;
 }
@@ -845,57 +819,6 @@ button {
   background-color: #334155;
 }
 
-/* Container Intake Box */
-.intake-controls-box,
-.tender-amount-box {
-  background-color: var(--surface-bg);
-  border: 1px solid var(--border-line);
-  border-radius: 12px;
-  padding: 0.65rem;
-  margin-top: 0.5rem;
-}
-
-/* Shape Selector Box (Figure 4 Flowchart) */
-.shape-selector-box {
-  background-color: var(--surface-white);
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.intake-cell-box {
-  background-color: var(--surface-white);
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.5rem;
-}
-
-.intake-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  margin-bottom: 0.35rem;
-}
-
-.intake-inputs-row {
-  display: flex;
-  gap: 0.35rem;
-}
-
-.intake-small-input {
-  width: 100%;
-  padding: 0.45rem;
-  font-size: 0.875rem;
-}
-
-.custody-warning-message {
-  font-size: 0.75rem;
-  border-radius: 10px;
-  padding: 0.4rem 0.65rem;
-  margin-top: 0.5rem;
-}
-
 .custody-warning-message.pill-ok {
   background-color: var(--success-bg);
   border: 1px solid var(--success-border);
@@ -906,14 +829,6 @@ button {
   background-color: var(--warning-bg);
   border: 1px solid var(--warning-border);
   color: var(--warning-text);
-}
-
-.damaged-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  margin-top: 0.4rem;
 }
 
 .auto-deduct-caption {
@@ -964,17 +879,6 @@ button {
   background-color: var(--surface-white);
 }
 
-.jug-status-banner {
-  background-color: var(--success-bg);
-  border: 1px solid var(--success-border);
-  color: var(--success-text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 10px;
-  padding: 0.45rem 0.65rem;
-  margin-top: 0.5rem;
-}
-
 .totals-breakdown {
   border-top: 1px solid var(--border-line);
   margin-top: 0.5rem;
@@ -1004,22 +908,6 @@ button {
   margin-top: 0.25rem;
 }
 
-.qr-payment-box {
-  background-color: var(--surface-bg);
-  border: 1px solid var(--border-line);
-  border-radius: 12px;
-  padding: 0.75rem;
-  text-align: center;
-  font-size: 0.825rem;
-  margin-top: 0.5rem;
-}
-
-.tender-display-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.825rem;
-}
-
 /* Debt Settlement Box */
 .debt-settle-box {
   background-color: var(--debt-bg);
@@ -1027,12 +915,6 @@ button {
   border-radius: 12px;
   padding: 0.75rem;
   margin-top: 0.5rem;
-}
-
-.orders-queue-panel {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .orders-queue-list {
@@ -1108,28 +990,11 @@ button {
   }
 }
 
-.dashboard-row-4col {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-}
-
-/* The dashboard leads with actions, so the to-do card gets a stronger border to
-   separate it from the evidence below it. */
-.dashboard-todo-first {
-  margin-bottom: 0.75rem;
-  border-left: 4px solid #dc2626;
-}
-
 .dashboard-todo-first .panel-heading {
   margin-top: 0;
 }
 
-@media (min-width: 768px) {
-  .dashboard-row-4col {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+
 
 @media (min-width: 1280px) {
   .dashboard-row-4col {
@@ -1202,10 +1067,6 @@ table.clean td {
   gap: 0.75rem;
 }
 
-.settings-card {
-  max-width: 500px;
-}
-
 @media (min-width: 768px) {
   .suppliers-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -1224,15 +1085,6 @@ table.clean td {
   justify-content: center;
   padding: 1rem;
   z-index: 50;
-}
-
-.receipt-sheet {
-  background-color: var(--surface-white);
-  border-radius: 14px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .side-drawer {
@@ -1319,21 +1171,11 @@ table.clean td {
   color: #A16207;
 }
 
-.text-muted {
-  color: var(--text-muted);
-}
-
 .cell-sub {
   display: block;
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-dim);
-}
-
-.section-subtext {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin: 0.25rem 0 0.75rem;
 }
 
 /* Insight rows + notes (Dashboard "plain words" cards) */
@@ -1410,15 +1252,6 @@ table.clean td {
   padding: 0.3rem 0.5rem;
 }
 
-/* Customer drawer */
-.drawer-stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-  margin-top: 0.75rem;
-  font-size: 0.8rem;
-}
-
 .drawer-stat {
   border: 1px solid var(--border-line);
   border-radius: 10px;
@@ -1436,11 +1269,6 @@ table.clean td {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.85rem;
-}
-
-/* Filter/search helpers */
-.search-input {
-  max-width: 320px;
 }
 
 /* =============================================================================
@@ -1461,53 +1289,11 @@ body.pos-lock .pos-layout {
   flex: 1 1 auto;
 }
 
-/* Terminal header */
-.header-logo-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background-color: var(--brand-primary);
-  color: var(--surface-white);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.header-subtitle {
-  font-size: 0.72rem;
-  color: #94A3B8;
-}
-
-.header-meta-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.8rem;
-  color: #CBD5E1;
-}
-
-.header-user-tag {
-  font-weight: 600;
-  color: var(--surface-white);
-}
-
 .header-clock {
   font-size: 0.75rem;
   color: #94A3B8;
 }
 
-.header-meta-group .btn {
-  border-color: rgba(255, 255, 255, 0.25);
-  color: var(--surface-white);
-  background-color: transparent;
-}
-
-.header-meta-group .btn:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-}
 
 /* Step wizard: the terminal shows one panel at a time on every screen size, so
    the wizard is always visible and drives which panel is on screen. */
@@ -1646,33 +1432,14 @@ body.pos-lock .pos-layout {
 }
 
 .customer-option.selected {
-  border-color: #7DD3FC;
+  border-color: #93C5FD;
   background-color: var(--brand-light);
-}
-
-.cust-option-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.cust-option-oob {
-  font-size: 0.7rem;
-  font-weight: 700;
 }
 
 .cust-option-sub,
 .receipt-sub {
   font-size: 0.7rem;
   color: var(--text-muted);
-}
-
-.cust-card-line {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
 }
 
 /* OR tag + tender box */
@@ -1683,32 +1450,6 @@ body.pos-lock .pos-layout {
   color: #0C4A6E;
   border-radius: 9999px;
   padding: 0.2rem 0.65rem;
-}
-
-/* Recent sales audit feed + production queue */
-.tx-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.45rem 0.6rem;
-  background-color: var(--surface-white);
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
-.tx-row:hover {
-  background-color: var(--surface-subtle);
-}
-
-.recent-sales-box {
-  margin-top: 0.5rem;
-  max-height: 340px;
-  overflow: auto;
 }
 
 .queue-list-vertical {
@@ -1727,13 +1468,6 @@ body.pos-lock .pos-layout {
 .queue-meta {
   font-size: 0.72rem;
   color: var(--text-dim);
-}
-
-.queue-stages {
-  display: flex;
-  gap: 0.25rem;
-  margin-top: 0.4rem;
-  flex-wrap: wrap;
 }
 
 /* Thermal receipt card */
@@ -1924,16 +1658,6 @@ button.product-item .product-info-price {
   display: block;
 }
 
-/* Spacing between an intake stepper and the next label */
-.intake-stepper + .intake-title {
-  margin-top: 0.45rem;
-}
-
-/* Bought-items list shown on the products panel */
-.bought-items-card {
-  margin-top: 0.6rem;
-}
-
 .bought-items-card .cart-items-container {
   min-height: 44px;
   margin-bottom: 0.5rem;
@@ -1943,62 +1667,6 @@ button.product-item .product-info-price {
   width: 30px;
   height: 30px;
   min-height: 30px;
-}
-
-/* Unified container-returns table: one compact component, one row per shape */
-.returns-table {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
-}
-
-.returns-row {
-  display: grid;
-  grid-template-columns: 3.5rem auto 1fr;
-  align-items: center;
-  gap: 0.6rem;
-  background-color: var(--surface-white);
-  border: 1px solid var(--border-line);
-  border-radius: 10px;
-  padding: 0.4rem 0.6rem;
-}
-
-.returns-shape {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-slate);
-}
-
-.returns-row .intake-stepper {
-  width: 9.5rem;
-}
-
-.returns-out {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-align: right;
-  white-space: nowrap;
-}
-
-.returns-out b {
-  color: var(--text-dark);
-}
-
-/* Outstanding balance badge shown to the cashier before granting new credit */
-.debt-badge {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border-radius: 10px;
-  padding: 0.4rem 0.6rem;
-  margin-top: 0.4rem;
-  background-color: var(--debt-bg);
-  border: 1px solid var(--debt-border);
-  color: var(--debt-text);
 }
 
 .debt-badge.clear {
@@ -2036,37 +1704,8 @@ button.product-item .product-info-price {
 
 .quick-cash-row button.exact {
   background-color: var(--brand-light);
-  border-color: #7DD3FC;
+  border-color: #93C5FD;
   color: #0C4A6E;
-}
-
-/* Container intake steppers (Slim / Round, OUT / IN) */
-.intake-stepper {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-}
-
-.intake-stepper button {
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0;
-  border-radius: 8px;
-  background-color: var(--surface-white);
-  font-weight: 700;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.intake-stepper input {
-  width: 100%;
-  min-width: 0;
-  text-align: center;
-  min-height: 34px;
-  padding: 0.25rem;
 }
 
 /* Action feedback for locked payment options */
@@ -2329,4 +1968,4 @@ button.product-item .product-info-price {
 .credential-control { display: flex; gap: 8px; align-items: center; }
 .credential-control input { flex: 1; min-width: 0; }
 .credential-control button { flex-shrink: 0; }
-.credential-hint { color: #64748b; font-size: 12px; line-height: 1.6; margin: 8px 0; }
+.credential-hint { color: #475569; font-size: 12px; line-height: 1.6; margin: 8px 0; }

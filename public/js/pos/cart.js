@@ -44,10 +44,6 @@ function hasCustomer() {
 }
 
 /** Payment is a consequence of the order type, never a cashier choice. */
-function posPayment() {
-  return POS.type === 'Delivery' ? 'Account' : 'Cash';
-}
-
 function isDelivery() {
   return POS.type === 'Delivery';
 }
@@ -118,8 +114,20 @@ function renderCustList() {
 
   if (search && list) {
     const q = (search.value || '').toLowerCase();
+
+    // "Walk-in Guest" is a synthetic record used to anchor walk-in sales; it is
+    // not a person a cashier would search for, and stage 1 already has a
+    // dedicated Quick Walk-In button. It is excluded here so the list shows
+    // only real accounts.
+    //
+    // Sorted A-Z. The API returned debtors first, so on every single
+    // transaction the cashier scrolled past the same large-balance warnings
+    // before reaching an ordinary customer. Debt is still shown per row as a
+    // badge via debtBadge().
     const rows = DB.customers
-      .filter(c => c.name.toLowerCase().includes(q) || String(c.addr).toLowerCase().includes(q))
+      .filter(c => c.name !== 'Walk-in Guest')
+      .filter(c => c.name.toLowerCase().includes(q) || String(c.addr || '').toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
       .slice(0, 40);
 
     list.innerHTML = rows.map(c => {
@@ -131,7 +139,10 @@ function renderCustList() {
         '<span class="cust-row-addr">' + esc(c.addr) + '</span>' +
         '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
         '</button>';
-    }).join('');
+    }).join('') ||
+      '<p class="cashier-empty">' + (q
+        ? 'No customer matches "' + esc(search.value.trim()) + '".'
+        : 'No customers yet. Use + New Customer to add one.') + '</p>';
   }
 
   const card = document.getElementById('custCard');

@@ -1,5 +1,5 @@
 /* =============================================================================
-   AquaFlow — UI System Layer
+   AquaFlow â€” UI System Layer
    -----------------------------------------------------------------------------
    Standardises button hierarchy, dashboard grid alignment and KPI anatomy.
    Plain CSS on purpose: the app has no asset build step, so nothing here may
@@ -8,22 +8,36 @@
    ========================================================================== */
 
 :root {
-  /* --brand-primary already exists (#0EA5E9). #00A3E0 is the specified CTA
-        fill; both are cyan, so the shift is imperceptible on legacy chrome but
-        exact where it matters. Change here to change everywhere. */
-  --brand-primary: #00A3E0;
-  --brand-hover: #0089BE;
-  --brand-active: #00719A;
-  --brand-tint: #E6F7FD;
-  --brand-ring: rgba(0, 163, 224, 0.38);
+  /* ---------------------------------------------------------------------
+     PALETTE
+     Royal blue carries every primary action. Light grey carries structure.
+     Red is the single accent, used sparingly to make one thing on a screen
+     impossible to ignore. Change these six values to re-skin the whole app.
 
+     #1D4ED8 measures 6.7:1 against white, so filled controls clear WCAG AA
+     with room to spare (the previous cyan fill was 2.87:1).
+     --------------------------------------------------------------------- */
+  --brand-primary: #1D4ED8;
+  --brand-hover: #1E40AF;
+  --brand-active: #1E3A8A;
+  --brand-tint: #EFF4FF;
+  --brand-ring: rgba(29, 78, 216, 0.38);
+
+  /* The accent. Deliberately scarce: attention KPI, forecast series, badges. */
+  --accent-red: #DC2626;
+  --accent-red-dark: #B91C1C;
+  --accent-red-tint: #FEF2F2;
+
+  /* Light grey neutrals. These MUST stay in step with the :root block in
+     styles.css: this file is linked last, so its values are the ones that
+     actually apply. When they drifted apart the app silently used whichever
+     file loaded last. */
   --surface-white: #FFFFFF;
-  --surface-subtle: #F1F5F9;
-  --text-slate: #334155;
-  --text-muted: #64748B;
-  --border-line: #E2E8F0;
-  --border-subtle: #CBD5E1;
-
+  --surface-subtle: #F3F6FA;
+  --text-slate: #1E293B;
+  --text-muted: #475569;
+  --border-line: #D3DAE5;
+  --border-subtle: #BFC8D6;
   --radius-sm: 8px;
   --radius: 10px;
   --radius-lg: 14px;
@@ -37,9 +51,9 @@
 /* =============================================================================
    1. BUTTON HIERARCHY
    Three tiers, each visually distinct at a glance:
-     .btn-primary    solid fill      — commit an action
-     .btn-secondary  outlined        — navigate or view
-     .btn-tertiary   text + icon     — deep analytics jump
+     .btn-primary    solid fill      â€” commit an action
+     .btn-secondary  outlined        â€” navigate or view
+     .btn-tertiary   text + icon     â€” deep analytics jump
    ========================================================================== */
 
 .btn {
@@ -143,17 +157,6 @@
 .btn-tertiary .icon {
   font-size: 1em;
   order: -1;
-}
-
-/* --- Sizes ------------------------------------------------------------------ */
-.btn-lg {
-  padding: 0.85rem 1.4rem;
-  font-size: 0.95rem;
-}
-
-.btn-md {
-  padding: 0.6rem 1rem;
-  font-size: 0.875rem;
 }
 
 .btn-sm {
@@ -293,7 +296,7 @@
 }
 
 /* =============================================================================
-   4. ADVISORY CARD — action hierarchy inside a panel
+   4. ADVISORY CARD â€” action hierarchy inside a panel
    ========================================================================== */
 
 .advisory-card {
@@ -326,12 +329,12 @@
 }
 
 .advisory-info {
-  border-left-color: #0284C7;
-  background-color: #F0F9FF;
+  border-left-color: #1D4ED8;
+  background-color: #F5F8FF;
 }
 
 /* =============================================================================
-   5. INSIGHT CALLOUTS — progressive disclosure
+   5. INSIGHT CALLOUTS â€” progressive disclosure
    The old `.insight-note` was one grey box holding a 3-part paragraph, which
    read as a wall of text under every panel. Now exactly ONE line is visible
    (the action); meaning and risk live inside a disclosure.
@@ -340,11 +343,11 @@
      <details class="insight">
        <summary class="insight-summary">
          <span class="insight-k insight-k--do">To do</span>
-         <span class="insight-v">…one line…</span>
+         <span class="insight-v">â€¦one lineâ€¦</span>
        </summary>
        <div class="insight-detail">
-         <p class="insight-line"><span class="insight-k">Means</span> …</p>
-         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> …</p>
+         <p class="insight-line"><span class="insight-k">Means</span> â€¦</p>
+         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> â€¦</p>
        </div>
      </details>
    ========================================================================== */
@@ -405,7 +408,7 @@
   font-weight: 500;
 }
 
-/* Small uppercase key chip — replaces inline <b> runs. */
+/* Small uppercase key chip â€” replaces inline <b> runs. */
 .insight-k {
   flex: 0 0 auto;
   font-size: 0.625rem;
@@ -546,7 +549,7 @@
 /* =============================================================================
    7. LEDGER ACTION COMPONENTS
    The ledger's "Remind" button had no stylesheet at all, so it rendered as a
-   default grey browser button repeated on every row — visually meaningless and
+   default grey browser button repeated on every row â€” visually meaningless and
    inconsistent with the rest of the portal. It is now an action group: one real
    outbound action plus one navigation step.
    ========================================================================== */
@@ -589,18 +592,6 @@
 
 .action-message .icon {
   font-size: 0.95em;
-}
-
-.action-message--muted {
-  background: var(--surface-subtle);
-  color: var(--text-slate);
-  border-color: var(--border-line);
-}
-
-.action-message--muted:hover {
-  background: #E2E8F0;
-  color: var(--text-dark);
-  box-shadow: none;
 }
 
 /* Name + phone stack, right-aligned like its numeric neighbours. */
@@ -671,10 +662,15 @@
   padding: 0 0.3rem;
   border-radius: 999px;
   background: rgba(100, 116, 139, 0.15);
+  color: #334155;
 }
 
+/* The active count sat on a 28%-white overlay of the brand fill, which resolves
+   to a pale blue and measured 3.71:1 - the numeral was unreadable. A dark
+   translucent chip keeps white text above 4.5:1 while still reading as counted. */
 .filter-tab.is-active .filter-tab-count {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(15, 23, 42, 0.42);
+  color: #FFFFFF;
 }
 
 .empty-cell {
@@ -838,7 +834,7 @@
 .af-drawer-template {
   margin: 0;
   padding: 0.75rem;
-  background: #F8FAFC;
+  background: #EDF1F7;
   border: 1px solid var(--border-line);
   border-radius: var(--radius-sm);
   font-family: inherit;
@@ -894,7 +890,7 @@
 }
 
 /* =============================================================================
-   11. ACCESSIBILITY — never rely on colour alone
+   11. ACCESSIBILITY â€” never rely on colour alone
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -913,4 +909,305 @@
   .btn-ghost {
     border-color: var(--text-slate);
   }
+}
+/* =============================================================================
+   12. WIDE-TABLE READABILITY
+   -----------------------------------------------------------------------------
+   The sales ledger is 11 columns wide inside a much narrower card. Without help
+   the Total, Pay and Receipt columns sat permanently off-screen with no visual
+   cue that they existed, so a cashier could not confirm what a sale charged.
+
+   `.col-total` pins the one figure that must always be readable to the right
+   edge of the scroll box. `.is-scrollable-x` (set by markScrollableTables() in
+   store.js) fades the right edge so the overflow is discoverable.
+   ========================================================================== */
+
+.clean th.col-total,
+.clean td.col-total {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background-color: var(--surface-white);
+  box-shadow: -8px 0 8px -8px rgba(15, 23, 42, 0.18);
+}
+
+.clean thead th.col-total {
+  z-index: 3;
+  background-color: var(--surface-subtle);
+}
+
+.clean tbody tr:nth-child(even) td.col-total {
+  background-color: #FCFDFE;
+}
+
+.clean tbody tr:hover td.col-total {
+  background-color: var(--brand-tint);
+}
+
+/* Right-edge fade, only while the table actually has hidden columns. */
+.is-scrollable-x {
+  position: relative;
+}
+
+.is-scrollable-x::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 34px;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.92));
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* =============================================================================
+   13. LOADING STATE
+   -----------------------------------------------------------------------------
+   Panels used to render literal "-" text and an empty <tbody>, which made a
+   slow response indistinguishable from real zero values. These primitives let
+   a panel say "still loading" honestly.
+   ========================================================================== */
+
+.af-skeleton {
+  display: block;
+  height: 0.85em;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, #E2E8F0 37%, var(--surface-subtle) 63%);
+  background-size: 400% 100%;
+  animation: af-skeleton-sweep 1.25s ease-in-out infinite;
+}
+
+.af-skeleton-row {
+  display: block;
+  height: 0.95rem;
+  margin: 0.55rem 0.6rem;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, #E2E8F0 37%, var(--surface-subtle) 63%);
+  background-size: 400% 100%;
+  animation: af-skeleton-sweep 1.25s ease-in-out infinite;
+}
+
+@keyframes af-skeleton-sweep {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-skeleton,
+  .af-skeleton-row { animation: none; }
+}
+
+/* =============================================================================
+   14. NEUTRAL / NOT-CONFIGURED STATE
+   -----------------------------------------------------------------------------
+   An item with a reorder point of 0 has no threshold set at all. It is not
+   "critical", and the order engine cannot produce a meaningful quantity for
+   it. It needs a third state visibly different from both OK and REORDER NOW,
+   otherwise the owner is told to order 2,815 pcs of an unconfigured item.
+   ========================================================================== */
+
+.pill-neutral {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #475569;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.is-unconfigured td,
+.is-unconfigured .cell-name { color: var(--text-muted); }
+
+/* =============================================================================
+   15. DEBT-PAYMENT ROWS
+   -----------------------------------------------------------------------------
+   A debt payment is not a sale. It stays in the ledger because it is a real
+   recorded transaction, but it is tinted and labelled so the revenue figures
+   above the table reconcile with what the eye reads in the rows.
+   ========================================================================== */
+
+.is-payment-row td {
+  background-color: #F8FAFC;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.is-payment-row td.col-total {
+  background-color: #F8FAFC;
+  color: var(--text-slate);
+  font-style: normal;
+}
+
+.is-payment-row:hover td,
+.is-payment-row:hover td.col-total { background-color: var(--surface-subtle); }
+
+/* =============================================================================
+   16. SIDEBAR BADGES
+   -----------------------------------------------------------------------------
+   Surfaces "5 need reorder" on the nav item itself, so a busy owner can skip
+   the overview entirely.
+   ========================================================================== */
+
+.sidebar-badge {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #B91C1C;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.sidebar-badge:empty,
+.sidebar-badge[hidden] { display: none; }
+
+/* =============================================================================
+   17. FRESHNESS STAMP
+   ========================================================================== */
+
+.af-stamp {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+}
+
+/* On the blue header a stale stamp needs light amber rather than #B45309,
+   which would be nearly invisible on royal blue. */
+.af-stamp--stale { color: #FDE68A; }
+
+/* =============================================================================
+   18. VISUALLY HIDDEN
+   -----------------------------------------------------------------------------
+   For table captions and live-region text that should reach assistive tech
+   without occupying the layout.
+   ========================================================================== */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =============================================================================
+   19. INLINE TERM TIPS
+   -----------------------------------------------------------------------------
+   Explains abbreviations and jargon (ROP, Vatable, MAPE) on demand.
+
+   Deliberately NOT a CSS :hover tooltip. Those are unreachable by keyboard and
+   invisible on touch, which is the opposite of the point when the reader is a
+   station owner who has never seen the term before. This is a real <button>
+   that toggles a popover, so it works with a mouse, a finger, Tab and Enter,
+   and closes on Escape or an outside click.
+
+   The trigger is intentionally faint so explanatory chrome never competes with
+   the figure it is explaining.
+   ========================================================================== */
+
+.af-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+}
+
+.af-tip-btn {
+  /* min-height: 0 cancels the global 44px button floor that was
+     stretching this 15px chip into a 15x44 oval. The touch target comes back
+     from the transparent ::after below. */
+  min-height: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  /* No opacity here: fading the glyph composites it toward white and
+     failed AA at every value tried (0.5 -> 4.34:1, 0.72 -> still short).
+     #475569 reads as secondary through its size, not through being washed out. */
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-family: inherit;
+  cursor: help;
+  flex-shrink: 0;
+  transition: opacity 130ms ease, background-color 130ms ease, color 130ms ease;
+}
+
+/* Invisible 43px tap target centred on the 15px chip. Clicks land on the ::after
+   and still bubble to the button, so behaviour is unchanged. */
+.af-tip-btn::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+}
+
+.af-tip-btn:hover,
+.af-tip-btn:focus-visible,
+.af-tip-btn[aria-expanded='true'] {
+  opacity: 1;
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.af-tip-btn:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* One shared popover, moved to <body> by JS. position: fixed is
+   required: tables live in .data-table-wrapper (overflow:auto), which clips a
+   popover anchored inside its trigger. */
+.af-tip-pop {
+  position: fixed;
+  z-index: 130;
+  width: max-content;
+  max-width: min(250px, calc(100vw - 24px));
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: #0F172A;
+  color: #F1F5F9;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+}
+
+.af-tip-layer[hidden] { display: none; }
+
+/* On the dark sidebar the chip needs a light border to stay visible. */
+.admin-sidebar .af-tip-btn {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+}
+
+/* Tables keep tips on one line with their header. */
+.clean th .af-tip-btn { vertical-align: middle; }
+
+@media (prefers-reduced-motion: reduce) {
+  .af-tip-btn { transition: none; }
 }

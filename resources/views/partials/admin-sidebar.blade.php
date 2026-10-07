@@ -2,16 +2,20 @@
   // Plain-language label first, technical term kept underneath as a subtitle.
   // A station owner should never need to know what ROP or ARIMA means to use the
   // app, but the thesis still needs the precise term visible to a reviewer.
+  //
+  // `badge` names a <span> that renderSidebarBadges() fills with the count of
+  // outstanding items, so an owner can see which pages need attention without
+  // opening the overview first.
   $tabs = [
-      'dashboard'  => ['label' => 'Overview',        'hint' => null],
-      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs'],
-      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model'],
-      'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points'],
-      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities'],
-      'suppliers'  => ['label' => 'Suppliers',       'hint' => null],
-      'employees'  => ['label' => 'Employees', 'hint' => 'Store team'],
-      'users'      => ['label' => 'Staff & Access',  'hint' => 'Users'],
-      'settings'   => ['label' => 'Settings',        'hint' => null],
+      'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null],
+      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null],
+      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null],
+      'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points', 'badge' => 'badgeStock'],
+      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances'],
+      'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null],
+      'employees'  => ['label' => 'Employees', 'hint' => 'Store team', 'badge' => null],
+      'users'      => ['label' => 'Staff & Access',  'hint' => 'Users',          'badge' => null],
+      'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null],
   ]
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
@@ -22,13 +26,17 @@
   <nav class="sidebar-nav" id="sideNav">
     @foreach ($tabs as $slug => $label)
       <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
-         class="sidebar-link {{ $active === $slug ? 'active' : '' }}">
+         class="sidebar-link {{ $active === $slug ? 'active' : '' }}"
+         @if ($label['badge']) data-has-badge="1" @endif>
         <span class="sidebar-link-text">
           <span class="sidebar-link-label">{{ $label['label'] }}</span>
           @if ($label['hint'])
             <span class="sidebar-link-hint">{{ $label['hint'] }}</span>
           @endif
         </span>
+        @if ($label['badge'])
+          <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
+        @endif
       </a>
     @endforeach
   </nav>

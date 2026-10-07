@@ -15,26 +15,30 @@
       <div class="overview-shortcuts"><a href="{{ url('/admin/sales') }}" class="btn btn-secondary">View sales</a><a href="{{ url('/cashier') }}" class="btn btn-primary">Open POS &rarr;</a></div>
     </header>
 
-    <div class="kpi-cards-grid">
+    {{-- KPI values start as skeletons rather than a literal "-". A dash reads as
+             a real zero to an owner glancing at the screen; a shimmer reads as
+             "not loaded yet". The ids are kept: renderInsights() overwrites
+             each element's textContent, which discards the skeleton span. --}}
+    <div class="kpi-cards-grid" id="kpiGrid" aria-busy="true">
       <div class="kpi-card-body kpi-blue">
         <p class="kpi-label">Sales Revenue Today</p>
-        <p class="kpi-value" id="kRev">-</p>
-        <p class="kpi-subtext" id="kRevSub">-</p>
+        <p class="kpi-value" id="kRev"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
+        <p class="kpi-subtext" id="kRevSub"><span class="af-skeleton" style="width:12ch"></span></p>
       </div>
       <div class="kpi-card-body kpi-green">
         <p class="kpi-label">Expected Sales Next 7 Days</p>
-        <p class="kpi-value" id="kGal">-</p>
-        <p class="kpi-subtext" id="kGalSub">-</p>
+        <p class="kpi-value" id="kGal"><span class="af-skeleton" style="width:7ch;height:1.2em"></span></p>
+        <p class="kpi-subtext" id="kGalSub"><span class="af-skeleton" style="width:22ch"></span></p>
       </div>
       <div class="kpi-card-body kpi-red">
         <p class="kpi-label">Needs Your Attention</p>
-        <p class="kpi-value" id="invHealth">-</p>
+        <p class="kpi-value" id="invHealth"><span class="af-skeleton" style="width:3ch;height:1.2em"></span></p>
         <p class="kpi-subtext" id="kStockSub">Stock levels are loading</p>
       </div>
       <div class="kpi-card-body kpi-yellow">
         <p class="kpi-label">Customers Who Owe Money</p>
-        <p class="kpi-value" id="kLia">-</p>
-        <p class="kpi-subtext" id="kLiaSub">-</p>
+        <p class="kpi-value" id="kLia"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
+        <p class="kpi-subtext" id="kLiaSub"><span class="af-skeleton" style="width:16ch"></span></p>
         <p class="kpi-micro" id="kLiaTop"></p>
       </div>
     </div>
@@ -48,7 +52,11 @@
       <div class="card">
         <h3 class="panel-heading">Demand outlook <span class="term-hint">next 7 days</span></h3>
         <p class="auto-deduct-caption">Compare the last 30 days of refill sales with the upcoming forecast.</p>
-        <canvas id="chDemand" height="120"></canvas>
+        {{-- Canvas is invisible to assistive tech without a name. The figures
+             behind it are already rendered as text in #insDemand below, so the
+             label points there rather than restating them. --}}
+        <canvas id="chDemand" height="120" role="img"
+                aria-label="Demand outlook chart: 30 days of refill sales against the next 7 days of forecast. The same figures are listed as text under Sales patterns."></canvas>
         <div id="fcMetaDash" class="orders-queue-list order-type-selector"></div>
         {{-- Tertiary: this is a deep jump into analytics, not a committed
              action. It must not compete visually with "Make a Purchase Request". --}}
@@ -92,8 +100,14 @@
               <tr>
                 <th>Item <span class="term-hint">type & supplier</span></th>
                 <th class="num">In Stock</th>
-                <th class="num">Reorder Below <span class="term-hint">ROP</span></th>
-                <th class="num">Lasts</th>
+                <th class="num">Reorder Below <span class="term-hint">ROP</span>@include('partials.tip', [
+                  'text' => 'Reorder point: the quantity at which you should buy more. Once stock falls to this number or lower the item is flagged, so you can reorder before you run out.',
+                  'label' => 'What is ROP, the reorder point?',
+                ])</th>
+                <th class="num">Lasts @include('partials.tip', [
+                  'text' => 'Days of stock cover: how many days the quantity you hold should last at your recent selling rate. "n/a" means no reorder point is set for this item yet, so no estimate can be made.',
+                  'label' => 'What does the Lasts column mean?',
+                ])</th>
                 <th>Status</th>
               </tr>
             </thead>

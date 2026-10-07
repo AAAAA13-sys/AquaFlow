@@ -35,9 +35,13 @@
 
     <div class="dashboard-row-2col forecast-layout">
       <div class="card">
-        <h3 class="panel-heading">Demand outlook <span class="term-hint">ARIMA demand forecast</span></h3>
+        <h3 class="panel-heading">Demand outlook <span class="term-hint">ARIMA demand forecast</span>@include('partials.tip', [
+          'text' => 'ARIMA is the forecasting method used to project how much you will sell. It looks for a pattern in your past sales — level, trend and seasonality — and extends it a week forward. Treat the result as an estimate, not a guarantee.',
+          'label' => 'What does ARIMA mean?',
+        ])</h3>
         <p class="settings-help">Daily view shows the latest 30 days of recorded demand alongside the stored forecast.</p>
-        <canvas id="chArima" height="160"></canvas>
+        <canvas id="chArima" height="160" role="img"
+                aria-label="Chart of recorded daily demand for the last 30 days against the forecast for the next 7 days."></canvas>
         <div id="fcMeta" class="orders-queue-list order-type-selector"></div>
       </div>
       <div class="card">

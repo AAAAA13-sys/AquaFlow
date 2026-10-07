@@ -41,6 +41,7 @@
 
     <section class="card cashier-ledger"><h3 class="panel-heading">Transactions</h3><div class="data-table-wrapper">
       <table class="clean">
+        <caption class="visually-hidden">Recorded transactions for the selected period. Debt payments are shown in italic and are excluded from the sales revenue figure above.</caption>
         <thead>
           <tr>
             <th>OR</th>
@@ -49,16 +50,22 @@
             <th>Customer</th>
             <th>Type</th>
             <th>Gallons</th>
-            <th class="num">Vatable</th>
-            <th class="num">VAT</th>
-            <th class="num">Total</th>
+            <th class="num">Vatable @include('partials.tip', [
+              'text' => 'The part of the total that tax is charged on. AquaFlow prices are VAT-inclusive, so this is worked backwards from the total you were charged rather than added on top of it.',
+              'label' => 'What does Vatable mean?',
+            ])</th>
+            <th class="num">VAT @include('partials.tip', [
+              'text' => 'Value Added Tax at 12%. It is already included in the price the customer paid, so this column shows how much of the total is tax.',
+              'label' => 'What does VAT mean?',
+            ])</th>
+            <th class="num col-total">Total</th>
             <th>Pay</th>
             <th>Receipt</th>
           </tr>
         </thead>
         <tbody id="hBody"></tbody>
       </table>
-    </div><nav id="historyPages" class="cashier-pagination" aria-label="Transaction pages"></nav></section>
+    </div><p id="ledgerScrollNote" class="cashier-scroll-note">Scroll the table sideways to see payment method and receipt actions.</p><nav id="historyPages" class="cashier-pagination" aria-label="Transaction pages"></nav></section>
 
     <p class="auth-footer-text text-center">Prices are VAT inclusive; the vatable amount and tax are derived from the total.</p>
   </main>

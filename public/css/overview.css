@@ -1,48 +1,116 @@
 /* Overview only: keep the other admin pages on their existing layout. */
 #s-dash { display: grid; gap: 22px; }
 #s-dash > div, #s-dash > section { margin-bottom: 0; }
-#s-dash .card { padding: 22px; border: 1px solid #e2e8f0; box-shadow: 0 3px 12px #0f172a05; border-radius: 16px; min-width: 0; }
-#s-dash .overview-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 4px 0; }
+#s-dash .card {
+  padding: 22px;
+  /* Was a 1px #E2E8F0 edge with a 0.05-alpha shadow on a near-white page, so
+     the panels had no discernible edge. */
+  border: 1px solid var(--border-line);
+  box-shadow: 0 1px 2px rgba(11, 18, 32, 0.05), 0 4px 14px rgba(11, 18, 32, 0.07);
+  border-radius: 16px;
+  min-width: 0;
+}
+#s-dash .overview-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 #s-dash .overview-header h2 { font-size: clamp(23px, 2.5vw, 30px); letter-spacing: -.8px; margin: 4px 0 8px; }
-#s-dash .overview-header p:not(.overview-eyebrow), #s-dash .overview-hint { color: #64748b; font-size: 13px; line-height: 1.6; }
-#s-dash .overview-eyebrow { color: #0284c7; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
+/* Colour for the masthead lives in the override block at the end of this file. */
+#s-dash .overview-header p:not(.overview-eyebrow), #s-dash .overview-hint { font-size: 13px; line-height: 1.6; }
+/* Was #1D4ED8 at 3.91:1 on white. #1D4ED8 is the same hue at 5.9:1. */
+#s-dash .overview-eyebrow { color: #1D4ED8; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
 #s-dash .overview-shortcuts { display: flex; gap: 10px; flex-shrink: 0; }
 #s-dash .kpi-cards-grid { gap: 14px; }
-#s-dash .kpi-card-body { align-self: stretch; padding: 20px; border-radius: 14px; border-top: 3px solid #0284c7; box-shadow: none; }
-#s-dash .kpi-green { border-top-color: #10b981; }
-#s-dash .kpi-red { border-top-color: #f97316; }
-#s-dash .kpi-yellow { border-top-color: #8b5cf6; }
+/* ---------------------------------------------------------------------
+   TONAL COLOUR, NOT LOUDER ACCENTS
+
+   These cards were white with a 3px coloured hairline on top, so the only
+   thing signalling "this is the revenue card / this is the alert card" was a
+   line you had to hunt for. Bolding the bar would just be shouting.
+
+   Instead each card is filled with a very light tint of its own hue and the
+   saturated colour is reserved for one small accent bar. A large quiet area
+   plus one small loud mark reads as clearly labelled without raising its
+   voice. Text stays dark on the tint, so contrast improves rather than drops.
+   --------------------------------------------------------------------- */
+#s-dash .kpi-card-body {
+  align-self: stretch;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #D7E1F5;
+  border-top: 4px solid #1D4ED8;
+  background-color: #F5F8FF;
+  box-shadow: none;
+}
+
+#s-dash .kpi-green {
+  border-color: #CFEADD;
+  border-top-color: #10B981;
+  background-color: #F2FBF7;
+}
+
+/* The one card that earns the red accent: the single thing on screen that
+   needs doing. Its number is tinted too so it reads at a glance. */
+#s-dash .kpi-red {
+  border-color: #F6D4D4;
+  border-top-color: #DC2626;
+  background-color: #FEF4F4;
+}
+#s-dash .kpi-red .kpi-value { color: #B91C1C; }
+
+#s-dash .kpi-yellow {
+  border-color: #D7E1F5;
+  border-top-color: #1D4ED8;
+  background-color: #F5F8FF;
+}
 #s-dash .kpi-label { font-size: 12px; color: #475569; min-height: 32px; }
 #s-dash .kpi-value { font-size: clamp(20px, 2vw, 28px); letter-spacing: -.6px; color: #0f172a; line-height: 1.2; margin: 10px 0; overflow-wrap: anywhere; }
-#s-dash .kpi-subtext { line-height: 1.5; color: #64748b; }
-#s-dash .kpi-micro { display: none; }
+#s-dash .kpi-subtext { line-height: 1.5; color: #475569; }
+/* Was display: none, which suppressed the largest-debtor line that
+   insights.js already computes and dashboard.blade.php already renders.
+   ui-system.css styles .kpi-micro properly; this was the only thing hiding it. */
+#s-dash .kpi-micro { display: block; font-size: 11.5px; }
 #s-dash .overview-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 #s-dash h3 { margin: 4px 0 8px; font-size: 17px; letter-spacing: -.25px; }
 #s-dash .overview-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-#s-dash .overview-action { display: flex; flex-direction: column; align-items: flex-start; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
-#s-dash .overview-action--danger { background: #fff7f7; border-color: #fecaca; }
-#s-dash .overview-action--watch { background: #fffbeb; border-color: #fde68a; }
-#s-dash .overview-action--info { background: #f0f9ff; border-color: #bae6fd; }
-#s-dash .overview-action-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: #64748b; }
-#s-dash .overview-action h4 { font-size: 15px; margin: 10px 0 8px; color: #0f172a; }
+/* Same tonal rule as the KPI cards: a soft tinted fill says which state this
+   is, and a single saturated rail points. Previously these were white with a
+   4px rail, which read as three identical cards with a coloured stick. */
+#s-dash .overview-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px 18px 18px 20px;
+  border: 1px solid var(--border-line);
+  border-left: 4px solid var(--border-subtle);
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(11, 18, 32, 0.05);
+}
+/* NB: `border-color` is a shorthand that resets ALL four sides, including
+   border-left-color. It must therefore come FIRST and the rail colour after,
+   or the tinted border silently wipes out the accent rail. */
+#s-dash .overview-action--danger { border-color: #F6D4D4; border-left-color: #DC2626; background-color: #FEF6F6; }
+#s-dash .overview-action--watch { border-color: #F3E2C4; border-left-color: #D97706; background-color: #FFFAF0; }
+#s-dash .overview-action--info { border-color: #D7E1F5; border-left-color: #1D4ED8; background-color: #F6F9FF; }
+#s-dash .overview-action--danger h4 { color: #991B1B; }
+#s-dash .overview-action-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: #475569; }
+#s-dash .overview-action h4 { font-size: 15px; margin: 10px 0 8px; color: #0B1220; }
 #s-dash .overview-action p { font-size: 12px; line-height: 1.6; color: #475569; margin: 0 0 16px; }
 #s-dash .overview-action a { margin-top: auto; }
 #s-dash .dash-row-chart { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; }
-#s-dash .card--rail { border-left: 1px solid #e2e8f0; }
+#s-dash .card--rail { border-left: 1px solid var(--border-line); }
 #s-dash .advisory-card { padding: 14px; font-size: 12px; line-height: 1.6; margin-bottom: 12px; }
 #s-dash .advisory-card .btn { display: block; margin-top: 12px; }
 #s-dash .dashboard-row-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 #s-dash .insight-row { align-items: flex-start; flex-wrap: wrap; padding: 12px 0; font-size: 12px; line-height: 1.6; }
 #s-dash .insight-row b { font-size: 12px; }
 #s-dash .overview-reference { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-#s-dash .data-table-wrapper { max-height: 370px; overflow: auto; margin-top: 12px; border-radius: 10px; border: 1px solid #e2e8f0; }
+#s-dash .data-table-wrapper { max-height: 370px; overflow: auto; margin-top: 12px; border-radius: 10px; border: 1px solid var(--border-line); }
 #s-dash table { margin: 0; }
-#s-dash thead th { position: sticky; top: 0; background: #f8fafc; z-index: 1; }
+#s-dash thead th { position: sticky; top: 0; background: #EDF1F7; z-index: 1; }
 #s-dash tbody td { padding-top: 14px; padding-bottom: 14px; }
 #s-dash .overview-jug-stock { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
-#s-dash .overview-jug-stock .ledger-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 10px; }
+#s-dash .overview-jug-stock .ledger-box { background: #EDF1F7; border: 1px solid var(--border-line); padding: 16px; border-radius: 10px; }
 #s-dash .overview-jug-stock .kpi-value { font-size: 20px; margin-bottom: 0; }
-#s-dash .overview-empty { padding: 18px; color: #64748b; background: #f8fafc; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+#s-dash .overview-empty { padding: 18px; color: #475569; background: #EDF1F7; border-radius: 10px; font-size: 13px; line-height: 1.6; }
 #s-dash .overview-empty p { margin-top: 6px; }
 @media (max-width: 1100px) {
   #s-dash .kpi-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -62,5 +130,47 @@
 #s-dash .overview-advisory-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 #s-dash .overview-advisory-head b { display: inline; font-size: 13px; margin: 0; }
 #s-dash .overview-advisory-head span { font-size: 10px; font-weight: 700; padding: 2px 7px; border: 1px solid currentColor; border-radius: 20px; white-space: nowrap; }
-#s-dash .overview-advisory-supplier { margin-top: 8px; opacity: .8; }
+#s-dash .overview-advisory-supplier { margin-top: 8px; color: var(--text-muted); }
 #s-dash .overview-purchase { width: 100%; margin-top: 8px; }
+
+/* =============================================================================
+   ROYAL BLUE MASTHEAD  (override block - kept last so it always wins)
+
+   Solid blue was confined to the rail and header bar, ~21% of a desktop
+   viewport, so the page still read as grey with a blue trim. Giving the page
+   title its own blue band roughly doubles the blue surface and makes the page
+   open with colour instead of white.
+   ========================================================================== */
+#s-dash .overview-header {
+  background: var(--brand-primary);
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin: -2px 0 0;
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.28);
+}
+#s-dash .overview-header h2 { color: #FFFFFF; }
+#s-dash .overview-header p:not(.overview-eyebrow),
+#s-dash .overview-header .overview-hint { color: #FFFFFF; }
+/* The generic .overview-eyebrow rule above sets #1D4ED8, invisible here.
+   #BFDBFE is 6.9:1 on the blue band. */
+#s-dash .overview-header .overview-eyebrow { color: #BFDBFE; }
+
+#s-dash .overview-shortcuts .btn-secondary {
+  background: #FFFFFF;
+  color: var(--brand-primary);
+  border-color: #FFFFFF;
+}
+#s-dash .overview-shortcuts .btn-secondary:hover {
+  background: var(--brand-tint);
+  border-color: var(--brand-tint);
+  color: var(--brand-active);
+}
+#s-dash .overview-shortcuts .btn-primary {
+  background: #FFFFFF;
+  color: var(--brand-active);
+  box-shadow: 0 2px 10px rgba(9, 20, 56, 0.28);
+}
+#s-dash .overview-shortcuts .btn-primary:hover {
+  background: var(--brand-tint);
+  color: var(--brand-active);
+}

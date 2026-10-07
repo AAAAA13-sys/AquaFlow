@@ -50,5 +50,10 @@ async function bootAdminPortal(pageTitle) {
     console.warn('AquaFlow: API unavailable, using cached data. ' + error.message);
   }
 
+  // The sidebar badge and the freshness stamp live in the layout, so they must
+  // be filled on every admin page - renderInsights() only runs on the dashboard.
+  if (typeof renderSidebarBadges === 'function') renderSidebarBadges();
+  if (typeof renderStamp === 'function') renderStamp();
+
   return session;
 }

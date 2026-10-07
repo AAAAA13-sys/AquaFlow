@@ -39,9 +39,18 @@
             <th>Item</th>
             <th>Type</th>
             <th class="num">In Stock <span class="term-hint">on-hand</span></th>
-            <th class="num">Minimum <span class="term-hint">safety stock</span></th>
-            <th class="num">Reorder When Below <span class="term-hint">ROP</span></th>
-            <th>Restock time <span class="term-hint">days</span></th>
+            <th class="num">Minimum <span class="term-hint">safety stock</span>@include('partials.tip', [
+              'text' => 'Safety stock: the level you try never to drop below while waiting for a delivery. Crossing it means you are already late, so this is the more serious of the two thresholds.',
+              'label' => 'What is safety stock?',
+            ])</th>
+            <th class="num">Reorder When Below <span class="term-hint">ROP</span>@include('partials.tip', [
+              'text' => 'Reorder point: the quantity at which you should place a new order. Set it above your safety stock so you have time to order before stock gets critical.',
+              'label' => 'What is ROP, the reorder point?',
+            ])</th>
+            <th>Restock time <span class="term-hint">days</span>@include('partials.tip', [
+              'text' => 'How many days your supplier normally takes to deliver. The app subtracts this from your days-of-cover so it warns you in time to still receive the order.',
+              'label' => 'What does restock time mean?',
+            ])</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
