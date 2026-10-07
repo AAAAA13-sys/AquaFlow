@@ -174,6 +174,25 @@ function startPageRefresh(refresh) {
   return setInterval(() => { if (!document.hidden) Promise.resolve(refresh()).catch(error => console.warn(error.message)); }, 30000);
 }
 
+// ---- Stock status helpers ---------------------------------------------------
+// These sit here, not next to statusOf() in initial-data.js, because
+// tests/frontend-shared.cjs loads store.js but NOT initial-data.js and stubs
+// statusOf() itself. Keeping them in a file the harness does load means
+// needsReorder() resolves against whichever statusOf is in scope.
+//
+// An item with a reorder point of 0 has no threshold set at all. The order
+// engine still emits an advisory for it with a meaningless quantity, so these
+// give the UI a third state: "not configured", not "critical".
+function isUnconfigured(inv) {
+  return Number(inv.rop) <= 0 && Number(inv.ss) <= 0;
+}
+
+// True only for items that genuinely need buying. Unconfigured items are
+// excluded so they stop inflating "Needs Your Attention" and the advisory list.
+function needsReorder(inv) {
+  return !isUnconfigured(inv) && statusOf(inv)[0] !== 'OK';
+}
+
 // ---- Currency ---------------------------------------------------------------
 // One symbol for the whole app. Several views used to concatenate a literal
 // 'P' by hand, so a single screen could show "₱28,180.00" in a KPI and "P210"
@@ -193,6 +212,10 @@ const pesoShort = n => '₱' + Math.round(Number(n || 0)).toLocaleString();
 // Flags a .data-table-wrapper that still has hidden columns so the fade and the
 // "scroll for more" note can appear. Without this the overflow was silent.
 function markScrollableTables(noteId) {
+  // Called from renderInsights(), so it runs under the CI harness's minimal
+  // document stub as well as in a real page.
+  if (typeof document.querySelectorAll !== 'function') return;
+
   document.querySelectorAll('.data-table-wrapper').forEach(wrap => {
     const overflowing = wrap.scrollWidth > wrap.clientWidth + 2;
     wrap.classList.toggle('is-scrollable-x', overflowing);
@@ -203,13 +226,24 @@ function markScrollableTables(noteId) {
   });
 }
 
-if (typeof window !== 'undefined') {
-  let scrollHintFrame = 0;
-  window.addEventListener('resize', () => {
-    cancelAnimationFrame(scrollHintFrame);
-    scrollHintFrame = requestAnimationFrame(() => markScrollableTables('ledgerScrollNote'));
-  });
-}
+// `window` can exist but not be a real window: the CI harness
+// (tests/frontend-shared.cjs) runs these scripts in a vm context with
+// `window:{}`, so guarding on `typeof window` alone passes and then
+// `window.addEventListener` throws. Feature-detect the method instead.
+const onWindow = (type, fn, opts) => {
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+  window.addEventListener(type, fn, opts);
+};
+
+let scrollHintFrame = 0;
+onWindow('resize', () => {
+  if (typeof requestAnimationFrame !== 'function') {
+    markScrollableTables('ledgerScrollNote');
+    return;
+  }
+  cancelAnimationFrame(scrollHintFrame);
+  scrollHintFrame = requestAnimationFrame(() => markScrollableTables('ledgerScrollNote'));
+});
 
 // ---- Inline term tips -------------------------------------------------------
 // A click/tap/keyboard-toggle popover for abbreviations and jargon.
@@ -314,8 +348,8 @@ if (typeof document !== 'undefined') {
   });
 
   // A fixed popover would drift away from its trigger on scroll or resize.
-  window.addEventListener('resize', closeTip);
-  window.addEventListener('scroll', closeTip, true);
+  onWindow('resize', closeTip);
+  onWindow('scroll', closeTip, true);
 }
 
 // Renders the same markup from JavaScript (tables built via innerHTML).

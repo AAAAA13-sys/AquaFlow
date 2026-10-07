@@ -76,22 +76,13 @@ function pending(c) {
 // An item whose reorder point is 0 has no threshold configured at all. It is
 // NOT "critical": the order engine has nothing to compare against and emits a
 // meaningless suggested quantity (it was proposing 2,815 pcs for items nobody
-// had set a reorder point on). Callers must check isUnconfigured() first and
-// render a neutral "Set reorder point" state instead.
-function isUnconfigured(inv) {
-  return Number(inv.rop) <= 0 && Number(inv.ss) <= 0;
-}
-
+// had set a reorder point on). isUnconfigured() / needsReorder() live in
+// store.js rather than here, because tests/frontend-shared.cjs runs the shared
+// scripts without this file and stubs statusOf directly.
 function statusOf(inv) {
   if (isUnconfigured(inv)) return ['SET REORDER POINT', 'pill-neutral'];
   if (inv.status_label) return [inv.status_label, inv.status === 'Critical' ? 'pill-bad' : 'pill-warn'];
   if (inv.on <= inv.ss) return ['REORDER NOW', 'pill-bad'];
   if (inv.on <= inv.rop) return ['REORDER NOW', 'pill-warn'];
   return ['OK', 'pill-ok'];
-}
-
-// True only for items that genuinely need buying. Unconfigured items are
-// excluded so they stop inflating "Needs Your Attention" and the advisory list.
-function needsReorder(inv) {
-  return !isUnconfigured(inv) && statusOf(inv)[0] !== 'OK';
 }
