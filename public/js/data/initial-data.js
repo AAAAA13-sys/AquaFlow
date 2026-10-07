@@ -72,7 +72,15 @@ function pending(c) {
 // ("REORDER NOW") rather than a passive "Warning"; the pill tone still carries
 // the severity split so the two tiers remain visually distinguishable.
 // `status_label` / `needs_reorder` come from the backend resource.
+//
+// An item whose reorder point is 0 has no threshold configured at all. It is
+// NOT "critical": the order engine has nothing to compare against and emits a
+// meaningless suggested quantity (it was proposing 2,815 pcs for items nobody
+// had set a reorder point on). isUnconfigured() / needsReorder() live in
+// store.js rather than here, because tests/frontend-shared.cjs runs the shared
+// scripts without this file and stubs statusOf directly.
 function statusOf(inv) {
+  if (isUnconfigured(inv)) return ['SET REORDER POINT', 'pill-neutral'];
   if (inv.status_label) return [inv.status_label, inv.status === 'Critical' ? 'pill-bad' : 'pill-warn'];
   if (inv.on <= inv.ss) return ['REORDER NOW', 'pill-bad'];
   if (inv.on <= inv.rop) return ['REORDER NOW', 'pill-warn'];

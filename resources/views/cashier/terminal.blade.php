@@ -13,15 +13,19 @@
     ==================================================================== --}}
     <section class="pos-stage pos-active" data-step="1">
       <div class="card stage-card">
+        {{-- Quick Walk-In is the dominant path; the two account actions are
+             grouped and de-emphasised. Search keeps the middle. --}}
         <div class="stage-toolbar">
-          <input id="custSearch" oninput="renderCustList()" class="form-input"
-                 aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <button type="button" onclick="pickWalkIn()" class="btn btn-primary btn-sm stage-fasttrack"
                   title="Start a walk-in cash sale without choosing a customer (F2)">
             Quick Walk-In
           </button>
-          <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
-          <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>
+          <input id="custSearch" oninput="renderCustList()" class="form-input stage-search"
+                 aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
+          <div class="stage-secondary">
+            <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
+            <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>
+          </div>
         </div>
 
         <div id="custCard" class="active-customer-banner"></div>
@@ -41,6 +45,10 @@
         <button id="bWalk" onclick="setType('Walk-in')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-walkin"></use></svg> Walk-In</button>
         <button id="bDel" onclick="setType('Delivery')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg> Delivery</button>
       </div>
+      @include('partials.tip', [
+        'text' => 'Walk-In means the customer waits at the counter and pays cash now. Delivery means the order goes to their address and is charged to their account balance — the driver collects later. Choose Delivery only if a customer is already selected.',
+        'label' => 'What is the difference between Walk-In and Delivery?',
+      ])
 
       <p id="orderTypeNote" class="auto-deduct-caption"></p>
 
@@ -82,10 +90,19 @@
 
           <div class="totals-breakdown">
             {{-- Inclusive VAT: gross is the shelf price, tax is extracted from it. --}}
-            <div class="breakdown-row"><span>Vatable Sales</span><b id="tVatable">&#8369;0</b></div>
-            <div class="breakdown-row"><span>12% VAT (inclusive)</span><b id="tVat">&#8369;0</b></div>
+            <div class="breakdown-row"><span>Vatable Sales @include('partials.tip', [
+              'text' => 'The portion of the order that tax applies to. Prices are VAT-inclusive, so this is derived from the total rather than added on top of it.',
+              'label' => 'What does Vatable Sales mean?',
+            ])</span><b id="tVatable">&#8369;0</b></div>
+            <div class="breakdown-row"><span>12% VAT (inclusive)@include('partials.tip', [
+              'text' => 'The tax already contained in the price. Nothing extra is added at checkout — the customer pays the Gross Total only.',
+              'label' => 'What does VAT mean?',
+            ])</span><b id="tVat">&#8369;0</b></div>
             <div class="breakdown-row"><span>Gallons</span><b id="tGal">0</b></div>
-            <div class="total-due-banner"><span>Gross Total:</span><b id="tTot">&#8369;0</b></div>
+            <div class="total-due-banner"><span>Gross Total:@include('partials.tip', [
+              'text' => 'The full amount the customer hands over, tax included. This is the figure printed on the receipt.',
+              'label' => 'What is the Gross Total?',
+            ])</span><b id="tTot">&#8369;0</b></div>
           </div>
         </div>
 
@@ -97,7 +114,10 @@
 
           {{-- Walk-in: cash only --}}
           <div id="cashPanel">
-            <label class="form-label" for="tender">Amount Tendered</label>
+            <label class="form-label" for="tender">Amount Tendered @include('partials.tip', [
+                'text' => 'The cash the customer hands over. If it is less than the order total the sale cannot be completed yet; the Change figure below shows what to give back.',
+                'label' => 'What is Amount Tendered?',
+              ])</label>
             <input id="tender" type="number" step="0.01" value="0" min="0" oninput="renderPOS()" class="form-input tender-input">
 
             <div class="quick-cash-row">

@@ -73,29 +73,94 @@ async function historyRows() {
 }
 
 let cashierHistoryRows = [], cashierHistoryPage = 1, cashierHistoryKey = '', cashierHistoryRequest = 0;
+// Placeholder rows shown while the first page is in flight. The table used to
+// render headers with a completely empty body, which reads as "no sales today"
+// rather than "still loading" - easy to mistake for a real business condition.
+function showHistorySkeleton(rows = 6) {
+  const body = document.getElementById('hBody');
+  if (!body) return;
+  body.innerHTML = Array.from({ length: rows }, () =>
+    '<tr aria-hidden="true">' + Array.from({ length: 11 }, () => '<td><span class="af-skeleton-row"></span></td>').join('') + '</tr>'
+  ).join('');
+  body.setAttribute('aria-busy', 'true');
+}
+
+function clearHistorySkeleton() {
+  const body = document.getElementById('hBody');
+  if (body) body.removeAttribute('aria-busy');
+}
+
 async function renderHistoryPage() {
   const body = document.getElementById('hBody');
   if (!body) return;
+
+  // Only skeletonise the very first paint; a 30s background refresh should not
+  // flash the table away and back under the user.
+  if (!body.dataset.loaded) showHistorySkeleton();
+  else body.setAttribute('aria-busy', 'true');
+
   const request = ++cashierHistoryRequest;
   const key = JSON.stringify({...historyFilters(), search:document.getElementById('hBodySearch')?.value || '', order:document.getElementById('hBodyOrder')?.value || 'newest'});
-  const fetched = await historyRows();
+  let fetched;
+  try {
+    fetched = await historyRows();
+  } catch (error) {
+    clearHistorySkeleton();
+    body.innerHTML = '<tr><td colspan="11" class="cashier-empty"><b>Could not load transactions</b><p>' +
+      esc(error.message || 'Please try again.') + '</p></td></tr>';
+    return;
+  }
   if (request !== cashierHistoryRequest) return;
+
+  body.dataset.loaded = '1';
+  clearHistorySkeleton();
   cashierHistoryRows = filterTableRows(fetched, 'hBody');
   if (key !== cashierHistoryKey) cashierHistoryPage = 1;
   cashierHistoryKey = key;
   renderHistoryRows();
+
+  // A debt payment is a real recorded transaction, so it stays in the ledger,
+  // but it is not a sale. The previous summary counted them inside "Sales
+  // revenue / excludes debt payments", so the headline figure and the visible
+  // rows disagreed. Payments are now broken out and labelled separately.
   const rows = cashierHistoryRows;
-  const revenue = rows.filter(t => t.type !== 'Debt Payment').reduce((sum, t) => sum + Number(t.total), 0);
-  const cash = rows.filter(t => t.pay === 'Cash').reduce((sum, t) => sum + Number(t.total), 0);
+  const sales = rows.filter(t => t.type !== 'Debt Payment');
+  const payments = rows.filter(t => t.type === 'Debt Payment');
+  const revenue = sales.reduce((sum, t) => sum + Number(t.total), 0);
+  const collected = payments.reduce((sum, t) => sum + Number(t.total), 0);
+  const cash = sales.filter(t => t.pay === 'Cash').reduce((sum, t) => sum + Number(t.total), 0);
+
   const summary = document.getElementById('hSum');
-  if (summary) summary.innerHTML = '<article><span>Sales revenue</span><strong>' + money(revenue) + '</strong><small>Excludes debt payments</small></article><article><span>Cash recorded</span><strong>' + money(cash) + '</strong><small>Includes cash debt payments</small></article><article><span>Transactions</span><strong>' + rows.length + '</strong><small>Matching your filters</small></article>';
+  if (summary) {
+    summary.innerHTML =
+      '<article><span>Sales revenue</span><strong>' + money(revenue) + '</strong><small>' +
+        sales.length + (sales.length === 1 ? ' sale' : ' sales') + '</small></article>' +
+      '<article><span>Debt payments</span><strong>' + money(collected) + '</strong><small>' +
+        (payments.length ? payments.length + (payments.length === 1 ? ' payment recorded' : ' payments recorded') : 'None this period') +
+        '</small></article>' +
+      '<article><span>Cash from sales</span><strong>' + money(cash) + '</strong><small>Cash and account split</small></article>' +
+      '<article><span>Records</span><strong>' + rows.length + '</strong><small>Matching your filters</small></article>';
+  }
+
+  markScrollableTables('ledgerScrollNote');
 }
 
 function renderHistoryRows() {
   const rows = cashierHistoryRows, pages = Math.max(1, Math.ceil(rows.length / 20));
   cashierHistoryPage = Math.max(1, Math.min(cashierHistoryPage, pages));
   const start = (cashierHistoryPage - 1) * 20;
-  document.getElementById('hBody').innerHTML = rows.slice(start, start + 20).map((t, i) => '<tr><td><b>' + esc(t.no) + '</b></td><td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td><td>' + esc(t.cust || 'Walk-in Guest') + '</td><td>' + esc(t.type) + '</td><td>' + esc(t.gal) + '</td><td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td><td class="num"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td><td><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>').join('') || '<tr><td colspan="11" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
+  document.getElementById('hBody').innerHTML = rows.slice(start, start + 20).map((t, i) => {
+    // Debt payments are tinted + italicised so the eye can separate them from
+    // sales at a glance, matching the separate summary card above.
+    const isPayment = t.type === 'Debt Payment';
+    return '<tr' + (isPayment ? ' class="is-payment-row"' : '') + '>' +
+      '<td><b>' + esc(t.no) + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
+      '<td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td>' +
+      '<td>' + esc(t.cust || 'Walk-in Guest') + '</td><td>' + esc(t.type) + '</td><td>' + esc(t.gal) + '</td>' +
+      '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
+      '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
+      '<td><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';
+  }).join('') || '<tr><td colspan="11" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
   const nav = document.getElementById('historyPages');
   if (nav) nav.innerHTML = '<span>' + (rows.length ? start + 1 : 0) + '–' + Math.min(rows.length, start + 20) + ' of ' + rows.length + ' records</span><div><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(-1)"' + (cashierHistoryPage === 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + cashierHistoryPage + ' of ' + pages + '</span><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(1)"' + (cashierHistoryPage === pages ? ' disabled' : '') + '>Next</button></div>';
 }

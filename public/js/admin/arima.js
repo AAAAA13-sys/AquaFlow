@@ -1,4 +1,4 @@
-﻿// Series Mapping & Selectors
+// Series Mapping & Selectors
 const ARIMA_SERIES = {
   'Refill gallons': 'Refill Gallons',
   'Heat Shrink Seals': 'Heat Shrink Seals',
@@ -136,8 +136,8 @@ function renderDemandChart() {
     data: {
       labels,
       datasets: [
-        { label: 'History', data: [...last14, ...Array(fc.length).fill(null)], backgroundColor: '#0EA5E9' },
-        { label: 'Forecast', type: 'line', data: [...Array(Math.max(0, last14.length - 1)).fill(null), ...(last14.length ? [last14[last14.length - 1]] : []), ...fc], borderColor: '#F59E0B', borderDash: [6, 4], tension: 0.3 }
+        { label: 'History', data: [...last14, ...Array(fc.length).fill(null)], backgroundColor: '#1D4ED8' },
+        { label: 'Forecast', type: 'line', data: [...Array(Math.max(0, last14.length - 1)).fill(null), ...(last14.length ? [last14[last14.length - 1]] : []), ...fc], borderColor: '#DC2626', borderDash: [6, 4], tension: 0.3 }
       ]
     },
     options: {
@@ -189,8 +189,8 @@ function renderArimaChart() {
     data: {
       labels,
       datasets: [
-        { label: hz === 1 ? 'History' : 'History (aggregated)', data: hData, backgroundColor: '#0EA5E9' },
-        { label: 'Forecast', type: 'line', data: fData, borderColor: '#7C3AED', borderDash: [6, 4], tension: 0.3 }
+        { label: hz === 1 ? 'History' : 'History (aggregated)', data: hData, backgroundColor: '#1D4ED8' },
+        { label: 'Forecast', type: 'line', data: fData, borderColor: '#DC2626', borderDash: [6, 4], tension: 0.3 }
       ]
     },
     options: { plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }

@@ -22,7 +22,20 @@
       <span class="sidebar-user-label">Active Session</span>
       <b class="sidebar-user-name" id="who">{{ auth()->user()?->name ?? 'Cashier' }}</b>
     </div>
+
+    {{-- Sits beside Logout, mirroring the owner portal's "POS Terminal |
+         Logout" row, so leaving the terminal is a control in the same place a
+         cashier expects. Owner/admin sessions only: a real cashier never sees
+         a link into a portal they cannot use. --}}
     <div class="sidebar-action-row">
+      @if (auth()->user()?->isAdmin())
+        <a href="{{ url('/admin/dashboard') }}" class="sidebar-back-link">
+          {{-- A text glyph rather than a sprite symbol: the sprite has no
+               i-arrow-left, and a missing <use> renders as an empty box. --}}
+          <span class="sidebar-back-arrow" aria-hidden="true">&larr;</span>
+          <span>Owner Portal</span>
+        </a>
+      @endif
       <button onclick="logout()" class="sidebar-logout-btn">Logout</button>
     </div>
   </div>

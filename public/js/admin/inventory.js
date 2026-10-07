@@ -27,7 +27,7 @@ const STOCK_FILTERS = [
 
 function stockFilterMatch(v, key) {
   if (key === 'all') return true;
-  if (key === 'reorder') return statusOf(v)[0] !== 'OK';
+  if (key === 'reorder') return needsReorder(v);
   return v.cat === key;
 }
 
@@ -59,9 +59,9 @@ function renderInvTable() {
     body.innerHTML = filterTableRows(DB.inventory, 'invBody').map(v => {
       const i = DB.inventory.indexOf(v);
       const st = statusOf(v);
-      return '<tr><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
+      return '<tr' + (isUnconfigured(v) ? ' class="is-unconfigured"' : '') + '><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
         '<td>' + esc(v.cat) + '</td><td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
-        '<td class="num">' + v.ss + '</td><td class="num" id="rop' + i + '">' + v.rop + '</td>' +
+        '<td class="num">' + (isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : v.ss) + '</td><td class="num" id="rop' + i + '">' + (isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : v.rop) + '</td>' +
         '<td><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
         '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
         '<td style="white-space:nowrap;">' +
@@ -72,8 +72,8 @@ function renderInvTable() {
   }
 
   const summary = document.getElementById('inventorySummary');
-  if (summary) summary.innerHTML = '<article><span>Stock items</span><strong>' + DB.inventory.length + '</strong><small>Supplies and retail stock</small></article><article><span>Need reordering</span><strong>' + DB.inventory.filter(v => statusOf(v)[0] !== 'OK').length + '</strong><small>At or below the reorder threshold</small></article><article><span>Out of stock</span><strong>' + DB.inventory.filter(v => Number(v.on) <= 0).length + '</strong><small>Items with no available quantity</small></article>';
-  const crit = DB.inventory.filter(v => statusOf(v)[0] !== 'OK');
+  if (summary) summary.innerHTML = '<article><span>Stock items</span><strong>' + DB.inventory.length + '</strong><small>Supplies and retail stock</small></article><article><span>Need reordering</span><strong>' + DB.inventory.filter(needsReorder).length + '</strong><small>At or below the reorder threshold</small></article><article><span>Out of stock</span><strong>' + DB.inventory.filter(v => Number(v.on) <= 0).length + '</strong><small>Items with no available quantity</small></article><article><span>Not configured</span><strong>' + DB.inventory.filter(isUnconfigured).length + '</strong><small>No reorder point set yet</small></article>';
+  const crit = DB.inventory.filter(needsReorder);
   const health = document.getElementById('invHealth');
   if (health) health.textContent = crit.length + ' item(s) need reorder';
 
@@ -86,13 +86,16 @@ function renderInvTable() {
       dash.innerHTML = '<tr><td colspan="5" class="empty-cell">Nothing matches this filter.</td></tr>';
     } else {
       dash.innerHTML = rows.map(v => {
+        const unconfigured = isUnconfigured(v);
         const st = statusOf(v);
-        const days = v.days_left === null || v.days_left === undefined
-          ? '&mdash;'
-          : Number(v.days_left).toFixed(1) + 'd';
-        return '<tr><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
+        const days = unconfigured
+          ? '<span class="pill-neutral">n/a</span>'
+          : (v.days_left === null || v.days_left === undefined
+            ? '&mdash;'
+            : Number(v.days_left).toFixed(1) + 'd');
+        return '<tr' + (unconfigured ? ' class="is-unconfigured"' : '') + '><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
           '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
-          '<td class="num">' + v.rop + '</td>' +
+          '<td class="num">' + (unconfigured ? '<span class="pill-neutral">Not set</span>' : v.rop) + '</td>' +
           '<td class="num">' + days + '</td>' +
           '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
       }).join('');
@@ -136,13 +139,6 @@ async function updLead(i, val) {
 
 
 // Stock Adjustments
-async function stkAdj(i, d) {
-  const item = DB.inventory[i];
-  if (!item?.id) { alert('Connect to the server to record a stock movement.'); return; }
-  await openStockDetail(item.id, d > 0 ? 'restock' : 'adjustment');
-}
-
-
 // Consumable Insert + Full Edit + Delete (DOM manipulation over the table)
 function fillInventorySupplierOptions() {
   const sel = document.getElementById('invSupplier');

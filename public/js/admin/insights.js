@@ -51,9 +51,11 @@ function computeInsights() {
   const runway = DB.inventory.map(v => ({
     item: v.item, on: v.on, unit: v.unit, days: daysCover(v),
     status: statusOf(v)[0], rop: v.rop, lead: v.lead, supplier: v.supplier,
-    // Order quantity and date come from the engine too (see orderQtyFrom).
+    // Items with no reorder point carry no actionable urgency, so they are
+    // reported separately instead of inflating the attention count.
+    unconfigured: isUnconfigured(v),
     orderQty: orderQtyFrom(v), orderBy: orderByDate(v)
-  })).sort((a, b) => a.days - b.days);
+  })).sort((a, b) => (a.unconfigured === b.unconfigured ? a.days - b.days : a.unconfigured ? 1 : -1));
 
   const custs = DB.customers.filter(c => c.name !== 'Walk-in Guest').map(c => {
     const p = pending(c);
@@ -90,6 +92,26 @@ function computeInsights() {
 }
 
 
+/**
+ * Sidebar urgency badges.
+ *
+ * Nine equally weighted nav items gave a busy owner no way to tell which pages
+ * had pending work. Stock & Supplies now carries the actionable reorder count
+ * and Customer Balances carries the number of customers carrying a balance, so
+ * the overview can be skipped entirely on a busy morning.
+ */
+function renderSidebarBadges() {
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value > 0 ? String(value) : '';
+    el.hidden = !(value > 0);
+  };
+
+  set('badgeStock', DB.inventory.filter(needsReorder).length);
+  set('badgeBalances', DB.customers.filter(c => Number(c.debt) > 0 && c.name !== 'Walk-in Guest').length);
+}
+
 // ---- Insight callout markup ------------------------------------------------
 // Progressive disclosure: the single action line is always visible; the
 // interpretation and the risk live behind a disclosure. This replaced one grey
@@ -115,23 +137,36 @@ function renderInsights() {
   const I = computeInsights();
   const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
+  // The KPI grid ships as skeletons with aria-busy. Setting textContent on each
+  // value/subtext above discards the skeleton spans; this releases the busy
+  // state once the real figures are in place.
+  const grid = document.getElementById('kpiGrid');
+  if (grid) grid.removeAttribute('aria-busy');
+
   const today = (DB.meta?.generated_at || new Date().toISOString()).slice(0, 10);
   const sales = (DB.transactions || []).filter(t => t.date === today && t.type !== 'Debt Payment');
   setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
   setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
   setText('kGal', Math.round(I.fTotal) + ' gal');
   setText('kGalSub', '30d avg ' + Math.round(I.avg30) + ' | 7d forecast ' + I.band(I.fAvg) + ' gal/day');
-  const crit = I.runway.filter(r => r.status !== 'OK').length;
+  // Counts only genuinely actionable items. Unconfigured items are surfaced as
+// a separate "set a threshold" prompt so they never read as emergencies.
+const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
+  const unset = I.runway.filter(r => r.unconfigured).length;
   setText('invHealth', String(crit));
-  setText('kStockSub', crit ? 'items at or below their reorder point' : 'Stock is above reorder thresholds');
+  setText('kStockSub', crit
+    ? 'items at or below their reorder point'
+    : unset
+      ? unset + (unset === 1 ? ' item needs' : ' items need') + ' a reorder point set'
+      : 'Stock is above reorder thresholds');
   setText('kLia', money(I.totalDebt));
   setText('kLiaSub', I.custs.filter(c => c.debt > 0).length + ' customers with outstanding balances');
 
-  // Name the single biggest debtor. "P40,495 owed" is a number; naming the
+  // Name the single biggest debtor. "₱40,495 owed" is a number; naming the
   // customer turns it into somewhere to go.
   const topDebtor = I.custs.length ? I.custs[0] : null;
   setText('kLiaTop', topDebtor
-    ? 'Largest Balance: ' + topDebtor.name + ' — P' + topDebtor.debt.toLocaleString()
+    ? 'Largest balance: ' + topDebtor.name + ' — ' + money(topDebtor.debt)
     : '');
 
   const insDemand = document.getElementById('insDemand');
@@ -141,17 +176,23 @@ function renderInsights() {
       '<div class="insight-row"><span>Sales trend · last 7 vs previous 7 days</span><b class="' + (I.trend >= 0 ? 'text-green-700' : 'text-red-600') + '">' + (I.trend >= 0 ? '+' : '−') + Math.abs(I.trend).toFixed(1) + '%</b></div>' +
       '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' gal</b></div>' +
       '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' gal</b></div>' +
-      '<p class="insight-note">Forecasts are estimates. Review the demand forecast before planning filling and delivery work.</p>' :
+      '<p class="insight-note">Forecasts are estimates' + tipHtml(
+        'A forecast is a projection, not a promise. The model is back-tested against your own past sales, and the range shown is its typical error margin. Treat it as a planning aid, not a guarantee.',
+        'What does it mean that forecasts are estimates?'
+      ) + '. Review the demand forecast before planning filling and delivery work.</p>' :
       '<p class="overview-empty">No sales history yet. Sales patterns will appear as transactions are recorded.</p>';
   }
 
   const insRunway = document.getElementById('insRunway');
   if (insRunway && !I.runway.length) insRunway.innerHTML = '<p class="overview-empty">No inventory items recorded yet.</p>';
   if (insRunway && I.runway.length) {
-    insRunway.innerHTML = I.runway.slice(0, 4).map(r =>
-      '<div class="insight-row"><span>' + esc(r.item) + ' <span class="insight-sub">' + r.on.toLocaleString() + ' ' + esc(r.unit) + ' remaining</span></span>' +
+    insRunway.innerHTML = I.runway.filter(r => !r.unconfigured).slice(0, 4).map(r =>
+      '<div class="insight-row"><span>' + esc(r.item) + ' <span class="insight-sub">' + r.on.toLocaleString() + ' ' + esc(r.unit) + ' remaining</span>' + tipHtml(
+        'Days of stock cover. The system compares what you hold against how fast this item has been selling recently, then shows how long that should last. Red means you have less time than your supplier needs to deliver.',
+        'What do the days here mean?'
+      ) + '</span>' +
       '<b class="' + (r.days <= r.lead ? 'text-red-600' : r.status !== 'OK' ? 'text-yellow-700' : 'text-green-700') + '">' + (r.days === 999 ? 'No estimate' : r.days.toFixed(1) + ' days') + '</b></div>'
-    ).join('');
+    ).join('') || '<p class="overview-empty">Set a reorder point on each item to see stock runway.</p>';
   }
 
   const insCollect = document.getElementById('insCollect');
@@ -162,12 +203,19 @@ function renderInsights() {
 
   const insActions = document.getElementById('insActions');
   if (insActions) {
-    const urgent = I.runway.find(item => item.status !== 'OK');
+    const urgent = I.runway.find(item => !item.unconfigured && item.status !== 'OK');
+    const unset = I.runway.find(item => item.unconfigured);
     const debtor = I.custs.find(customer => customer.debt > 0);
     const action = (tone, label, title, detail, href, button) =>
       '<article class="overview-action overview-action--' + tone + '"><span class="overview-action-label">' + label + '</span><h4>' + esc(title) + '</h4><p>' + esc(detail) + '</p><a class="btn btn-secondary btn-sm" href="' + href + '">' + button + ' &rarr;</a></article>';
-    insActions.innerHTML = action(urgent ? 'danger' : 'ok', 'STOCK', urgent ? 'Review low stock' : 'No stock alerts',
-      urgent ? urgent.item + ' has ' + urgent.on.toLocaleString() + ' ' + urgent.unit + ' remaining.' : 'Review stock quantities and reorder thresholds in Stock & Supplies.', '/admin/inventory', 'View stock') +
+    insActions.innerHTML = action(urgent ? 'danger' : unset ? 'watch' : 'ok', 'STOCK',
+      urgent ? 'Review low stock' : unset ? 'Set reorder points' : 'No stock alerts',
+      urgent
+        ? urgent.item + ' has ' + urgent.on.toLocaleString() + ' ' + urgent.unit + ' remaining.'
+        : unset
+          ? unset.item + ' has no reorder point, so its stock cannot be tracked.'
+          : 'Review stock quantities and reorder thresholds in Stock & Supplies.',
+      '/admin/inventory', urgent ? 'View stock' : 'Set thresholds') +
       action(debtor ? 'watch' : 'ok', 'COLLECTIONS', debtor ? debtor.name : 'No outstanding balances',
       debtor ? money(debtor.debt) + ' outstanding. Review the customer ledger before collection.' : 'Customer balances are clear.', '/admin/customers', 'View balances') +
       action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gal forecast' : 'Forecast not available',
@@ -176,6 +224,9 @@ function renderInsights() {
 
   renderAdvisories();
   renderLedger();
+  renderStamp();
+  renderSidebarBadges();
+  markScrollableTables();
 }
 
 
@@ -185,14 +236,32 @@ function renderAdvisories() {
   if (!el) return;
 
   if (Array.isArray(DB.advisories) && DB.advisories.length) {
-    el.innerHTML = DB.advisories.slice(0, 3).map(advisory => {
+    // Advisories come from the engine, which still lists items whose reorder
+    // point is 0. Those have no meaningful order quantity, so they are shown
+    // as a configuration prompt rather than as a critical restock.
+    const real = DB.advisories.filter(a => Number(a.reorder_at) > 0);
+    const unconfigured = DB.advisories.filter(a => Number(a.reorder_at) <= 0);
+
+    const cards = real.slice(0, 3).map(advisory => {
       const critical = advisory.severity === 'critical';
       return '<article class="advisory-card ' + (critical ? 'advisory-critical' : 'advisory-watch') + '">' +
         '<div class="overview-advisory-head"><b>' + esc(advisory.item) + '</b><span>' + (critical ? 'Critical' : 'Low stock') + '</span></div>' +
         '<p>' + Number(advisory.on_hand).toLocaleString() + ' ' + esc(advisory.unit) + ' on hand · Reorder at ' + Number(advisory.reorder_at).toLocaleString() + '</p>' +
-        '<p><strong>Suggested order: ' + Number(advisory.order_quantity).toLocaleString() + ' ' + esc(advisory.unit) + '</strong></p>' +
+        '<p><strong>Suggested order: ' + Number(advisory.order_quantity).toLocaleString() + ' ' + esc(advisory.unit) + '</strong>' + tipHtml(
+        'This is how much the system thinks you should buy: enough to reach the target stock level after accounting for what you already hold. It is a suggestion based on your recent selling rate, not a fixed rule.',
+        'How is the suggested order calculated?'
+      ) + '</p>' +
         '<p class="overview-advisory-supplier">' + (advisory.supplier && advisory.supplier !== '-' ? esc(advisory.supplier) : 'Assign a supplier in Stock & Supplies') + '</p></article>';
     }).join('');
+
+    const prompt = unconfigured.length
+      ? '<article class="advisory-card advisory-info"><div class="overview-advisory-head"><b>' +
+        unconfigured.length + (unconfigured.length === 1 ? ' item needs' : ' items need') + ' a reorder point</b><span>Not set</span></div>' +
+        '<p>' + esc(unconfigured.map(a => a.item).join(', ')) + '</p>' +
+        '<p class="overview-advisory-supplier">Until a threshold is set, these items cannot be tracked for stockouts.</p></article>'
+      : '';
+
+    el.innerHTML = cards + prompt;
     return;
   }
 
@@ -216,8 +285,8 @@ function remindLink(c) {
   const num = dialNumber(c.contact);
   if (!num) return '';
   const body = encodeURIComponent(
-    'Hi ' + c.name + ', this is AquaFlow Station. A balance of P' +
-    Number(c.debt).toLocaleString() + ' is still outstanding' +
+    'Hi ' + c.name + ', this is AquaFlow Station. A balance of ' + money(c.debt) +
+    ' is still outstanding' +
     (c.bottles ? ', along with ' + c.bottles + ' container(s)' : '') +
     '. Thank you!'
   );
@@ -246,7 +315,7 @@ function openRemindDrawer(id) {
   drawer.querySelector('[data-field="name"]').textContent = c.name;
   drawer.querySelector('[data-field="contact"]').textContent = c.contact || 'No contact on file';
   drawer.querySelector('[data-field="summary"]').textContent =
-    'P' + Number(c.debt).toLocaleString() + ' outstanding';
+    money(c.debt) + ' outstanding';
   drawer.querySelector('[data-field="template"]').textContent = text;
 
   const send = drawer.querySelector('[data-action="send"]');
@@ -319,7 +388,7 @@ function renderLedger() {
       return '<tr>' +
         '<td><span class="ledger-name">' + esc(c.name) + '</span>' +
           '<span class="cell-sub">' + (c.contact ? dialNumber(c.contact) : 'No contact on file') + '</span></td>' +
-        '<td class="num ledger-balance"><span class="debt">P' + c.debt.toLocaleString() + '</span>' +
+        '<td class="num ledger-balance"><span class="debt">' + money(c.debt) + '</span>' +
           '</td>' +
         '<td><div class="ledger-actions">' +
           '<button type="button" class="action-message" data-cust="' + c.id + '"' +
@@ -388,11 +457,27 @@ function toast(message) {
 
 
 // Purchase Order Export
+//
+// Only items with a configured reorder point are exported. Advisories for
+// items whose threshold is 0 carry a meaningless suggested quantity, and this
+// file is handed to a supplier, so those rows are withheld and called out in a
+// trailing note instead of being silently ordered.
 function draftPO() {
-  const rows = (Array.isArray(DB.advisories) && DB.advisories.length)
-    ? DB.advisories.map(a => [a.item, a.order_quantity, a.supplier].join(','))
-    : DB.inventory.filter(v => statusOf(v)[0] !== 'OK').map(v => v.item + ',' + orderQtyFrom(v) + ',' + v.supplier);
+  const advisories = (Array.isArray(DB.advisories) ? DB.advisories : [])
+    .filter(a => Number(a.reorder_at) > 0);
 
-  const csv = 'Item,SuggestedQty,Supplier\n' + rows.join('\n');
+  const rows = advisories.length
+    ? advisories.map(a => [a.item, a.order_quantity, a.supplier].join(','))
+    : DB.inventory.filter(needsReorder).map(v => v.item + ',' + orderQtyFrom(v) + ',' + v.supplier);
+
+  const skipped = DB.inventory.filter(isUnconfigured).map(v => v.item);
+
+  const notes = [];
+  if (skipped.length) {
+    notes.push('');
+    notes.push('# Excluded - no reorder point set: ' + skipped.join('; '));
+  }
+
+  const csv = 'Item,SuggestedQty,Supplier\n' + rows.join('\n') + notes.join('\n');
   downloadCSV(csv, 'draft-PO.csv');
 }
