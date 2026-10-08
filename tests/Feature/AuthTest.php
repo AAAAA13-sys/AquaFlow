@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -87,7 +88,7 @@ class AuthTest extends TestCase
     {
         $this->getJson('/api/bootstrap')->assertStatus(401);
         $this->getJson('/api/customers')->assertStatus(401);
-        $this->postJson('/api/transactions', [])->assertStatus(401);
+        $this->postJson('/api/transactions', ['submission_key' => (string) Str::uuid()])->assertStatus(401);
     }
 
     public function test_u_s05_logout_invalidates_the_session(): void

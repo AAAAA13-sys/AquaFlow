@@ -1,0 +1,5 @@
+.payment-recovery { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1100; width: min(640px, calc(100% - 32px)); padding: 16px; border: 1px solid #f0c36d; border-radius: 12px; background: #fff9e9; color: #453218; box-shadow: 0 6px 24px #0002; display: flex; align-items: center; gap: 16px; }
+.payment-recovery[hidden] { display: none; }
+.payment-recovery button { flex-shrink: 0; }
+@media print { .payment-recovery { display: none; } }
+@media (max-width: 540px) { .payment-recovery { flex-direction: column; align-items: stretch; } }

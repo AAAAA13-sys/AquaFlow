@@ -50,22 +50,27 @@ function currentCustFilters() {
 
 // Settlement & Return Actions
 async function payDebt(id) {
-  const c = DB.customers.find(x => x.id === id);
-  if (!c) return;
-  if (c.debt <= 0) {
-    alert('This customer has no outstanding balance.');
-    return;
-  }
+  if (payDebt.busy) return;
+  payDebt.busy = true;
   try {
-    const result = await API.settleDebt(c.id, c.debt);
-    API.replaceCustomer(result.customer);
-    openDrawer(id);
-    const filters = currentCustFilters();
-    renderCustTable(filters.q, filters.f);
-    saveDB();
-  } catch (error) {
-    alert(error.message || 'Could not record the payment.');
-  }
+    const c = DB.customers.find(x => x.id === id);
+    if (!c) return;
+    if (c.debt <= 0) {
+      alert('This customer has no outstanding balance.');
+      return;
+    }
+    try {
+      const result = await API.settleDebt(c.id, c.debt);
+      API.replaceCustomer(result.customer);
+      openDrawer(id);
+      const filters = currentCustFilters();
+      renderCustTable(filters.q, filters.f);
+      saveDB();
+      Submissions.clear();
+    } catch (error) {
+      alert(error.message || 'Could not record the payment.');
+    }
+  } finally { payDebt.busy = false; }
 }
 
 async function logReturn(id) {

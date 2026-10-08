@@ -15,16 +15,16 @@
         <div id="invFormPanel" class="card form-card hidden">
       <h3 class="panel-heading">Add consumable</h3>
       <form id="invForm" onsubmit="return createInventoryItem(event)" class="admin-entry-form">
-        <div class="admin-entry-field"><label class="form-label" for="invName">Item name</label><input id="invName" class="form-input" placeholder="Item name *" required maxlength="150" style="min-width:180px;" aria-label="Item name"></div>
+        <div class="admin-entry-field"><label class="form-label" for="invName">Item name</label><input id="invName" class="form-input" placeholder="Item name *" required maxlength="150" aria-label="Item name"></div>
         <div class="admin-entry-field"><label class="form-label" for="invCat">Category</label><select id="invCat" class="form-input" aria-label="Category">
           <option value="Consumable">Consumable</option>
           <option value="Filtration">Filtration</option>
           <option value="Cleaning">Cleaning</option>
           <option value="Asset">Asset</option>
         </select></div>
-        <div class="admin-entry-field"><label class="form-label" for="invOn">Opening quantity</label><input id="invOn" type="number" class="form-input" placeholder="On-hand" min="0" value="0" style="width:100px;" aria-label="Opening stock"></div>
-        <div class="admin-entry-field"><label class="form-label" for="invUnit">Stock unit</label><input id="invUnit" class="form-input" placeholder="Unit" value="pcs" maxlength="20" style="width:90px;" aria-label="Unit"></div>
-        <div class="admin-entry-field"><label class="form-label" for="invLead">Restock time (days)</label><input id="invLead" type="number" class="form-input" placeholder="Lead" min="1" max="14" value="2" style="width:90px;" aria-label="Restock days"></div>
+        <div class="admin-entry-field"><label class="form-label" for="invOn">Opening quantity</label><input id="invOn" type="number" class="form-input" placeholder="On-hand" min="0" value="0" aria-label="Opening stock"></div>
+        <div class="admin-entry-field"><label class="form-label" for="invUnit">Stock unit</label><input id="invUnit" class="form-input" placeholder="Unit" value="pcs" maxlength="20" aria-label="Unit"></div>
+        <div class="admin-entry-field"><label class="form-label" for="invLead">Restock time (days)</label><input id="invLead" type="number" class="form-input" placeholder="Lead" min="1" max="14" value="2" aria-label="Restock days"></div>
         <div class="admin-entry-field"><label class="form-label" for="invSupplier">Supplier</label><select id="invSupplier" class="form-input" aria-label="Supplier"><option value="">No supplier</option></select></div>
         <button type="submit" class="btn btn-primary btn-sm">Add</button>
       </form>

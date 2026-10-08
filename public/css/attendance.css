@@ -1,0 +1,15 @@
+.attendance-panel { display:grid; gap:18px; }
+.attendance-heading h2 { margin:4px 0 10px; }
+.attendance-heading p { margin:6px 0; }
+.attendance-toolbar { display:flex; gap:14px; flex-wrap:wrap; align-items:end; }
+.attendance-toolbar > div { flex:1 1 150px; }
+.attendance-toolbar label,.attendance-form label { display:block; font-weight:600; margin-bottom:7px; }
+.attendance-toolbar input,.attendance-toolbar select,.attendance-form input,.attendance-form select,.attendance-form textarea { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--border,#dbe3ed); border-radius:8px; background:var(--surface,#fff); color:inherit; }
+.attendance-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.attendance-pages { display:flex; gap:14px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:16px; }
+.attendance-form { display:grid; gap:16px; }
+.attendance-audit { border-top:1px solid #dbe3ed; padding:16px 0; }
+.attendance-audit p { margin:6px 0; overflow-wrap:anywhere; }
+.attendance-panel #attendanceMessage:empty { display:none; }
+.attendance-panel [role="alert"],.attendance-form [role="alert"] { color:#b42318; }
+@media(max-width:600px) { .attendance-toolbar > div { flex-basis:100%; } .attendance-pages .btn { min-height:44px; } }

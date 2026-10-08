@@ -59,7 +59,7 @@ class CheckoutService
      */
     public function execute(CheckoutData $data, User $cashier): array
     {
-        return DB::transaction(function () use ($data, $cashier): array {
+        return app(TransactionSubmissionService::class)->execute($cashier, $data->submissionKey, 'sale', get_object_vars($data), function () use ($data, $cashier): array {
             $catalog = $this->loadCatalog($data->items);
             $pricing = $this->price($data, $catalog);
             $customer = Customer::query()->lockForUpdate()->find($data->customerId);

@@ -28,6 +28,7 @@ Route::view('/owner/login', 'auth.owner-login')->name('owner.login');
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
+    Route::view('/cashier/attendance', 'cashier.attendance')->name('cashier.attendance');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
 
     // Legacy wizard URLs still resolve to the terminal.
@@ -39,7 +40,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings'])
             ->name('admin.tab');
     });
 });
@@ -63,6 +64,10 @@ Route::prefix('api')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
+
+        Route::get('attendance', [\App\Http\Controllers\AttendanceController::class, 'index']);
+        Route::post('attendance/employees/{employeeId}/{action}', [\App\Http\Controllers\AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out']);
+        Route::get('attendance/employees/{employeeId}/changes', [\App\Http\Controllers\AttendanceController::class, 'changes'])->whereNumber('employeeId')->middleware('owner');
 
         // Customers and receivables
         Route::get('customers', [CustomerController::class, 'index'])->name('api.customers.index');

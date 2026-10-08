@@ -17,6 +17,7 @@ class SettleDebtRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'submission_key' => ['required', 'uuid'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:1000000'],
         ];
     }

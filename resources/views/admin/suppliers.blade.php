@@ -17,7 +17,7 @@
       <form id="supForm" onsubmit="return createSupplier(event)" class="admin-entry-form">
         <div class="admin-entry-field"><label class="form-label" for="supName">Supplier name</label><input id="supName" class="form-input field-min-160" placeholder="Supplier name *" required maxlength="120" aria-label="Supplier name"></div>
         <div class="admin-entry-field"><label class="form-label" for="supItems">Supplied items</label><input id="supItems" class="form-input field-min-160" placeholder="Supplied items *" required maxlength="255" aria-label="Supplied items"></div>
-        <div class="admin-entry-field"><label class="form-label" for="supLead">Delivery time (days)</label><input id="supLead" type="number" class="form-input" placeholder="Lead (days)" min="1" max="14" value="2" style="width:110px;" aria-label="Delivery days"></div>
+        <div class="admin-entry-field"><label class="form-label" for="supLead">Delivery time (days)</label><input id="supLead" type="number" class="form-input" placeholder="Lead (days)" min="1" max="14" value="2" aria-label="Delivery days"></div>
         <div class="admin-entry-field"><label class="form-label" for="supContact">Contact number</label><input id="supContact" class="form-input field-min-140" placeholder="Contact" maxlength="50" aria-label="Contact"></div>
         <div class="admin-entry-field"><label class="form-label" for="supLast">Last delivery date</label><input id="supLast" type="date" class="form-input" aria-label="Last delivery"></div>
         <button type="submit" class="btn btn-primary btn-sm">Add</button>

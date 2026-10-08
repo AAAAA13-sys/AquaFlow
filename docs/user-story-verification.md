@@ -35,10 +35,10 @@ PDF exports use the browser Print / Save PDF dialog. Daily/weekly/monthly are ag
 | US-21 | Owner-only signed damage movement with reason, operator, timestamp and notes; customer-owned jug damage creates no station liability. | [app/Services/StockMovementService.php](../app/Services/StockMovementService.php) | `docker compose exec -T test php artisan test --filter=ConsumableStoriesTest` |
 | US-22 | debt_balance reduced; Debt Payment transaction row; receipt shows remaining balance. | [app/Services/CustomerLedgerService.php](../app/Services/CustomerLedgerService.php) | `docker compose exec -T test php artisan test --filter=CustomerTest` |
 | US-23 | Who to Visit First ranks monetary debt; customer balance table provides search, sort and reminders. | [public/js/admin/insights.js](../public/js/admin/insights.js) | `docker compose exec -T test php artisan test --filter=PageTest` |
-| US-24 | Status badge per queue item progressing through 4 stages. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
+| US-24 | Cashier status badges show Active order or Delivered; store workers handle refill stages. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
 | US-25 | Queue table: Ticket #, customer, bottle count, container type, elapsed wait time. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
-| US-26 | POST /api/queue/{id}/advance; badge updates in real time; timestamp logged. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
-| US-27 | Queue item archived; moves to completed transactions log. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
+| US-26 | POST /api/queue/{id}/deliver confirms handover with operator and timestamp; repeat confirmation is idempotent. Legacy stage advancement is owner-only. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
+| US-27 | Delivered orders move to the searchable Delivered queue tab; sales receipts remain in transaction history. | [app/Models/ProductionQueueItem.php](../app/Models/ProductionQueueItem.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
 | US-28 | Transactional recipe deductions and signed stock audit; physical water measurement and IoT are outside scope. Refill volume and filter demand remain software estimates. | [app/Services/CheckoutService.php](../app/Services/CheckoutService.php) | `docker compose exec -T test php artisan test --filter=CheckoutTest` |
 | US-29 | Restock form: supplier, lot #, qty added, new stock level; ledger entry. | [app/Services/StockMovementService.php](../app/Services/StockMovementService.php) | `docker compose exec -T test php artisan test --filter=ConsumableStoriesTest` |
 | US-30 | Adjustment modal (damage/spoilage/shrinkage); audit log row with user + timestamp + reason. | [app/Services/StockMovementService.php](../app/Services/StockMovementService.php) | `docker compose exec -T test php artisan test --filter=ConsumableStoriesTest` |
@@ -89,3 +89,7 @@ docker compose run --rm --no-deps frontend-test
 ```
 
 Local app rebuilt and restarted at http://localhost:8080/. Database backup: `storage/app/private/aquaflow-before-stories-20261006.sql` (ignored by Git and excluded from Docker builds). No commits or staging operations were performed by the agent.
+
+## October 8 follow-up
+
+Pulled the merged UI overhaul through `9c43f48`. Cashier history now reports API failures explicitly, clears obsolete totals and pagination, and offers Retry. CSV export stops on failed history requests instead of exporting a partial local cache. Older failed requests cannot replace a newer filter result. Employee CRUD and two-state cashier delivery remain covered by `EmployeeAndDeliveryTest`.

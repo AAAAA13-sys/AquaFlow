@@ -18,12 +18,12 @@
       <div class="sales-filter-heading"><h3>Filter transactions</h3><button type="button" class="btn btn-tertiary btn-sm" onclick="resetSalesFilters()">Reset filters</button></div>
       <div class="sales-filter-controls">
       <div class="filter-group">
-        <label class="form-label" for="fDate">Period</label>
-        <select id="fDate" onchange="renderSalesTable()">
-          <option value="0">Today</option>
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-        </select>
+        <label class="form-label" for="fFrom">From ({{ config('app.timezone') }})</label>
+        <input id="fFrom" type="datetime-local" step="60" value="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" onchange="renderSalesTable()">
+      </div>
+      <div class="filter-group">
+        <label class="form-label" for="fTo">Through</label>
+        <input id="fTo" type="datetime-local" step="60" value="{{ now()->endOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->endOfDay()->format('Y-m-d\TH:i') }}" onchange="renderSalesTable()">
       </div>
       <div class="filter-group">
         <label class="form-label" for="fChannel">Order type</label>
@@ -31,6 +31,7 @@
           <option>All</option>
           <option>Walk-in</option>
           <option>Delivery</option>
+          <option>Debt Payment</option>
         </select>
       </div>
       <div class="filter-group">

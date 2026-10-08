@@ -10,6 +10,7 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CheckoutTest extends TestCase
@@ -33,6 +34,7 @@ class CheckoutTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
+            'submission_key' => (string) Str::uuid(),
             'customer_id' => $this->walkInId(),
             'order_type' => 'Walk-in',
             'payment_method' => 'Cash',

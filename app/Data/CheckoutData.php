@@ -26,8 +26,8 @@ final readonly class CheckoutData
         public string $orderType,
         public float $cashTendered,
         public array $items,
-    ) {
-    }
+        public string $submissionKey,
+    ) {}
 
     /**
      * Build from validated request data.
@@ -49,6 +49,7 @@ final readonly class CheckoutData
             orderType: (string) ($validated['order_type'] ?? 'Walk-in'),
             cashTendered: (float) ($validated['cash_tendered'] ?? 0),
             items: $items,
+            submissionKey: (string) $validated['submission_key'],
         );
     }
 }

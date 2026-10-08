@@ -1,16 +1,18 @@
 @php($items = [
     ['url' => '/cashier', 'icon' => 'i-terminal', 'label' => 'POS Terminal', 'match' => 'cashier.index'],
     ['url' => '/cashier/queue', 'icon' => 'i-orders', 'label' => 'Orders in Progress', 'match' => 'cashier.queue'],
+    ['url' => '/cashier/attendance', 'icon' => 'i-orders', 'label' => 'Staff Attendance', 'match' => 'cashier.attendance'],
     ['url' => '/cashier/history', 'icon' => 'i-receipt', 'label' => 'Sales & Transactions', 'match' => 'cashier.history'],
 ])
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
   @include('partials.sidebar-header', ['subtitle' => 'Cashier Terminal'])
 
-  <nav class="sidebar-nav" id="sideNav">
+  <nav class="sidebar-nav" id="sideNav" aria-label="Cashier page catalog">
+    <p class="sidebar-section-title">Daily operations</p>
     @foreach ($items as $item)
       <a href="{{ url($item['url']) }}"
-         class="sidebar-link {{ request()->routeIs($item['match']) ? 'active' : '' }}">
+         class="sidebar-link {{ request()->routeIs($item['match']) ? 'active' : '' }}" @if(request()->routeIs($item['match'])) aria-current="page" @endif>
         <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#{{ $item['icon'] }}"></use></svg>
         <span>{{ $item['label'] }}</span>
       </a>

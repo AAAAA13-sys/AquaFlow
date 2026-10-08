@@ -38,6 +38,7 @@ class Transaction extends Model
     protected function casts(): array
     {
         return [
+            'submission_result' => 'array',
             'subtotal_amount' => 'float',
             'vat_amount' => 'float',
             'auto_discount' => 'float',

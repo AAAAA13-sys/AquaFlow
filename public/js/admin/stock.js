@@ -1,19 +1,23 @@
 let stockDetailId = null;
 let stockHistoryPage = 1;
 let stockDetailRequest = 0;
+let stockSaving = false;
 
 function closeStockDetail() {
+  if (stockSaving) return;
   stockDetailRequest++;
   document.getElementById('stockDetailWrap')?.classList.add('hidden');
 }
 
 async function openStockDetail(id, type = 'restock') {
+  if (stockSaving) return;
+  stockDetailRequest++;
   const item = findInventory(id);
   if (!item) return;
   stockDetailId = id;
   stockHistoryPage = 1;
   const host = document.getElementById('stockDetailBody');
-  host.innerHTML = '<h4>' + esc(item.item) + '</h4><p class="cell-sub">Current stock: ' + item.on + ' ' + esc(item.unit) + '</p>' +
+  host.innerHTML = '<h4>' + esc(item.item) + '</h4><p id="movementCurrentStock" class="cell-sub">Current stock: ' + item.on + ' ' + esc(item.unit) + '</p>' +
     '<form class="auth-form" onsubmit="return saveStockMovement(event)">' +
     '<label class="form-label" for="movementType">Movement</label><select id="movementType" onchange="updateMovementFields()"><option value="restock">Restock</option><option value="adjustment">Count adjustment</option><option value="damage">Damage</option></select>' +
     '<label class="form-label" for="movementQty">Quantity change (negative to deduct)</label><input id="movementQty" type="number" required min="-1000000" max="1000000" step="1">' +
@@ -24,9 +28,11 @@ async function openStockDetail(id, type = 'restock') {
     '<div id="adjustmentFields" class="auth-form"><label class="form-label" for="movementReason">Reason</label><select id="movementReason"><option value="count_correction">Count correction</option><option value="damage">Damage</option><option value="spoilage">Spoilage</option><option value="shrinkage">Shrinkage</option></select></div>' +
     '<label class="form-label" for="movementNotes">Notes</label><textarea id="movementNotes" required maxlength="2000"></textarea>' +
     '<p id="movementError" role="alert" class="auth-error hidden"></p><button type="submit" class="btn btn-primary">Save movement</button></form>' +
-    '<h4 class="panel-heading order-type-selector">Movement history</h4><div class="filter-toolbar"><input id="movementSearch" type="search" aria-label="Search movements" placeholder="Search movements" oninput="stockHistoryPage=1;renderStockHistory()">' +
+    '<h4 class="panel-heading order-type-selector">Movement history</h4><div class="filter-toolbar"><input id="movementSearch" type="search" aria-label="Search movements" maxlength="100" placeholder="Notes, reason, supplier, staff or lot" oninput="stockHistoryPage=1;renderStockHistory()">' +
+    '<select id="movementFilterType" aria-label="Filter movement type" onchange="stockHistoryPage=1;renderStockHistory()"><option value="">All movement types</option><option value="sale">Sale</option><option value="restock">Restock</option><option value="adjustment">Adjustment</option><option value="damage">Damage</option></select>' +
+    '<label>From<input id="movementFrom" type="date" onchange="stockHistoryPage=1;renderStockHistory()"></label><label>To<input id="movementTo" type="date" onchange="stockHistoryPage=1;renderStockHistory()"></label>' +
     '<select id="movementOrder" aria-label="Sort movements" onchange="stockHistoryPage=1;renderStockHistory()"><option value="newest">New to Old</option><option value="oldest">Old to New</option></select></div>' +
-    '<div class="data-table-wrapper"><table class="clean"><thead><tr><th>Date</th><th>Type</th><th>Qty</th><th>Operator</th><th>Supplier / lot / unit cost</th><th>Notes</th></tr></thead><tbody id="movementBody"></tbody></table></div><div id="movementPages" class="filter-toolbar"></div>';
+    '<div class="data-table-wrapper"><table class="clean"><thead><tr><th>Date</th><th>Type</th><th>Qty</th><th>Operator</th><th>Supplier / lot / unit cost</th><th>Reason / notes</th></tr></thead><tbody id="movementBody"></tbody></table></div><div id="movementPages" class="filter-toolbar"></div>';
   document.getElementById('movementType').value = type;
   if (item.supplier_id) document.getElementById('movementSupplier').value = item.supplier_id;
   updateMovementFields();
@@ -47,6 +53,9 @@ function updateMovementFields() {
 
 async function saveStockMovement(event) {
   event.preventDefault();
+  if (stockSaving) return false;
+  stockSaving = true;
+  const itemId = stockDetailId;
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
@@ -59,17 +68,34 @@ async function saveStockMovement(event) {
     payload.lot_number = document.getElementById('movementLot').value || null;
     payload.unit_cost = document.getElementById('movementCost').value || null;
   } else payload.reason = document.getElementById('movementReason').value;
+  let result;
   try {
-    const result = await API.post('inventory/' + stockDetailId + '/movements', payload);
+    result = await API.post('inventory/' + itemId + '/movements', payload);
+  } catch (failure) {
+    error.textContent = (failure.message || 'Unable to confirm movement.') + (!failure.status || failure.status >= 500 ? ' Check movement history before retrying; the update may already be saved.' : '');
+    error.classList.remove('hidden');
+    stockSaving = false; button.disabled = false;
+    return false;
+  }
+  // Clear the submitted values immediately after the server confirms the write.
+  document.getElementById('movementQty').value = '';
+  document.getElementById('movementNotes').value = '';
+  try {
     API.replaceInventory(result.item);
+    document.getElementById('movementCurrentStock').textContent = 'Current stock: ' + result.item.on + ' ' + result.item.unit;
+    saveDB(); renderInvTable();
     const advisories = await API.advisories();
     DB.advisories = advisories.advisories || [];
-    renderInvTable(); renderInsights(); saveDB();
-    await openStockDetail(stockDetailId, type);
-  } catch (failure) {
-    error.textContent = failure.message || 'Unable to save movement.';
+    renderInsights(); saveDB();
+    error.textContent = 'Stock movement saved.';
+  } catch (refreshFailure) {
+    error.textContent = 'Stock movement saved. The screen could not fully refresh; reload the page. Do not enter this movement again.';
+  } finally {
     error.classList.remove('hidden');
-  } finally { button.disabled = false; }
+    stockSaving = false; button.disabled = false;
+  }
+  stockHistoryPage = 1;
+  await renderStockHistory();
   return false;
 }
 
@@ -79,12 +105,17 @@ async function renderStockHistory() {
     const response = await API.getWithQuery('inventory/' + stockDetailId + '/movements', {
       search: document.getElementById('movementSearch').value,
       order: document.getElementById('movementOrder').value, page: stockHistoryPage,
+      type: document.getElementById('movementFilterType').value,
+      from: document.getElementById('movementFrom').value, to: document.getElementById('movementTo').value,
     });
     if (request !== stockDetailRequest) return;
-    document.getElementById('movementBody').innerHTML = response.data.map(row => '<tr><td>' + esc(row.created_at) + '</td><td>' + esc(row.type) + '</td><td>' + row.qty + '</td><td>' + esc(row.user) + '</td><td>' + esc(row.supplier || '-') + ' / ' + esc(row.lot_number || '-') + ' / ' + esc(row.unit_cost || '-') + '</td><td>' + esc(row.notes || '') + '</td></tr>').join('') || '<tr><td colspan="6" class="empty-cell">No matching movements.</td></tr>';
+    document.getElementById('movementBody').innerHTML = response.data.map(row => '<tr><td>' + esc(row.created_at) + '</td><td>' + esc(row.type) + '</td><td>' + row.qty + '</td><td>' + esc(row.user) + '</td><td>' + esc(row.supplier || '-') + ' / ' + esc(row.lot_number || '-') + ' / ' + esc(row.unit_cost || '-') + '</td><td>' + esc((row.reason || '').replaceAll('_', ' ')) + '<span class="cell-sub">' + esc(row.notes || '') + '</span>' + '</td></tr>').join('') || '<tr><td colspan="6" class="empty-cell">No matching movements.</td></tr>';
     const meta = response.meta;
     document.getElementById('movementPages').innerHTML = '<button class="btn btn-ghost btn-sm" onclick="stockHistoryPage--;renderStockHistory()"' + (meta.current_page <= 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + meta.current_page + ' of ' + meta.last_page + '</span><button class="btn btn-ghost btn-sm" onclick="stockHistoryPage++;renderStockHistory()"' + (meta.current_page >= meta.last_page ? ' disabled' : '') + '>Next</button>';
   } catch (failure) {
-    if (request === stockDetailRequest) document.getElementById('movementBody').innerHTML = '<tr><td colspan="6" class="empty-cell">' + esc(failure.message) + '</td></tr>';
+    if (request === stockDetailRequest) {
+      document.getElementById('movementBody').innerHTML = '<tr><td colspan="6" class="empty-cell">' + esc(failure.message) + ' <button type="button" class="btn btn-ghost" onclick="renderStockHistory()">Retry</button></td></tr>';
+      document.getElementById('movementPages').innerHTML = '';
+    }
   }
 }

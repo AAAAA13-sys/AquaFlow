@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Data\CheckoutData;
 use App\Http\Requests\CheckoutRequest;
+use App\Http\Requests\TransactionIndexRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\ProductionQueueItemResource;
 use App\Http\Resources\TransactionResource;
@@ -11,7 +12,6 @@ use App\Models\ProductionQueueItem;
 use App\Models\Transaction;
 use App\Services\CheckoutService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
@@ -19,13 +19,24 @@ class TransactionController extends Controller
         private readonly CheckoutService $checkout,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(TransactionIndexRequest $request): JsonResponse
     {
         $query = Transaction::query()->with(['customer', 'cashier', 'items']);
 
         $days = $request->integer('days', 0);
-        if ($request->has('days')) {
+        if (! $request->filled('from') && ! $request->filled('to') && $request->has('days')) {
             $query->whereDate('transaction_date', '>=', today()->subDays(max(1, $days) - 1));
+        }
+
+        foreach (['from' => '>=', 'to' => '<='] as $field => $operator) {
+            if ($request->filled($field)) {
+                [$date, $time] = explode('T', $request->validated()[$field]);
+                $time .= $field === 'to' ? ':59' : ':00';
+                $query->where(function ($q) use ($date, $time, $operator): void {
+                    $q->where('transaction_date', $operator === '>=' ? '>' : '<', $date)
+                        ->orWhere(fn ($sameDay) => $sameDay->where('transaction_date', $date)->where('transaction_time', $operator, $time));
+                });
+            }
         }
 
         $type = $request->string('type')->toString();
@@ -55,6 +66,7 @@ class TransactionController extends Controller
         );
 
         return response()->json([
+            'replayed' => $result['replayed'],
             'transaction' => new TransactionResource($result['transaction']->load(['customer', 'cashier', 'items'])),
             'customer' => new CustomerResource($result['customer']),
             'totals' => $result['totals'],

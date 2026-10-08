@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CustomerTest extends TestCase
@@ -76,7 +77,7 @@ class CustomerTest extends TestCase
         $before = (float) $customer->debt_balance; // 150.00
 
         $response = $this->actingAs($this->cashier)
-            ->postJson('/api/customers/' . $customer->id . '/settle', ['amount' => 100]);
+            ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 100]);
 
         $response->assertOk()
             ->assertJsonPath('applied', 100);
@@ -90,7 +91,7 @@ class CustomerTest extends TestCase
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
 
         $response = $this->actingAs($this->cashier)
-            ->postJson('/api/customers/' . $customer->id . '/settle', ['amount' => 99999]);
+            ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 99999]);
 
         $response->assertOk()
             ->assertJsonPath('customer.debt', 0);
@@ -104,7 +105,7 @@ class CustomerTest extends TestCase
         $customer->update(['debt_balance' => 0]);
 
         $this->actingAs($this->cashier)
-            ->postJson('/api/customers/' . $customer->id . '/settle', ['amount' => 10])
+            ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 10])
             ->assertStatus(422);
     }
 
@@ -115,7 +116,7 @@ class CustomerTest extends TestCase
         $this->assertSame(1, $customer->pendingRound());
 
         $response = $this->actingAs($this->cashier)
-            ->postJson('/api/customers/' . $customer->id . '/returns', ['kind' => 'round']);
+            ->postJson('/api/customers/'.$customer->id.'/returns', ['kind' => 'round']);
 
         $response->assertOk();
         $this->assertSame(0, $customer->refresh()->pendingRound());
@@ -126,7 +127,7 @@ class CustomerTest extends TestCase
         $customer = Customer::query()->where('name', 'Dela Cruz Residence')->firstOrFail();
 
         $this->actingAs($this->cashier)
-            ->postJson('/api/customers/' . $customer->id . '/returns', ['kind' => 'slim'])
+            ->postJson('/api/customers/'.$customer->id.'/returns', ['kind' => 'slim'])
             ->assertStatus(422);
     }
 
@@ -144,7 +145,7 @@ class CustomerTest extends TestCase
     public function test_unknown_customer_returns_404(): void
     {
         $this->actingAs($this->cashier)
-            ->postJson('/api/customers/99999/settle', ['amount' => 10])
+            ->postJson('/api/customers/99999/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 10])
             ->assertStatus(404);
     }
 }

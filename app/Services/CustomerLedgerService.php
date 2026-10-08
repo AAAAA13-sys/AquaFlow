@@ -5,14 +5,13 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CustomerLedgerService
 {
-    public function settle(Customer $customer, float $amount, User $cashier): array
+    public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey): array
     {
-        return DB::transaction(function () use ($customer, $amount, $cashier): array {
+        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', ['customer_id' => $customer->id, 'amount' => $amount], function () use ($customer, $amount, $cashier): array {
             /** @var Customer $locked */
             $locked = Customer::query()->lockForUpdate()->find($customer->id);
 

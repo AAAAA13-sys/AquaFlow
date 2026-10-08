@@ -1,6 +1,6 @@
 // AquaFlow CASHIER terminal - sidebar pages.
 //
-//   Orders in Progress : the live production queue with stage advancement
+//   Orders in Progress : active orders and confirmed deliveries
 //   Sales & Transactions: the day's receipts, filters and CSV export
 //
 // Both pages share the same API as the terminal.
@@ -35,41 +35,26 @@ function changeQueuePage(delta) { queuePage=Math.max(1,queuePage+delta); refresh
 // ---------- Sales & Transactions ----------
 
 function historyFilters() {
-  const when = document.getElementById('hDate');
   const type = document.getElementById('hType');
   const pay = document.getElementById('hPay');
 
   return {
-    days: +((when && when.value) || 0),
+    from: document.getElementById('hFrom')?.value || '',
+    to: document.getElementById('hTo')?.value || '',
     type: (type && type.value) || 'All',
     pay: (pay && pay.value) || 'All',
   };
 }
 
 async function historyRows() {
-  const { days, type, pay } = historyFilters();
-
-  try {
-    const rows = [];
-    let page = 1, data;
-    do {
-      data = await API.transactions({days, type, pay, paginated:1, page:page++});
-      rows.push(...(data.transactions || []));
-    } while (data.has_more);
-    return rows;
-  } catch (error) {
-    console.warn('AquaFlow: history query failed, using cached data. ' + error.message);
-
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - (days === 0 ? 0 : days - 1));
-    const cutoffStr = cutoff.toISOString().split('T')[0];
-
-    return (DB.transactions || []).filter(t =>
-      (t.date || '') >= cutoffStr &&
-      (type === 'All' || t.type === type) &&
-      (pay === 'All' || t.pay === pay)
-    );
-  }
+  const filters = historyFilters();
+  const rows = [];
+  let page = 1, data;
+  do {
+    data = await API.transactions({...filters, paginated:1, page:page++});
+    rows.push(...(data.transactions || []));
+  } while (data.has_more);
+  return rows;
 }
 
 let cashierHistoryRows = [], cashierHistoryPage = 1, cashierHistoryKey = '', cashierHistoryRequest = 0;
@@ -105,9 +90,15 @@ async function renderHistoryPage() {
   try {
     fetched = await historyRows();
   } catch (error) {
+    if (request !== cashierHistoryRequest) return;
     clearHistorySkeleton();
+    cashierHistoryRows = [];
+    for (const id of ['hSum', 'historyPages']) {
+      const element = document.getElementById(id);
+      if (element) element.innerHTML = '';
+    }
     body.innerHTML = '<tr><td colspan="11" class="cashier-empty"><b>Could not load transactions</b><p>' +
-      esc(error.message || 'Please try again.') + '</p></td></tr>';
+      esc(error.message || 'Please try again.') + '</p><button type="button" class="btn btn-ghost btn-sm" onclick="renderHistoryPage()">Retry</button></td></tr>';
     return;
   }
   if (request !== cashierHistoryRequest) return;
@@ -168,7 +159,13 @@ function changeHistoryPage(delta) { cashierHistoryPage += delta; renderHistoryRo
 function viewHistoryReceipt(index) { const tx = cashierHistoryRows[index]; if (tx) displayTransactionReceipt(tx, true); }
 
 async function exportHistoryCsv() {
-  const rows = filterTableRows(await historyRows(), 'hBody');
+  let rows;
+  try {
+    rows = filterTableRows(await historyRows(), 'hBody');
+  } catch (error) {
+    alert('Could not export transactions: ' + (error.message || 'Please try again.'));
+    return;
+  }
 
   const csv = 'OR,Date,Time,Customer,Type,Gallons,Vatable,VAT,Total,Pay,Cashier\n' +
     rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(value => { const cell = String(value ?? ''); return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell; }).join(',')).join('\n');

@@ -17,6 +17,7 @@ class CheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'submission_key' => ['required', 'uuid'],
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'order_type' => ['required', 'in:Walk-in,Delivery'],
             // Only meaningful for a walk-in; a delivery is charged to the

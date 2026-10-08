@@ -1,50 +1,25 @@
 // Sales Filters & Local Cache
 function salesFilters() {
-  const dateEl = document.getElementById('fDate');
   const channelEl = document.getElementById('fChannel');
   const payEl = document.getElementById('fPay');
   return {
-    days: +((dateEl && dateEl.value) || 0),
+    from: document.getElementById('fFrom')?.value || '',
+    to: document.getElementById('fTo')?.value || '',
     type: (channelEl && channelEl.value) || 'All',
     pay: (payEl && payEl.value) || 'All'
   };
 }
 
-function filteredSales() {
-  const { days, type, pay } = salesFilters();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - (days === 0 ? 0 : days - 1));
-  const cutoffStr = cutoff.toISOString().split('T')[0];
-
-  return (DB.transactions || []).filter(t => {
-    const d = t.date || new Date().toISOString().split('T')[0];
-    if (d < cutoffStr) return false;
-    if (type !== 'All' && t.type !== type) return false;
-    if (pay !== 'All' && t.pay !== pay) return false;
-    return true;
-  });
-}
-
-
-// Data Fetching
 async function fetchSalesRows() {
-  const { days, type, pay } = salesFilters();
-  try {
-    const rows = [];
-    let page = 1, data;
-    do {
-      data = await API.transactions({ days, type, pay, paginated: 1, page: page++ });
-      if (Array.isArray(data.transactions)) rows.push(...data.transactions);
-    } while (data.has_more);
-    return rows;
-  } catch (error) {
-    console.warn('AquaFlow: sales query failed, using cached data. ' + error.message);
-    const rows = filteredSales();
-    rows.fromCache = true;
-    return rows;
-  }
+  const filters = salesFilters();
+  const rows = [];
+  let page = 1, data;
+  do {
+    data = await API.transactions({...filters, paginated:1, page:page++});
+    rows.push(...(data.transactions || []));
+  } while (data.has_more);
+  return rows;
 }
-
 
 function filterSalesCashier(rows) {
   const cashier = document.getElementById('fCashier')?.value || '';
@@ -61,7 +36,16 @@ const SALES_PAGE_SIZE = 20;
 async function renderSalesTable() {
   const request = ++salesRequest;
   const filterKey = JSON.stringify({ ...salesFilters(), cashier: document.getElementById('fCashier')?.value || '', search: document.getElementById('salesBodySearch')?.value || '', order: document.getElementById('salesBodyOrder')?.value || 'newest' });
-  const fetched = await fetchSalesRows();
+  let fetched;
+  try { fetched = await fetchSalesRows(); }
+  catch(error) {
+    if(request !== salesRequest) return;
+    salesRows=[];
+    const body=document.getElementById('salesBody');
+    if(body) body.innerHTML='<tr><td colspan="8" role="alert">'+esc(error.message)+' <button type="button" class="btn btn-ghost" onclick="renderSalesTable()">Retry</button></td></tr>';
+    for(const id of ['salesSum','salesPagination','salesResults']) { const el=document.getElementById(id); if(el) el.innerHTML=''; }
+    return;
+  }
   if (request !== salesRequest) return;
   const cashierField = document.getElementById('fCashier');
   if (cashierField) {
@@ -74,7 +58,7 @@ async function renderSalesTable() {
   if (filterKey !== salesFilterKey) salesPage = 1;
   salesFilterKey = filterKey;
   const results = document.getElementById('salesResults');
-  if (results) results.textContent = salesRows.length.toLocaleString() + ' matching records' + (fetched.fromCache ? ' · Cached data — connection unavailable' : '');
+  if (results) results.textContent = salesRows.length.toLocaleString() + ' matching records';
   renderSalesPage();
 
   const sales = salesRows.filter(t => t.type !== 'Debt Payment');
@@ -107,7 +91,7 @@ function renderSalesPage() {
 function changeSalesPage(delta) { salesPage += delta; renderSalesPage(); }
 
 function resetSalesFilters() {
-  for (const [id, value] of Object.entries({ fDate: '0', fChannel: 'All', fPay: 'All', fCashier: '', salesBodySearch: '', salesBodyOrder: 'newest' })) {
+  for (const [id, value] of Object.entries({ fFrom: document.getElementById('fFrom')?.dataset.default || '', fTo: document.getElementById('fTo')?.dataset.default || '', fChannel: 'All', fPay: 'All', fCashier: '', salesBodySearch: '', salesBodyOrder: 'newest' })) {
     const field = document.getElementById(id);
     if (field) field.value = value;
   }
@@ -117,7 +101,9 @@ function resetSalesFilters() {
 
 // Audit Export
 async function exportSalesCSV() {
-  const rows = filterTableRows(filterSalesCashier(await fetchSalesRows()), 'salesBody');
+  let rows;
+  try { rows = filterTableRows(filterSalesCashier(await fetchSalesRows()), 'salesBody'); }
+  catch(error) { alert(error.message || 'Could not export transactions.'); return; }
   const csv = 'OR,Date,Time,Customer,Type,Gallons,Total,Pay,Cashier\n' +
     rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by].map(value => { const cell = String(value ?? ''); return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell; }).join(',')).join('\n');
   downloadCSV(csv, 'sales-audit.csv');

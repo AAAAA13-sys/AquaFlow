@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\ProductionQueueItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,13 +22,14 @@ class EmployeeAndDeliveryTest extends TestCase
     {
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $users = User::count();
+        $employees = Employee::count();
         $id = $this->postJson('/api/employees', ['name' => 'Ana Santos', 'job_title' => 'Refill operator', 'contact_number' => '09123456789', 'is_active' => true])->assertCreated()->json('employee.id');
         $this->patchJson('/api/employees/'.$id, ['name' => 'Ana Santos', 'job_title' => 'Delivery worker', 'is_active' => false])->assertOk()->assertJsonPath('employee.is_active', false);
-        $this->getJson('/api/employees')->assertOk()->assertJsonCount(1, 'employees');
+        $this->getJson('/api/employees')->assertOk()->assertJsonCount($employees + 1, 'employees');
         $this->assertSame($users, User::count());
         $this->deleteJson('/api/employees/'.$id)->assertOk();
         $this->assertSoftDeleted('employees', ['id' => $id]);
-        $this->getJson('/api/employees')->assertJsonCount(0, 'employees');
+        $this->getJson('/api/employees')->assertJsonCount($employees, 'employees');
     }
 
     public function test_employee_validation_and_owner_permissions(): void

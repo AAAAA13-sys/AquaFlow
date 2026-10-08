@@ -125,7 +125,7 @@ const API = {
   // Customers / receivables
   customers(params) { return this.getWithQuery('customers', params); },
   createCustomer(customer) { return this.post('customers', customer); },
-  settleDebt(customerId, amount) { return this.post('customers/' + customerId + '/settle', { amount: amount }); },
+  settleDebt(customerId, amount) { return Submissions.send('customers/' + customerId + '/settle', { amount: amount }); },
   logReturn(customerId, kind) { return this.post('customers/' + customerId + '/returns', { kind: kind }); },
 
   // Inventory
@@ -145,7 +145,7 @@ const API = {
 
   // Sales
   transactions(params) { return this.getWithQuery('transactions', params); },
-  createTransaction(payload) { return this.post('transactions', payload); },
+  createTransaction(payload) { return Submissions.send('transactions', payload); },
 
   // Production queue
   queue() { return this.get('queue'); },

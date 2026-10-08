@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ConsumableStoriesTest extends TestCase
@@ -25,7 +26,7 @@ class ConsumableStoriesTest extends TestCase
     {
         $before = InventoryItem::pluck('stock_on_hand', 'item_name');
         $cashier = User::where('username', 'cashier')->firstOrFail();
-        $response = $this->actingAs($cashier)->postJson('/api/transactions', [
+        $response = $this->actingAs($cashier)->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => Customer::where('name', 'Walk-in Guest')->value('id'),
             'order_type' => 'Walk-in', 'cash_tendered' => 500,
             'items' => [['product_id' => 'slim', 'quantity' => 2], ['product_id' => 'round', 'quantity' => 1]],
@@ -43,7 +44,7 @@ class ConsumableStoriesTest extends TestCase
     {
         InventoryItem::where('item_name', 'CLEAR_COVER')->update(['stock_on_hand' => 0]);
         $before = DB::table('transactions')->count();
-        $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', [
+        $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => Customer::where('name', 'Walk-in Guest')->value('id'),
             'order_type' => 'Walk-in', 'cash_tendered' => 50,
             'items' => [['product_id' => 'slim', 'quantity' => 1]],
@@ -119,7 +120,7 @@ class ConsumableStoriesTest extends TestCase
     public function test_u_s54_new_jugs_consume_wraps_and_covers(): void
     {
         $before = InventoryItem::pluck('stock_on_hand', 'item_name');
-        $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', [
+        $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => Customer::where('name', 'Walk-in Guest')->value('id'),
             'order_type' => 'Walk-in', 'cash_tendered' => 500,
             'items' => [['product_id' => 'newS', 'quantity' => 1], ['product_id' => 'newR', 'quantity' => 1]],
@@ -132,7 +133,7 @@ class ConsumableStoriesTest extends TestCase
     public function test_u_s08_u_s12_delivery_saves_address_and_unpaid_status(): void
     {
         $customer = Customer::where('name', '!=', 'Walk-in Guest')->firstOrFail();
-        $response = $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', [
+        $response = $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => $customer->id, 'order_type' => 'Delivery',
             'items' => [['product_id' => 'slim', 'quantity' => 1]],
         ])->assertCreated()->assertJsonPath('transaction.payment_status', 'unpaid')
@@ -146,7 +147,7 @@ class ConsumableStoriesTest extends TestCase
         $customer = Customer::where('name', '!=', 'Walk-in Guest')->firstOrFail();
         $customer->update(['debt_balance' => 100]);
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())
-            ->postJson('/api/customers/'.$customer->id.'/settle', ['amount' => 30])
+            ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 30])
             ->assertOk()->assertJsonPath('transaction.balance_after', 70);
     }
 

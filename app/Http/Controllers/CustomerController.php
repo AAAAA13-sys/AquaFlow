@@ -44,9 +44,10 @@ class CustomerController extends Controller
 
     public function settle(SettleDebtRequest $request, Customer $customer): JsonResponse
     {
-        $result = app(CustomerLedgerService::class)->settle($customer, (float) $request->validated()['amount'], $request->user());
+        $result = app(CustomerLedgerService::class)->settle($customer, (float) $request->validated()['amount'], $request->user(), $request->validated()['submission_key']);
 
         return response()->json([
+            'replayed' => $result['replayed'],
             'applied' => $result['applied'],
             'transaction' => new TransactionResource($result['transaction']),
             'customer' => new CustomerResource($result['customer']),

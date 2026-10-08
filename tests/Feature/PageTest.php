@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PageTest extends TestCase
@@ -221,7 +222,7 @@ class PageTest extends TestCase
             ->assertSee('Vatable', false)
             ->assertSee('VAT', false)
             ->assertSee('id="hBody"', false)
-            ->assertSee('id="hDate"', false)
+            ->assertSee('id="hFrom"', false)
             ->assertSee('Debt Payment', false);
     }
 
@@ -292,7 +293,7 @@ class PageTest extends TestCase
         // Server side, the same two rules are enforced no matter what the
         // client does: no customer, and an empty cart.
         $this->actingAs($this->cashier)
-            ->postJson('/api/transactions', [
+            ->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
                 'customer_id' => 999999,
                 'order_type' => 'Walk-in',
                 'payment_method' => 'Cash',
@@ -302,7 +303,7 @@ class PageTest extends TestCase
             ->assertStatus(422);
 
         $this->actingAs($this->cashier)
-            ->postJson('/api/transactions', [
+            ->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
                 'customer_id' => 9,
                 'order_type' => 'Walk-in',
                 'payment_method' => 'Cash',

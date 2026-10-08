@@ -9,12 +9,12 @@
     <div id="hSum" class="cashier-summary" aria-label="Filtered transaction summary"></div>
     <div class="card cashier-filters no-print">
       <div class="filter-group">
-        <label class="form-label" for="hDate">Period</label>
-        <select id="hDate" onchange="renderHistoryPage()">
-          <option value="0">Today</option>
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-        </select>
+        <label class="form-label" for="hFrom">From ({{ config('app.timezone') }})</label>
+        <input id="hFrom" type="datetime-local" step="60" value="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" onchange="renderHistoryPage()">
+      </div>
+      <div class="filter-group">
+        <label class="form-label" for="hTo">Through</label>
+        <input id="hTo" type="datetime-local" step="60" value="{{ now()->endOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->endOfDay()->format('Y-m-d\TH:i') }}" onchange="renderHistoryPage()">
       </div>
       <div class="filter-group">
         <label class="form-label" for="hType">Order type</label>

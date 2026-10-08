@@ -271,29 +271,34 @@ function updateDebtPanel() {
 }
 
 async function settleDebt() {
-  const c = posCust();
-  if (c === null) {
-    showStageError('Select a customer before settling a debt.');
-    return;
-  }
-
-  const pay = document.getElementById('debtPay');
-  const amount = +((pay && pay.value) || 0);
-  if (amount <= 0) { showStageError('Enter a payment amount.'); return; }
-
+  if (settleDebt.busy) return;
+  settleDebt.busy = true;
   try {
-    const result = await API.settleDebt(c.id, amount);
-    API.replaceCustomer(result.customer);
-    if (pay) pay.value = 0;
-    saveDB();
-    updateDebtPanel();
-    renderPOS();
-    showStageError(null);
-    DB.transactions.unshift(result.transaction);
-    reprint(result.transaction.no);
-  } catch (error) {
-    showStageError(error.message || 'Could not record the payment.');
-  }
+    const c = posCust();
+    if (c === null) {
+      showStageError('Select a customer before settling a debt.');
+      return;
+    }
+
+    const pay = document.getElementById('debtPay');
+    const amount = +((pay && pay.value) || 0);
+    if (amount <= 0) { showStageError('Enter a payment amount.'); return; }
+
+    try {
+      const result = await API.settleDebt(c.id, amount);
+      API.replaceCustomer(result.customer);
+      if (pay) pay.value = 0;
+      saveDB();
+      updateDebtPanel();
+      renderPOS();
+      showStageError(null);
+      API.replaceSnapshot('transactions', result.transaction, row => row.no);
+      reprint(result.transaction.no);
+      Submissions.clear();
+    } catch (error) {
+      showStageError(error.message || 'Could not record the payment.');
+    }
+  } finally { settleDebt.busy = false; }
 }
 
 // ---------- Quick customer registration (name + address) ----------
@@ -375,60 +380,66 @@ function showServerReceipt(result) {
 }
 
 async function completeSale(sessionName) {
-  // Same inline validation the stage gates use, so the cashier always sees one
-  // consistent message instead of a browser alert.
-  if (!hasCustomer()) { showStageError('Select a customer before completing the sale.'); return; }
-  if (!POS.cart.length) { showStageError('Add at least one item before completing the sale.'); return; }
-
-  const c = posCust();
-  if (isDelivery() && c.name === 'Walk-in Guest') {
-    showStageError('Delivery requires a registered customer - the order is charged to their account.');
-    return;
-  }
-
-  const tenderEl = document.getElementById('tender');
-  const ten = tenderEl ? (+tenderEl.value || 0) : 0;
-  const t = posTotals();
-
-  // Only a walk-in handles cash; a delivery settles on the ledger.
-  if (!isDelivery() && ten < t.total) {
-    showStageError('Cash tendered is less than the total due by ' + money(t.total - ten) + '.');
-    if (tenderEl) tenderEl.focus();
-    return;
-  }
-
-  showStageError(null);
-
-  // The server derives the payment method from the order type.
-  const payload = {
-    customer_id: POS.custId,
-    order_type: POS.type,
-    cash_tendered: isDelivery() ? 0 : ten,
-    items: POS.cart.map(i => ({ product_id: i.id, quantity: i.q })),
-  };
-
-  let result;
+  if (completeSale.busy) return;
+  completeSale.busy = true;
   try {
-    result = await API.createTransaction(payload);
-  } catch (error) {
-    showStageError(error.message || 'Could not save the sale.');
-    return;
-  }
+    // Same inline validation the stage gates use, so the cashier always sees one
+    // consistent message instead of a browser alert.
+    if (!hasCustomer()) { showStageError('Select a customer before completing the sale.'); return; }
+    if (!POS.cart.length) { showStageError('Add at least one item before completing the sale.'); return; }
 
-  API.replaceCustomer(result.customer);
-  DB.transactions.unshift(result.transaction);
-  DB.queue = result.queue;
+    const c = posCust();
+    if (isDelivery() && c.name === 'Walk-in Guest') {
+      showStageError('Delivery requires a registered customer - the order is charged to their account.');
+      return;
+    }
 
-  const nextNumber = parseInt(String(result.transaction.no).replace(/\D/g, ''), 10);
-  if (!isNaN(nextNumber)) POS.orderN = nextNumber + 1;
+    const tenderEl = document.getElementById('tender');
+    const ten = tenderEl ? (+tenderEl.value || 0) : 0;
+    const t = posTotals();
 
-  await syncInventory();
-  showServerReceipt(result);
-  saveDB();
-  renderPOS();
+    // Only a walk-in handles cash; a delivery settles on the ledger.
+    if (!isDelivery() && ten < t.total) {
+      showStageError('Cash tendered is less than the total due by ' + money(t.total - ten) + '.');
+      if (tenderEl) tenderEl.focus();
+      return;
+    }
+
+    showStageError(null);
+
+    // The server derives the payment method from the order type.
+    const payload = {
+      customer_id: POS.custId,
+      order_type: POS.type,
+      cash_tendered: isDelivery() ? 0 : ten,
+      items: POS.cart.map(i => ({ product_id: i.id, quantity: i.q })),
+    };
+
+    let result;
+    try {
+      result = await API.createTransaction(payload);
+    } catch (error) {
+      showStageError(error.message || 'Could not save the sale.');
+      return;
+    }
+
+    API.replaceCustomer(result.customer);
+    API.replaceSnapshot('transactions', result.transaction, row => row.no);
+    DB.queue = result.queue;
+
+    const nextNumber = parseInt(String(result.transaction.no).replace(/\D/g, ''), 10);
+    if (!isNaN(nextNumber)) POS.orderN = nextNumber + 1;
+
+    await syncInventory();
+    showServerReceipt(result);
+    saveDB();
+    renderPOS();
+  } finally { completeSale.busy = false; }
 }
 
 function closeReceipt() {
+  const submission = Submissions.pending();
+  if (submission && submission.result) Submissions.clear();
   const box = document.getElementById('receipt');
   if (box) box.classList.add('hidden');
 

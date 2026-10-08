@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -68,7 +69,7 @@ class Customer extends Model
 
     public function settleBalance(float $amount, User $cashier): float
     {
-        return app(CustomerLedgerService::class)->settle($this, $amount, $cashier)['applied'];
+        return app(CustomerLedgerService::class)->settle($this, $amount, $cashier, (string) Str::uuid())['applied'];
     }
 
     public function recordReturn(string $kind): void

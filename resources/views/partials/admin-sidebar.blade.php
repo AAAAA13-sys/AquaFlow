@@ -13,20 +13,26 @@
       'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points', 'badge' => 'badgeStock'],
       'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances'],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null],
+      'attendance' => ['label' => 'Attendance', 'hint' => 'Store team', 'badge' => null],
       'employees'  => ['label' => 'Employees', 'hint' => 'Store team', 'badge' => null],
       'users'      => ['label' => 'Staff & Access',  'hint' => 'Users',          'badge' => null],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null],
-  ]
+  ];
+  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['inventory', 'suppliers', 'arima'], 'Team' => ['employees', 'attendance'], 'Administration' => ['users', 'settings']];
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
   @include('partials.sidebar-header', ['subtitle' => 'Station Owner Portal'])
 
-  <nav class="sidebar-nav" id="sideNav">
-    @foreach ($tabs as $slug => $label)
+  <nav class="sidebar-nav" id="sideNav" aria-label="Owner page catalog">
+    @foreach ($groups as $title => $slugs)
+      <p class="sidebar-section-title">{{ $title }}</p>
+      @foreach ($slugs as $slug)
+      @php($label = $tabs[$slug])
       <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
          class="sidebar-link {{ $active === $slug ? 'active' : '' }}"
+         @if ($active === $slug) aria-current="page" @endif
          @if ($label['badge']) data-has-badge="1" @endif>
         <span class="sidebar-link-text">
           <span class="sidebar-link-label">{{ $label['label'] }}</span>
@@ -38,6 +44,7 @@
           <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
         @endif
       </a>
+      @endforeach
     @endforeach
   </nav>
 
