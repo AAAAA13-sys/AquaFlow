@@ -1,0 +1,84 @@
+name: aquaflow-store
+x-app-env: &app-env
+  APP_NAME: AquaFlow
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY:?Run Setup.cmd first}
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  APP_TIMEZONE: Asia/Manila
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: mysql
+  DB_HOST: db
+  DB_PORT: 3306
+  DB_DATABASE: aquaflow_db
+  DB_USERNAME: aquaflow
+  DB_PASSWORD: ${DB_PASSWORD:?Run Setup.cmd first}
+  SESSION_DRIVER: database
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+  ANALYTICS_URL: http://analytics:5000
+  ANALYTICS_TIMEOUT: 240
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    pull_policy: never
+    profiles: [remote]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    command: ["http", "http://web:81", "--config", "/etc/ngrok.yml", "--inspect=false"]
+    volumes: ["./ngrok.yaml:/etc/ngrok.yml:ro"]
+    ports: ["127.0.0.1:${NGROK_API_PORT:-4041}:4040"]
+    depends_on:
+      web: {condition: service_healthy}
+    restart: unless-stopped
+  db:
+    image: mysql:8.0
+    pull_policy: never
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Run Setup.cmd first}
+      MYSQL_DATABASE: aquaflow_db
+      MYSQL_USER: aquaflow
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Run Setup.cmd first}
+    volumes: ["db_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+  app:
+    image: aquaflow/app:${AQUAFLOW_VERSION:?Missing release.env}
+    pull_policy: never
+    environment: *app-env
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+  worker:
+    image: aquaflow/app:${AQUAFLOW_VERSION:?Missing release.env}
+    pull_policy: never
+    environment: *app-env
+    command: ["php", "artisan", "schedule:work"]
+    healthcheck: {disable: true}
+    depends_on:
+      app: {condition: service_healthy}
+    restart: unless-stopped
+  analytics:
+    image: aquaflow/analytics:${AQUAFLOW_VERSION:?Missing release.env}
+    pull_policy: never
+    environment:
+      AQUAFLOW_DB_HOST: db
+      AQUAFLOW_DB_NAME: aquaflow_db
+      AQUAFLOW_DB_USER: aquaflow
+      AQUAFLOW_DB_PASSWORD: ${DB_PASSWORD:?Run Setup.cmd first}
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+  web:
+    image: aquaflow/web:${AQUAFLOW_VERSION:?Missing release.env}
+    pull_policy: never
+    ports: ["${AQUAFLOW_HTTP_PORT:-8080}:80"]
+    depends_on:
+      app: {condition: service_healthy}
+    restart: unless-stopped
+volumes:
+  db_data:

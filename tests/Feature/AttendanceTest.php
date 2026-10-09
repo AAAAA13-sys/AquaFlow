@@ -18,8 +18,8 @@ class AttendanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed();
         $this->travelTo(now()->setDate(2026, 10, 8)->setTime(9, 0));
+        $this->seed();
         $this->employee = Employee::create(['name' => 'Ana Santos', 'job_title' => 'Refill operator', 'is_active' => true]);
         $this->actingAs(User::where('username', 'cashier')->firstOrFail());
     }

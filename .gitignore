@@ -36,3 +36,9 @@ analytics/.venv/
 # Tooling / generated
 /.opencode/
 /graphify-out/
+
+/dist/
+/distribution/backups/
+/distribution/images.tar
+/distribution/release.env
+/distribution/installed.env

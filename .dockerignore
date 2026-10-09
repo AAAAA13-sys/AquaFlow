@@ -4,6 +4,15 @@
 .github
 .env
 .env.example
+.env.*
+**/.env*
+*.sql
+*.sqlite*
+*.zip
+*.tar
+.codex
+.agents
+.aws
 docker-compose.yml
 node_modules
 vendor
@@ -35,3 +44,9 @@ graphify-out
 # OS
 Thumbs.db
 .DS_Store
+
+/dist/
+/distribution/backups/
+/distribution/images.tar
+/distribution/release.env
+/distribution

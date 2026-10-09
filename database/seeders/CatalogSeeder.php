@@ -6,6 +6,7 @@ use App\Models\InventoryItem;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\SystemSetting;
+use App\Services\RecipeService;
 use Illuminate\Database\Seeder;
 
 /**
@@ -16,7 +17,7 @@ use Illuminate\Database\Seeder;
  */
 class CatalogSeeder extends Seeder
 {
-    public function run(): void
+    public function run(bool $demo = true): void
     {
         $suppliers = [
             ['id' => 1, 'name' => 'AquaRaw Trading', 'supplied_items' => 'Raw water', 'lead_time_days' => 2, 'contact' => '0917-000-1111', 'last_delivery' => now()->subDays(8)],
@@ -24,7 +25,7 @@ class CatalogSeeder extends Seeder
             ['id' => 3, 'name' => 'ChemClean', 'supplied_items' => 'Soap, sponge, filters', 'lead_time_days' => 5, 'contact' => '0919-000-3333', 'last_delivery' => now()->subDays(13)],
         ];
 
-        foreach ($suppliers as $supplier) {
+        foreach ($demo ? $suppliers : [] as $supplier) {
             Supplier::query()->updateOrCreate(['id' => $supplier['id']], $supplier);
         }
 
@@ -39,6 +40,10 @@ class CatalogSeeder extends Seeder
         ];
 
         foreach ($inventory as $item) {
+            if (! $demo) {
+                $item['stock_on_hand'] = 0;
+                $item['supplier_id'] = null;
+            }
             InventoryItem::query()->updateOrCreate(
                 ['item_name' => $item['item_name']],
                 $item + ['target_stock' => 0]
@@ -84,10 +89,12 @@ class CatalogSeeder extends Seeder
             );
         }
 
-        app(\App\Services\RecipeService::class)->installDefaults(6000);
+        app(RecipeService::class)->installDefaults($demo ? 6000 : 0);
 
         SystemSetting::put(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station', 'Displayed name of the water station');
         SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, '3', 'Default days until new supplies arrive');
-        SystemSetting::put(SystemSetting::KEY_SUS_TARGET, '81.67 (Grade A)', 'Target System Usability Scale rating');
+        if ($demo) {
+            SystemSetting::put(SystemSetting::KEY_SUS_TARGET, '81.67 (Grade A)', 'Target System Usability Scale rating');
+        }
     }
 }

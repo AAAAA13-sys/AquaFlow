@@ -508,3 +508,16 @@ module tree, added the dynamic inventory engine, and fixed bottle deposits
 counting as refill gallons.
 
 Last updated: 2026-10-06
+# Distributing AquaFlow to a store
+
+Build a Windows package with Docker Desktop running:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Build-Release.ps1 -Version 2026.10.09
+```
+
+This produces `dist/AquaFlow-2026.10.09.zip` with prebuilt Linux/amd64 images and setup, start, stop, backup, restore and update launchers. The developer needs internet to build; the store only needs Docker Desktop installed and running to load the bundled images. The generated ZIP excludes developer credentials and data. Keep version tags unique.
+
+The admin PC hosts Docker; cashier PCs and phones use a browser on the same LAN/Wi-Fi. The release Start launcher prints the local addresses. Optional **Configure Remote Access.cmd** saves a store-specific ngrok token privately; Start then displays the live HTTPS tunnel address. **Disable Remote Access.cmd** closes only the tunnel. Internet access is off by default and ngrok account/network limits apply. The bundled ngrok agent API is loopback-only. Use the distribution launchers for this workflow; the root `START-AQUAFLOW.bat` remains the developer/demo launcher.
+
+See [store installation instructions](distribution/Getting%20Started.md). Distribution uses its own Compose project and persistent database; the existing development Compose workflow is unchanged. Run `powershell -NoProfile -File tests/distribution-launchers.ps1` for launcher checks and `docker compose exec test php artisan test --filter=StoreInstallationTest` for clean-install tests.
