@@ -29,6 +29,15 @@ class CatalogSeeder extends Seeder
             Supplier::query()->updateOrCreate(['id' => $supplier['id']], $supplier);
         }
 
+        // SHRINK_SLIM / SHRINK_ROUND / CLEAR_COVER are recipe ingredients for
+        // every till product, not catalogue extras. They MUST be seeded here:
+        // the consumable-recipes migration creates them through
+        // installDefaults(), which uses firstOrCreate, so a store that already
+        // had products ends up with them at zero - and because every product's
+        // recipe needs one of the three, whole-cart availability collapses to
+        // zero and the entire till greys out. Owning them here (like every other
+        // inventory row) means a re-seed repairs that state instead of
+        // preserving it. Thresholds are left to InventoryEngine.
         $inventory = [
             ['item_name' => 'Non-Spill Caps', 'category' => 'Consumable', 'stock_on_hand' => 450, 'unit' => 'pcs', 'safety_stock' => 150, 'reorder_point' => 600, 'lead_time_days' => 2, 'supplier_id' => 2],
             ['item_name' => 'Heat Shrink Seals', 'category' => 'Consumable', 'stock_on_hand' => 2100, 'unit' => 'pcs', 'safety_stock' => 300, 'reorder_point' => 1200, 'lead_time_days' => 2, 'supplier_id' => 2],
@@ -37,6 +46,9 @@ class CatalogSeeder extends Seeder
             ['item_name' => 'Sanitizing Sponges', 'category' => 'Cleaning', 'stock_on_hand' => 24, 'unit' => 'pcs', 'safety_stock' => 5, 'reorder_point' => 15, 'lead_time_days' => 1, 'supplier_id' => 3],
             ['item_name' => '5-Gal Replacement Slim Jugs', 'category' => 'Asset', 'stock_on_hand' => 40, 'unit' => 'units', 'safety_stock' => 10, 'reorder_point' => 25, 'lead_time_days' => 4, 'supplier_id' => 2],
             ['item_name' => '5-Gal Replacement Round Jugs', 'category' => 'Asset', 'stock_on_hand' => 35, 'unit' => 'units', 'safety_stock' => 10, 'reorder_point' => 25, 'lead_time_days' => 4, 'supplier_id' => 2],
+            ['item_name' => 'SHRINK_SLIM', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'SHRINK_ROUND', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'CLEAR_COVER', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
         ];
 
         foreach ($inventory as $item) {
@@ -61,8 +73,8 @@ class CatalogSeeder extends Seeder
         $products = [
             ['id' => 'slim', 'name' => 'Slim 5-Gal Refill', 'price' => 35.00, 'category' => 'refill', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => false, 'inventory' => null, 'units' => 1],
             ['id' => 'round', 'name' => 'Round 5-Gal Refill', 'price' => 35.00, 'category' => 'refill', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => false, 'inventory' => null, 'units' => 1],
-            ['id' => 'newS', 'name' => 'New Slim 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => true, 'inventory' => '5-Gal Replacement Slim Jugs', 'units' => 1],
-            ['id' => 'newR', 'name' => 'New Round 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => true, 'inventory' => '5-Gal Replacement Round Jugs', 'units' => 1],
+            ['id' => 'newS', 'name' => 'New Slim 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5-Gal Replacement Slim Jugs', 'units' => 1],
+            ['id' => 'newR', 'name' => 'New Round 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5-Gal Replacement Round Jugs', 'units' => 1],
             ['id' => 'caps', 'name' => 'Non-Spill Caps Pack 50', 'price' => 15.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Non-Spill Caps', 'units' => 50],
             ['id' => 'seals', 'name' => 'Heat Shrink Seals Pack 100', 'price' => 20.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Heat Shrink Seals', 'units' => 100],
             ['id' => 'soap', 'name' => 'Cleaning Soap & Sponge', 'price' => 10.00, 'category' => 'cleaning', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Food-Grade Soap', 'units' => 1],

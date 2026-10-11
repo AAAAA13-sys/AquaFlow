@@ -20,7 +20,7 @@
                   title="Start a walk-in cash sale without choosing a customer (F2)">
             Quick Walk-In
           </button>
-          <input id="custSearch" oninput="renderCustList()" class="form-input stage-search"
+          <input id="custSearch" oninput="queueCustSearch()" class="form-input stage-search"
                  aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <div class="stage-secondary">
             <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
@@ -33,7 +33,7 @@
 
       <div class="card stage-card stage-grow">
         <h3 class="panel-heading">Customer List</h3>
-        <div id="custList" class="customer-list-container scroll-region"></div>
+        <label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select><div id="custList" class="customer-list-container scroll-region"></div>
       </div>
     </section>
 
@@ -46,7 +46,7 @@
         <button id="bDel" onclick="setType('Delivery')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg> Delivery</button>
       </div>
       @include('partials.tip', [
-        'text' => 'Walk-In means the customer waits at the counter and pays cash now. Delivery means the order goes to their address and is charged to their account balance — the driver collects later. Choose Delivery only if a customer is already selected.',
+        'text' => 'Walk-In means the customer waits at the counter and pays cash now. Delivery means the order goes to their address and is charged to their account balance. Collections are recorded separately. Choose Delivery only if a customer is already selected.',
         'label' => 'What is the difference between Walk-In and Delivery?',
       ])
 
@@ -180,9 +180,7 @@
             </button>
           </div>
 
-          <a href="{{ url('/cashier/queue') }}" class="btn btn-ghost btn-sm btn-block queue-shortcut">
-            View Orders in Progress
-          </a>
+
         </div>
       </div>
     </section>
@@ -200,11 +198,11 @@
   {{-- Customer registration modal (name + address only) --}}
   <div id="registerModal" class="overlay-modal hidden">
     <div class="auth-card" style="max-width:400px;">
-      <h3 class="panel-heading">Register New Customer</h3>
+      <h3 class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
       <label class="form-label" for="regName">Full Name</label>
-      <input id="regName" class="form-input" placeholder="e.g. Juan Dela Cruz">
+      <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz">
       <label class="form-label" for="regAddr">Address</label>
-      <input id="regAddr" class="form-input" placeholder="e.g. Barangay San Isidro">
+      <input id="regAddr" maxlength="255" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">
         <button onclick="closeRegisterModal()" class="btn btn-ghost">Cancel</button>
         <button onclick="saveNewCustomer()" class="btn btn-primary">Save</button>
@@ -221,4 +219,5 @@ renderProducts();
 setType(POS.type);
 renderPOS();
 posStep(1);
+searchCustomers();
 @endcomponent

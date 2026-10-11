@@ -1085,6 +1085,9 @@ table.clean td {
   justify-content: center;
   padding: 1rem;
   z-index: 50;
+  /* A card taller than the viewport (short window, 200% zoom) would otherwise be
+     centred to a negative offset and clipped with no way to scroll back to it. */
+  overflow-y: auto;
 }
 
 .side-drawer {
@@ -1309,16 +1312,19 @@ body.pos-lock .pos-layout {
 
 .pos-step {
   min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   border: 1px solid var(--border-line);
   background-color: var(--surface-white);
   border-radius: 10px;
   font-weight: 600;
   font-size: 0.8rem;
   color: var(--text-slate);
-}
-
-.pos-step:hover {
-  background-color: var(--surface-subtle);
+  /* Read-only progress indicator, not a control: no pointer affordance. */
+  cursor: default;
+  user-select: none;
 }
 
 .pos-step.active,

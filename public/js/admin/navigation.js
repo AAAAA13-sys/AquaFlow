@@ -21,15 +21,10 @@ function showSection(s) {
 }
 
 
-// Responsive Sidebar Toggle
-function toggleSidebar(force) {
-  const sidebar = document.getElementById('adminSidebar');
-  const backdrop = document.getElementById('sidebarBackdrop');
-  if (!sidebar) return;
-  const open = typeof force === 'boolean' ? force : !sidebar.classList.contains('open');
-  sidebar.classList.toggle('open', open);
-  if (backdrop) backdrop.classList.toggle('open', open);
-}
+// Responsive sidebar toggle now lives in js/data/shell.js, which every
+// authenticated page loads through partials/scripts-base. It used to be defined
+// here, but the cashier layout never loaded this file, so the POS hamburger had
+// no handler at all.
 
 
 // Admin Portal Bootstrapping

@@ -10,7 +10,7 @@
 //
 // Containers: the station owns no jugs. A refill is the customer's own jug
 // coming back filled (no liability, no deposit); a brand-new jug is ordinary
-// merchandise that depletes stock and is walk-in only.
+// merchandise that depletes stock once at checkout.
 
 // `var` (not `let`) keeps `typeof POS` safe in the persistence layer no matter
 // how the scripts are loaded, including concatenated builds.
@@ -64,7 +64,7 @@ function setType(t) {
     const blocked = POS.cart.filter(i => i.walkInOnly);
     if (blocked.length) {
       POS.cart = POS.cart.filter(i => !i.walkInOnly);
-      alert('Removed from the order (walk-in only): ' + blocked.map(i => i.name).join(', '));
+      appNotice('Removed from the order (walk-in only): ' + blocked.map(i => i.name).join(', '));
     }
   }
 
@@ -100,49 +100,92 @@ function debtBadge(debt) {
  * order type (walk-in => cash), which the API re-derives regardless.
  */
 function pickWalkIn() {
-  const guest = DB.customers.find(c => c.name === WALK_IN_NAME);
+  const guest = DB.customers.find(c => c.is_guest === true);
   if (!guest) {
-    alert('Walk-in customer is missing. Re-seed the database to restore it.');
+    showStageError('Walk-in setup is incomplete. Ask the owner to run the store update.');
     return;
   }
   pickCust(guest.id);
+}
+
+// ---------- Customer search (server-driven) ----------
+//
+// Stage 1 used to filter the entire customer snapshot in the browser, which grew
+// with the store and dumped up to 40 rows on screen. It is now a debounced server
+// query returning a short page. Results are merged back into the snapshot so the
+// existing id-based lookups (posCust/pickCust) keep working untouched.
+
+const CUST_PAGE_SIZE = 8;
+let custResults = null;   // null = nothing searched yet
+let custSeq = 0;          // stale-response guard
+let custTimer = null;
+let custFailed = false;
+
+/** Debounced entry point - wired to the search box's input event. */
+function queueCustSearch() {
+  clearTimeout(custTimer);
+  custTimer = setTimeout(searchCustomers, 220);
+}
+
+async function searchCustomers() {
+  const search = document.getElementById('custSearch');
+  const seq = ++custSeq;
+  const term = ((search && search.value) || '').trim();
+  const order = document.getElementById('customerOrder')?.value || 'oldest';
+
+  try {
+    const data = await API.customers({
+      q: term,
+      order: order,
+      limit: CUST_PAGE_SIZE,
+      // The system guest anchors walk-in sales; it is not a person to search for
+      // and stage 1 has a dedicated Quick Walk-In button.
+      exclude_guest: 1
+    });
+
+    if (seq !== custSeq) return;   // a newer query has already answered
+
+    const rows = Array.isArray(data.customers) ? data.customers : [];
+    rows.forEach(customer => API.replaceCustomer(customer));
+    custResults = rows;
+    custFailed = false;
+  } catch (error) {
+    if (seq !== custSeq) return;
+    custFailed = true;
+    custResults = [];
+  }
+
+  saveDB();
+  renderCustList();
 }
 
 function renderCustList() {
   const search = document.getElementById('custSearch');
   const list = document.getElementById('custList');
 
-  if (search && list) {
-    const q = (search.value || '').toLowerCase();
+  if (list) {
+    const term = ((search && search.value) || '').trim();
 
-    // "Walk-in Guest" is a synthetic record used to anchor walk-in sales; it is
-    // not a person a cashier would search for, and stage 1 already has a
-    // dedicated Quick Walk-In button. It is excluded here so the list shows
-    // only real accounts.
-    //
-    // Sorted A-Z. The API returned debtors first, so on every single
-    // transaction the cashier scrolled past the same large-balance warnings
-    // before reaching an ordinary customer. Debt is still shown per row as a
-    // badge via debtBadge().
-    const rows = DB.customers
-      .filter(c => c.name !== 'Walk-in Guest')
-      .filter(c => c.name.toLowerCase().includes(q) || String(c.addr || '').toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-      .slice(0, 40);
-
-    list.innerHTML = rows.map(c => {
-      const sel = c.id === POS.custId;
-      const debt = Number(c.debt);
-
-      return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
-        '<b class="cust-row-name">' + esc(c.name) + '</b>' +
-        '<span class="cust-row-addr">' + esc(c.addr) + '</span>' +
-        '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
-        '</button>';
-    }).join('') ||
-      '<p class="cashier-empty">' + (q
-        ? 'No customer matches "' + esc(search.value.trim()) + '".'
+    if (custFailed) {
+      list.innerHTML = '<p class="cashier-empty">Could not load customers. Check the connection and try again.</p>';
+    } else if (custResults === null) {
+      list.innerHTML = '<p class="cashier-empty">Type a name or address to find a customer.</p>';
+    } else if (custResults.length === 0) {
+      list.innerHTML = '<p class="cashier-empty">' + (term
+        ? 'No customer matches "' + esc(term) + '".'
         : 'No customers yet. Use + New Customer to add one.') + '</p>';
+    } else {
+      list.innerHTML = custResults.map(c => {
+        const sel = c.id === POS.custId;
+        const debt = Number(c.debt);
+
+        return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
+          '<b class="cust-row-name">' + esc(c.name) + '</b>' +
+          '<span class="cust-row-addr">' + esc(c.addr) + '</span>' +
+          '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
+          '</button>';
+      }).join('');
+    }
   }
 
   const card = document.getElementById('custCard');
@@ -166,10 +209,17 @@ function renderCustList() {
     (debt > 0 ? icon('i-alert') + ' ' + peso(debt) + ' debt' : icon('i-check-circle') + ' No balance') + '</span>';
 }
 
-function pickCust(id) {
-  POS.custId = id;
-  savePOSState();
-  renderPOS();
+async function pickCust(id) {
+  if (POS.custId === id) return true;
+  if (typeof Submissions !== 'undefined' && Submissions.pending()) {
+    showStageError('Recover the pending receipt before changing customers.'); return false;
+  }
+  if (POS.cart.length && !await appConfirm('Discard the current order and switch customers?', 'Discard and switch')) return false;
+  POS.cart = []; POS.custId = id; POS.type = 'Walk-in';
+  ['tender', 'debtPay'].forEach(key => { const el = document.getElementById(key); if (el) el.value = 0; });
+  const receipt = document.getElementById('receipt'); if (receipt) receipt.classList.add('hidden');
+  showStageError(null); savePOSState(); renderPOS(); posStep(1);
+  return true;
 }
 
 // ---------- One-touch product tiles ----------
@@ -223,17 +273,14 @@ function renderProducts() {
       maximumFractionDigits: 2
     });
 
-    // Brand-new jugs show live stock and are counter sales only.
-    const stockLine = product.cat === 'container' && product.stock !== null
-      ? '<span class="product-info-stock">STOCKS: ' + product.stock + '</span>'
-      : '';
+    const stockLine = '<span class="product-info-stock">' + (stockPreview ? 'Available to add: ' + Number(stockPreview.additional[product.id] || 0) : 'Checking availability') + '</span>';
 
     const walkInBadge = product.walk_in_only
       ? '<span class="product-info-badge">Walk-in only</span>'
       : '';
 
     const disabled = product.walk_in_only && delivering;
-    const outOfStock = product.cat === 'container' && product.stock !== null && product.stock <= 0;
+    const outOfStock = !stockPreview || !stockPreview.valid || Number(stockPreview.additional[product.id] || 0) <= 0;
 
     return '<button type="button" class="product-item ' + productTheme(product) +
       (disabled || outOfStock ? ' is-disabled' : '') + '"' +
@@ -246,17 +293,17 @@ function renderProducts() {
       walkInBadge +
       '<span class="product-info-price">&#8369;' + price + '</span>' +
       '</span>' +
-      '<span class="product-add-button">+ ADD</span>' +
       '</button>';
   }).join('');
 }
 
-function addProduct(pid) {
+async function addProduct(pid) {
+  if (!await allowStockIncrement(pid, 1)) return;
   const p = DB.products.find(x => x.id === pid);
   if (!p) return;
 
   if (p.walk_in_only && isDelivery()) {
-    alert(p.name + ' is for walk-in customers only.');
+    appNotice(p.name + ' is for walk-in customers only.');
     return;
   }
 
@@ -271,7 +318,8 @@ function addProduct(pid) {
   renderPOS();
 }
 
-function chgQty(i, d) {
+async function chgQty(i, d) {
+  if (d > 0 && POS.cart[i] && !await allowStockIncrement(POS.cart[i].id, d)) return;
   if (!POS.cart[i]) return;
   POS.cart[i].q += d;
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
@@ -280,7 +328,8 @@ function chgQty(i, d) {
 }
 
 /** Bulk quantity step for commercial orders: +1 / +5 / +10 in one click. */
-function addQty(i, step) {
+async function addQty(i, step) {
+  if (step > 0 && POS.cart[i] && !await allowStockIncrement(POS.cart[i].id, Number(step))) return;
   if (!POS.cart[i]) return;
   POS.cart[i].q += Number(step) || 0;
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
@@ -352,6 +401,7 @@ function renderPaymentPanel() {
 }
 
 function renderPOS() {
+  scheduleStockPreview();
   renderCustList();
   renderProducts();
 
@@ -410,7 +460,7 @@ function renderPOS() {
   const orderNote = document.getElementById('orderTypeNote');
   if (orderNote) {
     orderNote.textContent = isDelivery()
-      ? 'Delivery orders are charged to the customer account. Brand-new jugs are hidden (walk-in only).'
+      ? 'Delivery orders are charged to the customer account. Refills and new jugs can both be delivered.'
       : '';
   }
 
@@ -432,6 +482,48 @@ async function advanceQueue(id) {
     renderPOS();
     if (typeof renderQueuePage === 'function' && document.getElementById('queue')) renderQueuePage();
   } catch (error) {
-    alert(error.message || 'Could not advance the queue stage.');
+    appNotice(error.message || 'Could not advance the queue stage.');
   }
 }
+
+var stockPreview = null, stockSignature = null, stockSequence = 0, stockBusy = false;
+function cartSignature() { return JSON.stringify(POS.cart.map(i => [i.id, i.q])); }
+async function refreshStockPreview() {
+  const seq = ++stockSequence, signature = cartSignature();
+  stockPreview = null;
+  renderProducts();
+  try {
+    const result = await API.request('cart/availability', {method:'POST', body:{items:POS.cart.map(i => ({product_id:i.id, quantity:i.q}))}});
+    if (seq !== stockSequence || signature !== cartSignature()) return null;
+    stockPreview = result;
+    renderProducts();
+    const status = document.getElementById('stockPreview');
+    if (status) status.textContent = result.valid ? 'Stock checked ' + new Date(result.checked_at).toLocaleTimeString() + '. Available to add: ' + DB.products.map(p => p.name + ': ' + (result.additional[p.id] || 0)).join(' | ') : result.shortages.join(' ');
+    return result;
+  } catch (error) {
+    if (seq === stockSequence) {
+      const status = document.getElementById('stockPreview');
+      if (status) status.textContent = 'Stock unavailable. Reconnect and retry before continuing.';
+    }
+    return null;
+  }
+}
+function scheduleStockPreview() {
+  const signature = cartSignature();
+  if (signature === stockSignature) return;
+  stockSignature = signature; refreshStockPreview();
+}
+async function allowStockIncrement(id, quantity) {
+  if (stockBusy) return false;
+  stockBusy = true;
+  try {
+    const preview = await refreshStockPreview();
+    if (!preview || !preview.valid || Number(preview.additional[id] || 0) < quantity) {
+      showStageError(preview ? 'Not enough stock for that quantity. Reduce the quantity or refresh stock.' : 'Stock cannot be checked. Reconnect and retry.');
+      return false;
+    }
+    return true;
+  } finally { stockBusy = false; }
+}
+window.addEventListener('focus', () => { if (document.getElementById('productGrid')) refreshStockPreview(); });
+window.addEventListener('online', () => { if (document.getElementById('productGrid')) refreshStockPreview(); });

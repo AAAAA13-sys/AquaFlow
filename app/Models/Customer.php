@@ -17,6 +17,7 @@ class Customer extends Model
 {
     protected $fillable = [
         'name',
+        'system_key',
         'address',
         'contact',
         'issued_slim',
@@ -105,7 +106,8 @@ class Customer extends Model
 
         return $query->where(function (Builder $inner) use ($term): void {
             $inner->where('name', 'like', '%'.$term.'%')
-                ->orWhere('contact', 'like', '%'.$term.'%');
+                ->orWhere('contact', 'like', '%'.$term.'%')
+                ->orWhere('address', 'like', '%'.$term.'%');
         });
     }
 
