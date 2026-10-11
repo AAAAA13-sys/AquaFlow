@@ -12,7 +12,7 @@ class EnsureAccountIsActive
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
-        if ($user && ! User::whereKey($user->id)->where('is_active', true)->exists()) {
+        if ($user && ! User::whereKey($user->id)->where('is_active', true)->where('is_bootstrap', false)->exists()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

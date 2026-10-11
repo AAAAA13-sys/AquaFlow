@@ -1,4 +1,4 @@
-param([ValidateSet('setup', 'start', 'stop', 'backup', 'restore', 'update', 'remote', 'remote-off')][string]$Action)
+param([ValidateSet('setup', 'start', 'stop', 'backup', 'restore', 'update', 'remote', 'remote-off', 'email')][string]$Action)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
@@ -85,8 +85,26 @@ function Backup-Store {
     Write-Host "Backup saved to $folder. Keep it private: it includes credentials and store data."
     return $folder
 }
+function Configure-Email {
+    $sender = (Read-Host 'Gmail sender address').Trim()
+    if ($sender -notmatch '^[A-Za-z0-9._%+-]+@gmail\.com$') { throw 'Enter the Gmail account that owns the app password.' }
+    $securePassword = Read-Host 'Gmail app password (hidden)' -AsSecureString
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+    try { $mailPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) -replace '\s', '' }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+    if ($mailPassword -notmatch '^[a-zA-Z]{16}$') { throw 'Expected a 16-letter Gmail app password.' }
+    Write-Setting 'MAIL_MAILER' 'smtp'
+    Write-Setting 'MAIL_HOST' 'smtp.gmail.com'
+    Write-Setting 'MAIL_PORT' '587'
+    Write-Setting 'MAIL_SCHEME' 'smtp'
+    Write-Setting 'MAIL_USERNAME' $sender
+    Write-Setting 'MAIL_FROM_ADDRESS' $sender
+    Write-Setting 'MAIL_PASSWORD' $mailPassword
+    $mailPassword = $null
+    Write-Host 'Private SMTP settings saved. The owner destination is entered during account setup.'
+}
 function Start-Store {
-    Compose up -d --wait --wait-timeout 300 db app worker analytics web
+    Compose up -d --wait --wait-timeout 300 db app worker mail-worker analytics web
     # Nginx resolves its upstream on startup, including after app replacement.
     Compose restart web
     Show-AccessLinks
@@ -123,6 +141,7 @@ try {
     }
     switch ($Action) {
         'setup' {
+            if (!(Read-Setting 'MAIL_USERNAME')) { Configure-Email }
             Import-Images
             Compose up -d --wait --wait-timeout 300 db
             Compose run --rm --no-deps app php artisan migrate --force
@@ -130,6 +149,7 @@ try {
             Copy-Item release.env installed.env -Force
             Start-Store
         }
+        'email' { Configure-Email; Compose up -d app mail-worker; Compose restart web }
         'start' { Start-Store }
         'stop' { Compose --profile remote stop }
         'remote' {
@@ -156,10 +176,12 @@ try {
         }
         'update' {
             Compose up -d --wait --wait-timeout 300 db
-            Compose --profile remote stop ngrok web worker app analytics
+            Compose --profile remote stop ngrok web worker mail-worker app analytics
             $null = Backup-Store
+            if (!(Read-Setting 'MAIL_USERNAME')) { Configure-Email }
             Import-Images
             Compose run --rm --no-deps app php artisan migrate --force
+            Compose run --rm --no-deps app php artisan aquaflow:enroll-owner-email
             Copy-Item release.env installed.env -Force
             Start-Store
         }
@@ -175,7 +197,7 @@ try {
             $key = @(Get-Content (Join-Path $folder store.env) | Where-Object { $_ -match '^APP_KEY=base64:[A-Za-z0-9+/]{43}=$' })
             if ($key.Count -ne 1) { throw 'Backup must contain exactly one valid APP_KEY.' }
             Compose up -d --wait --wait-timeout 300 db
-            Compose --profile remote stop ngrok web worker app analytics
+            Compose --profile remote stop ngrok web worker mail-worker app analytics
             $null = Backup-Store
             Compose cp (Join-Path $folder database.sql) db:/tmp/aquaflow-restore.sql
             Compose exec -T db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot aquaflow_db < /tmp/aquaflow-restore.sql'

@@ -115,7 +115,7 @@ class PageTest extends TestCase
 
         $cart = $this->js('js/pos/cart.js');
 
-        $this->assertStringContainsString('STOCKS: ', $cart);
+        $this->assertStringContainsString('Available to add: ', $cart);
         $this->assertStringContainsString('Walk-in only', $cart);
         $this->assertStringContainsString('For Sale - brand new', $cart);
     }
@@ -159,7 +159,7 @@ class PageTest extends TestCase
         $checkout = (string) file_get_contents(base_path('public/js/pos/checkout.js'));
 
         $this->assertStringContainsString('Complete & Print Receipt', $checkout);
-        $this->assertStringContainsString('Dispatch Delivery & Print Slip', $checkout);
+        $this->assertStringContainsString('Save Delivery & Print Slip', $checkout);
     }
 
     public function test_the_receipt_only_ever_prints_the_receipt(): void
@@ -275,7 +275,7 @@ class PageTest extends TestCase
 
         // Stage 1 needs a customer; stage 2 needs at least one item.
         $this->assertStringContainsString('Select a customer before continuing.', $checkout);
-        $this->assertStringContainsString('Add at least one item before continuing.', $checkout);
+        $this->assertStringContainsString('Add an item and wait for a successful stock check before continuing.', $checkout);
         $this->assertStringContainsString('function validateStage', $checkout);
         $this->assertStringContainsString('function stageProblem', $checkout);
 

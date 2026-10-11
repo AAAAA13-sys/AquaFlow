@@ -17,7 +17,7 @@ class StoreCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'max:150', 'regex:/\p{L}/u'],
             'address' => ['nullable', 'string', 'max:255'],
             'contact' => ['nullable', 'string', 'max:50'],
         ];

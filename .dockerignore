@@ -50,3 +50,4 @@ Thumbs.db
 /distribution/images.tar
 /distribution/release.env
 /distribution
+/storage/test-*.txt

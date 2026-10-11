@@ -1,0 +1,492 @@
+/* =============================================================================
+   AquaFlow — Employee Mobile Portal Styles
+   Aligned with AquaFlow's core UI palette (Royal Blue #1D4ED8, Slate #1E293B, #D3DAE5).
+   ========================================================================== */
+
+:root {
+  --emp-brand: #1D4ED8;
+  --emp-brand-hover: #1E40AF;
+  --emp-brand-tint: #DBEAFE;
+  --emp-surface: #FFFFFF;
+  --emp-bg: #F8FAFC;
+  --emp-border: #D3DAE5;
+  --emp-text: #1E293B;
+  --emp-muted: #475569;
+}
+
+body.employee-page {
+  background-color: var(--emp-bg);
+  color: var(--emp-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.emp-container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* App Header */
+.emp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--emp-surface);
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--emp-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  margin-bottom: 16px;
+}
+
+.emp-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.emp-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--emp-brand);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.emp-user-text h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--emp-text);
+  line-height: 1.25;
+}
+
+.emp-role-tag {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--emp-brand-tint);
+  color: var(--emp-brand);
+}
+
+.emp-signout-btn {
+  background: #ffffff;
+  border: 1px solid var(--emp-border);
+  color: var(--emp-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emp-signout-btn:hover,
+.emp-signout-btn:active {
+  background: #F1F5F9;
+  color: var(--emp-text);
+}
+
+/* Status Bar */
+.emp-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 12px 4px;
+  font-size: 12px;
+  color: var(--emp-muted);
+}
+
+.emp-pulse-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emp-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--emp-brand);
+}
+
+.emp-pulse-dot.offline {
+  background: #DC2626;
+}
+
+/* Cards */
+.emp-card {
+  background: var(--emp-surface);
+  border-radius: 14px;
+  border: 1px solid var(--emp-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.02);
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.emp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--emp-border);
+}
+
+.emp-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--emp-text);
+}
+
+/* Status Badges */
+.emp-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+}
+
+.emp-badge-late {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.emp-badge-ontime,
+.emp-badge-checked_in,
+.emp-badge-present {
+  background: var(--emp-brand-tint);
+  color: var(--emp-brand);
+  border: 1px solid #BFDBFE;
+}
+
+.emp-badge-completed {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+}
+
+.emp-badge-absent {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+.emp-badge-neutral {
+  background: #F1F5F9;
+  color: var(--emp-muted);
+  border: 1px solid var(--emp-border);
+}
+
+.emp-badge-preparing {
+  background: var(--emp-brand-tint);
+  color: var(--emp-brand);
+  border: 1px solid #BFDBFE;
+}
+
+.emp-badge-ready {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.emp-badge-out_for_delivery {
+  background: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+}
+
+.emp-badge-delivered {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+/* Stat Grid */
+.emp-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.emp-stat-box {
+  background: #F8FAFC;
+  border: 1px solid var(--emp-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.emp-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--emp-muted);
+  margin-bottom: 3px;
+  letter-spacing: 0.5px;
+}
+
+.emp-stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--emp-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Action Buttons */
+.emp-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.emp-punch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.emp-punch-in {
+  background: var(--emp-brand);
+  color: #ffffff;
+  border: 1px solid var(--emp-brand);
+}
+
+.emp-punch-in:hover,
+.emp-punch-in:active {
+  background: var(--emp-brand-hover);
+}
+
+.emp-punch-out {
+  background: #ffffff;
+  color: var(--emp-text);
+  border: 1.5px solid var(--emp-border);
+}
+
+.emp-punch-out:hover,
+.emp-punch-out:active {
+  background: #F1F5F9;
+}
+
+.emp-punch-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+
+/* Orders section */
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.emp-section-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--emp-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emp-count-pill {
+  font-size: 12px;
+  background: var(--emp-brand-tint);
+  color: var(--emp-brand);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* Standard Refresh Button on My Orders */
+.emp-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid var(--emp-border);
+  color: var(--emp-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emp-refresh-btn:hover,
+.emp-refresh-btn:active {
+  background: #F1F5F9;
+  border-color: #BFC8D6;
+}
+
+/* Order Item Card */
+.emp-order-card {
+  background: var(--emp-surface);
+  border: 1px solid var(--emp-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.emp-order-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.emp-order-receipt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--emp-text);
+}
+
+.emp-order-customer {
+  font-size: 13px;
+  color: var(--emp-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.emp-order-lines {
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--emp-text);
+  line-height: 1.4;
+}
+
+.emp-order-meta {
+  font-size: 12px;
+  color: var(--emp-muted);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emp-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Action button for jobs */
+.emp-action-btn {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: var(--emp-brand);
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.emp-action-btn:hover,
+.emp-action-btn:active {
+  background: var(--emp-brand-hover);
+}
+
+.emp-issue-box {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--emp-border);
+}
+
+.emp-issue-toggle {
+  background: none;
+  border: none;
+  color: var(--emp-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  text-decoration: underline;
+}
+
+.emp-issue-report-btn {
+  background: #ffffff;
+  border: 1px solid var(--emp-border);
+  color: #B91C1C;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+/* Error banner */
+.emp-alert {
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.emp-alert.hidden {
+  display: none;
+}
+
+/* Empty State */
+.emp-empty-state {
+  text-align: center;
+  padding: 28px 16px;
+  background: var(--emp-surface);
+  border-radius: 14px;
+  border: 1px dashed var(--emp-border);
+  color: var(--emp-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

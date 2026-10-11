@@ -12,7 +12,6 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -29,7 +28,7 @@ use Illuminate\Validation\ValidationException;
  * Containers: under the Zero Station-Owned Jugs rule the station lends nothing,
  * so there is no custody debt. A refill is the customer's own jug coming back
  * filled; a brand-new jug is ordinary merchandise that depletes jug stock and is
- * restricted to walk-in sales.
+ * available for walk-in sales and delivery.
  *
  * Everything a sale implies happens in one database transaction.
  */
@@ -46,10 +45,14 @@ class CheckoutService
         private readonly InventoryEngine $inventory,
     ) {}
 
-    /** Order type determines payment: walk-in is cash, delivery is on account. */
-    public static function paymentFor(string $orderType): string
+    /** Order type and choice determines payment: walk-in is cash, delivery can be cash or on account (rider). */
+    public static function paymentFor(string $orderType, string $paymentOption = 'rider'): string
     {
-        return $orderType === 'Delivery' ? self::PAYMENT_ACCOUNT : self::PAYMENT_CASH;
+        if ($orderType === 'Delivery') {
+            return $paymentOption === 'cashier' ? self::PAYMENT_CASH : self::PAYMENT_ACCOUNT;
+        }
+
+        return self::PAYMENT_CASH;
     }
 
     /**
@@ -94,10 +97,7 @@ class CheckoutService
      */
     private function loadCatalog(array $items): Collection
     {
-        $requested = [];
-        foreach ($items as $item) {
-            $requested[$item['product_id']] = ($requested[$item['product_id']] ?? 0) + $item['quantity'];
-        }
+        $requested = app(CartAvailabilityService::class)->quantities($items);
 
         $products = Product::query()
             ->soldAtPos()
@@ -160,7 +160,7 @@ class CheckoutService
         $vatable = round($gross / (1 + self::VAT_RATE), 2);
         $vat = round($gross - $vatable, 2);
 
-        $payment = self::paymentFor($data->orderType);
+        $payment = self::paymentFor($data->orderType, $data->paymentOption);
         $isCash = $payment === self::PAYMENT_CASH;
 
         if ($isCash && $data->cashTendered + 0.0001 < $gross) {
@@ -210,7 +210,7 @@ class CheckoutService
      */
     private function assertCustomerRules(Customer $customer, CheckoutData $data, Collection $catalog): void
     {
-        $isWalkIn = $customer->name === 'Walk-in Guest';
+        $isWalkIn = $customer->system_key === 'walk-in' || $customer->name === 'Walk-in Guest';
 
         // A delivery is charged to the account, so it needs a real ledger to
         // charge against. (A walk-in always pays cash, so it can never accrue.)
@@ -220,8 +220,7 @@ class CheckoutService
             ]);
         }
 
-        // A brand-new jug is taken away over the counter, so it cannot be
-        // attached to a delivery order.
+        // Honor catalog restrictions for any future restricted products.
         if ($data->orderType === 'Delivery') {
             $blocked = $catalog
                 ->filter(fn (Product $product): bool => $product->walk_in_only)
@@ -230,7 +229,7 @@ class CheckoutService
 
             if ($blocked !== []) {
                 throw ValidationException::withMessages([
-                    'items' => 'Walk-in only: '.implode(', ', $blocked).'. New containers cannot be delivered.',
+                    'items' => 'Walk-in only: '.implode(', ', $blocked).'.',
                 ]);
             }
         }
@@ -258,8 +257,8 @@ class CheckoutService
             'payment_method' => $pricing['payment_method'],
             'cash_tendered' => $pricing['cash_tendered'],
             'cash_change' => $pricing['cash_change'],
-            'balance_after' => $customer->debt_balance + ($data->orderType === 'Delivery' ? $pricing['total'] : 0),
-            'payment_status' => $data->orderType === 'Delivery' ? 'unpaid' : 'paid',
+            'balance_after' => $customer->debt_balance + ($pricing['payment_method'] === self::PAYMENT_ACCOUNT ? $pricing['total'] : 0),
+            'payment_status' => $pricing['payment_method'] === self::PAYMENT_ACCOUNT ? 'unpaid' : 'paid',
             'delivery_address' => $data->orderType === 'Delivery' ? $customer->address : null,
             'transaction_date' => now()->toDateString(),
             'transaction_time' => now()->toTimeString(),
@@ -308,17 +307,7 @@ class CheckoutService
      */
     private function deductStock(Collection $catalog, Transaction $transaction, User $cashier): void
     {
-        $requirements = [];
-        $recipes = DB::table('product_consumables')->whereIn('product_id', $catalog->keys())->get();
-        foreach ($recipes as $recipe) {
-            $qty = (int) $catalog[$recipe->product_id]->getAttribute('requested_quantity') * $recipe->qty_per_sale;
-            $requirements[$recipe->inventory_item_id] = ($requirements[$recipe->inventory_item_id] ?? 0) + $qty;
-        }
-        foreach ($catalog as $product) {
-            if (! $recipes->contains('product_id', $product->id)) {
-                throw ValidationException::withMessages(['items' => 'No consumption recipe configured for '.$product->name.'.']);
-            }
-        }
+        $requirements = app(CartAvailabilityService::class)->requirements($catalog->map(fn (Product $product): int => (int) $product->getAttribute('requested_quantity'))->all());
         $stock = InventoryItem::whereIn('id', array_keys($requirements))->orderBy('id')->lockForUpdate()->get();
         foreach ($stock as $item) {
             $qty = $requirements[$item->id];
@@ -345,16 +334,17 @@ class CheckoutService
      */
     private function queueForProduction(Transaction $transaction, Customer $customer, CheckoutData $data, array $pricing): void
     {
-        if ($pricing['gallons'] <= 0) {
+        if ($pricing['gallons'] <= 0 && $data->orderType !== 'Delivery') {
             return;
         }
 
         ProductionQueueItem::query()->create([
+            'transaction_id' => $transaction->id,
             'receipt_number' => $transaction->receipt_number,
             'customer_name' => $customer->name,
             'stage' => 0,
             'elapsed_minutes' => 0,
-            'items_description' => $pricing['volume'],
+            'items_description' => collect($pricing['lines'])->map(fn (array $line): string => $line['quantity'].'x '.$line['product_id'])->implode(', '),
             'order_type' => $data->orderType,
             'is_completed' => false,
         ]);

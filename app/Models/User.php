@@ -2,23 +2,30 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 /**
- * An AquaFlow account. Authentication is by username, and the `pin` column
- * holds the extra Owner PIN (both stored as bcrypt hashes).
+ * Staff authenticate by username; admins use email, password and email OTP.
  */
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
 
     public const ROLE_CASHIER = 'cashier';
+
     public const ROLE_ADMIN = 'admin';
 
     protected $fillable = [
+        'is_bootstrap',
+        'email',
+        'email_verified_at',
+        'recovery_codes',
+        'employee_id',
         'username',
         'password',
         'role',
@@ -28,6 +35,7 @@ class User extends Authenticatable
     ];
 
     protected $hidden = [
+        'recovery_codes',
         'password',
         'pin',
     ];
@@ -35,6 +43,9 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'is_bootstrap' => 'boolean',
+            'email_verified_at' => 'datetime',
+            'recovery_codes' => 'array',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
@@ -43,6 +54,16 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function isEmployee(): bool
+    {
+        return in_array($this->role, ['rider', 'refiller'], true);
     }
 
     public function transactions(): HasMany

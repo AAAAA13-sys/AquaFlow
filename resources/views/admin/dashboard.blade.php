@@ -140,6 +140,7 @@
       </div>
     </div>
   </section>
+  @include('partials.fulfillment')
 @endsection
 
 {{-- Customer balance reminder drawer. --}}

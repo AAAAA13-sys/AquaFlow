@@ -17,8 +17,8 @@ class AttendancePolicyTest extends TestCase
         $this->seed();
         $this->travelTo(now()->setTime(9, 0));
         $employee = Employee::firstOrFail();
-        $this->actingAs(User::where('username', 'cashier')->firstOrFail());
-        $url = '/api/attendance/employees/'.$employee->id;
+        $this->actingAs(User::create(['username' => 'refiller', 'name' => 'Refiller', 'password' => 'Refill123', 'role' => 'refiller', 'employee_id' => Employee::firstOrFail()->id, 'is_active' => true]));
+        $url = '/api/employee/attendance';
         $this->postJson($url.'/time-in', ['reason' => 'Traffic delay'])->assertOk()->assertJsonPath('row.status', 'late');
         $this->travelTo(now()->setTime(18, 0));
         $this->postJson($url.'/time-out')->assertOk()->assertJsonPath('row.status', 'late')->assertJsonPath('row.progress', 'completed');

@@ -19,6 +19,8 @@ class CustomerResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'is_guest' => $this->system_key === 'walk-in',
+            'created_at' => $this->created_at?->toISOString(),
             'addr' => $this->address,
             'contact' => $this->contact,
             'issuedS' => (int) $this->issued_slim,

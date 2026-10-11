@@ -467,15 +467,15 @@ function draftPO() {
     .filter(a => Number(a.reorder_at) > 0);
 
   const rows = advisories.length
-    ? advisories.map(a => [a.item, a.order_quantity, a.supplier].join(','))
-    : DB.inventory.filter(needsReorder).map(v => v.item + ',' + orderQtyFrom(v) + ',' + v.supplier);
+    ? advisories.map(a => [a.item, a.order_quantity, a.supplier].map(csvCell).join(','))
+    : DB.inventory.filter(needsReorder).map(v => [v.item, orderQtyFrom(v), v.supplier].map(csvCell).join(','));
 
   const skipped = DB.inventory.filter(isUnconfigured).map(v => v.item);
 
   const notes = [];
   if (skipped.length) {
     notes.push('');
-    notes.push('# Excluded - no reorder point set: ' + skipped.join('; '));
+    notes.push(csvCell('# Excluded - no reorder point set: ' + skipped.join('; ')));
   }
 
   const csv = 'Item,SuggestedQty,Supplier\n' + rows.join('\n') + notes.join('\n');

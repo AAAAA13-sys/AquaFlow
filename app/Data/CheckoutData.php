@@ -27,6 +27,7 @@ final readonly class CheckoutData
         public float $cashTendered,
         public array $items,
         public string $submissionKey,
+        public string $paymentOption = 'rider',
     ) {}
 
     /**
@@ -50,6 +51,7 @@ final readonly class CheckoutData
             cashTendered: (float) ($validated['cash_tendered'] ?? 0),
             items: $items,
             submissionKey: (string) $validated['submission_key'],
+            paymentOption: (string) ($validated['payment_option'] ?? 'rider'),
         );
     }
 }

@@ -1,5 +1,12 @@
 const money = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+function csvCell(value) {
+  let cell = String(value ?? '');
+  // Spreadsheet apps interpret formula prefixes even inside quoted CSV fields.
+  if (typeof value === 'string' && (/^[\t\r\n]/.test(cell) || /^\s*[=+@-]/.test(cell))) cell = "'" + cell;
+  return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell;
+}
+
 // Shared CSV download transport; callers retain their own bytes and filenames.
 function downloadCSV(csv, filename) {
   const a = document.createElement('a');
@@ -53,7 +60,7 @@ function icon(id, extraClass) {
 function savePOSState() {
   if (typeof POS === 'undefined') return;
   try {
-    localStorage.setItem('aquaflow_pos', JSON.stringify({
+    sessionStorage.setItem('aquaflow_pos_v2:' + (getSession()?.u || 'guest'), JSON.stringify({
       orderN: POS.orderN,
       cart: POS.cart,
       custId: POS.custId,
@@ -67,7 +74,7 @@ function savePOSState() {
 function restorePOSState() {
   if (typeof POS === 'undefined') return;
   try {
-    const saved = JSON.parse(localStorage.getItem('aquaflow_pos') || 'null');
+    const saved = JSON.parse(sessionStorage.getItem('aquaflow_pos_v2:' + (getSession()?.u || 'guest')) || 'null');
     if (!saved) return;
     ['orderN', 'cart', 'custId', 'type'].forEach(k => {
       if (saved[k] !== undefined) POS[k] = saved[k];

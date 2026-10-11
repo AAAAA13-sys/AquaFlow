@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,6 +19,7 @@ class ProductionQueueItem extends Model
     public const FINAL_STAGE = 4;
 
     protected $fillable = [
+        'transaction_id',
         'receipt_number',
         'customer_name',
         'stage',
@@ -31,6 +33,7 @@ class ProductionQueueItem extends Model
     {
         return [
             'delivered_at' => 'datetime',
+            'version' => 'integer',
             'stage' => 'integer',
             'stage_history' => 'array',
             'elapsed_minutes' => 'integer',
@@ -44,10 +47,16 @@ class ProductionQueueItem extends Model
         return $query->where('is_completed', false);
     }
 
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class);
+    }
+
     public function advance(): self
     {
         DB::transaction(function (): void {
             $locked = self::whereKey($this->id)->lockForUpdate()->firstOrFail();
+            abort_if($locked->transaction_id || $locked->order_type === 'Delivery', 403, 'Use the employee fulfillment workflow.');
             if ($locked->is_completed) {
                 return;
             }

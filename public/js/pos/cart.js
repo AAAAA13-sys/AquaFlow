@@ -51,6 +51,24 @@ function isDelivery() {
 
 const peso = n => '₱' + Number(n).toLocaleString();
 
+async function confirmOrderType(type) {
+  if (type === POS.type || confirmOrderType.busy) return;
+  if (type === 'Delivery' && (!posCust() || posCust().is_guest)) {
+    showStageError('Select a registered customer for delivery.'); return;
+  }
+  confirmOrderType.busy = true;
+  try {
+    if (await appConfirm('Change this order to ' + type + '?', 'Change order type')) setType(type);
+  } finally { confirmOrderType.busy = false; }
+}
+
+async function confirmCartAction(message, action) {
+  if (confirmCartAction.busy) return;
+  confirmCartAction.busy = true;
+  try { if (await appConfirm(message, 'Confirm change')) await action(); }
+  finally { confirmCartAction.busy = false; }
+}
+
 function setType(t) {
   POS.type = t;
 
@@ -132,6 +150,8 @@ async function searchCustomers() {
   const seq = ++custSeq;
   const term = ((search && search.value) || '').trim();
   const order = document.getElementById('customerOrder')?.value || 'oldest';
+  const list = document.getElementById('custList');
+  if (list) list.innerHTML = '<p class="cashier-empty" role="status">Searching customers…</p>';
 
   try {
     const data = await API.customers({
@@ -215,6 +235,7 @@ async function pickCust(id) {
     showStageError('Recover the pending receipt before changing customers.'); return false;
   }
   if (POS.cart.length && !await appConfirm('Discard the current order and switch customers?', 'Discard and switch')) return false;
+  if (!POS.cart.length && !await appConfirm('Select ' + (DB.customers.find(c => c.id === id)?.name || 'this customer') + ' for this order?', 'Select customer')) return false;
   POS.cart = []; POS.custId = id; POS.type = 'Walk-in';
   ['tender', 'debtPay'].forEach(key => { const el = document.getElementById(key); if (el) el.value = 0; });
   const receipt = document.getElementById('receipt'); if (receipt) receipt.classList.add('hidden');
@@ -285,7 +306,7 @@ function renderProducts() {
     return '<button type="button" class="product-item ' + productTheme(product) +
       (disabled || outOfStock ? ' is-disabled' : '') + '"' +
       (disabled || outOfStock ? ' disabled' : '') +
-      ' onclick="addProduct(\'' + product.id + '\')">' +
+      ' onclick="confirmCartAction(\'Add this product to the order?\', () => addProduct(\'' + product.id + '\'))">' +
       '<span>' +
       '<span class="product-info-name">' + esc(product.name) + '</span>' +
       '<span class="product-info-sub">' + productSubtitle(product) + '</span>' +
@@ -365,39 +386,58 @@ function cartRowsHtml() {
 
   return POS.cart.map((it, x) =>
     '<div class="order-row">' +
-    '<span>' + it.name + '</span><span class="text-right">' + money(it.price) + '</span>' +
-    '<span class="qty-ctrl"><button type="button" onclick="chgQty(' + x + ',-1)">-</button><b>x' + it.q + '</b><button type="button" onclick="chgQty(' + x + ',1)">+</button>' +
-      '<span class="qty-step">' +
-        '<button type="button" onclick="addQty(' + x + ',5)" title="Add 5">+5</button>' +
-        '<button type="button" onclick="addQty(' + x + ',10)" title="Add 10">+10</button>' +
-      '</span>' +
+    '<span>' + esc(it.name) + '</span><span class="text-right">' + money(it.price) + '</span>' +
+    '<span class="qty-ctrl">' +
+      '<button type="button" onclick="confirmCartAction(\'Remove one unit from this order?\', () => chgQty(' + x + ',-1))">-</button>' +
+      '<b>x' + it.q + '</b>' +
+      '<button type="button" onclick="confirmCartAction(\'Add one unit to this order?\', () => chgQty(' + x + ',1))">+</button>' +
     '</span>' +
     '<span class="text-right"><b>' + peso(it.price * it.q) + '</b></span></div>'
   ).join('');
 }
 
-/** Switches the stage-3 payment panel to match the order type. */
+function setDeliveryPayOption(opt) {
+  POS.deliveryPay = opt;
+  renderPaymentPanel();
+  renderPOS();
+}
+
+/** Switches the stage-3 payment panel to match the order type and delivery payment choice. */
 function renderPaymentPanel() {
   const cash = document.getElementById('cashPanel');
   const delivery = document.getElementById('deliveryPanel');
+  const deliveryChoice = document.getElementById('deliveryPaymentChoice');
   const badge = document.getElementById('payBadge');
+  const optCashier = document.getElementById('payOptCashier');
+  const optRider = document.getElementById('payOptRider');
 
+  POS.deliveryPay = POS.deliveryPay || 'rider';
   const delivering = isDelivery();
 
-  if (cash) cash.classList.toggle('hidden', delivering);
-  if (delivery) delivery.classList.toggle('hidden', !delivering);
-  if (badge) badge.textContent = delivering ? 'ACCOUNT / UTANG' : 'CASH';
+  if (deliveryChoice) deliveryChoice.classList.toggle('hidden', !delivering);
 
-  if (!delivering) return;
+  if (delivering) {
+    const payToCashier = POS.deliveryPay === 'cashier';
+    if (optCashier) optCashier.classList.toggle('active', payToCashier);
+    if (optRider) optRider.classList.toggle('active', !payToCashier);
 
-  const c = posCust();
-  const t = posTotals();
-  const balance = c === null ? 0 : Number(c.debt);
+    if (cash) cash.classList.toggle('hidden', !payToCashier);
+    if (delivery) delivery.classList.toggle('hidden', payToCashier);
+    if (badge) badge.textContent = payToCashier ? 'CASH (COLLECT NOW)' : 'PAY TO RIDER';
 
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('deliveryBalance', money(balance));
-  set('deliveryThis', money(t.total));
-  set('deliveryAfter', money(balance + t.total));
+    const c = posCust();
+    const t = posTotals();
+    const balance = c === null ? 0 : Number(c.debt);
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('deliveryBalance', money(balance));
+    set('deliveryThis', money(t.total));
+    set('deliveryAfter', money(payToCashier ? balance : (balance + t.total)));
+  } else {
+    if (cash) cash.classList.remove('hidden');
+    if (delivery) delivery.classList.add('hidden');
+    if (badge) badge.textContent = 'CASH';
+  }
 }
 
 function renderPOS() {
@@ -497,13 +537,10 @@ async function refreshStockPreview() {
     if (seq !== stockSequence || signature !== cartSignature()) return null;
     stockPreview = result;
     renderProducts();
-    const status = document.getElementById('stockPreview');
-    if (status) status.textContent = result.valid ? 'Stock checked ' + new Date(result.checked_at).toLocaleTimeString() + '. Available to add: ' + DB.products.map(p => p.name + ': ' + (result.additional[p.id] || 0)).join(' | ') : result.shortages.join(' ');
     return result;
   } catch (error) {
     if (seq === stockSequence) {
-      const status = document.getElementById('stockPreview');
-      if (status) status.textContent = 'Stock unavailable. Reconnect and retry before continuing.';
+      stockSignature = null;
     }
     return null;
   }

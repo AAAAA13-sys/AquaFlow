@@ -16,7 +16,7 @@ class StoreInstallationTest extends TestCase
 
     private function details(): array
     {
-        return ['name' => 'Store Owner', 'username' => 'owner', 'password' => 'Store123', 'pin' => '2468'];
+        return ['name' => 'Store Owner', 'username' => 'owner', 'password' => 'Store123', 'email' => 'owner@example.com'];
     }
 
     public function test_clean_install_has_no_demo_data_and_cannot_reset_an_existing_store(): void
@@ -25,10 +25,13 @@ class StoreInstallationTest extends TestCase
         $owner = User::sole();
         $this->assertTrue($owner->isAdmin());
         $this->assertTrue(Hash::check('Store123', $owner->password));
-        $this->assertTrue(Hash::check('2468', $owner->pin));
-        foreach (['transactions', 'customers', 'employees', 'suppliers', 'stock_movements'] as $table) {
+        $this->assertNull($owner->pin);
+        $this->assertSame('owner@example.com', $owner->email);
+        foreach (['transactions', 'employees', 'suppliers', 'stock_movements'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
+        $this->assertDatabaseHas('customers', ['system_key' => 'walk-in']);
+        $this->assertDatabaseCount('customers', 1);
         $this->assertGreaterThan(0, InventoryItem::count());
         $this->assertEquals(0, InventoryItem::sum('stock_on_hand'));
         $this->assertDatabaseCount('products', 7);

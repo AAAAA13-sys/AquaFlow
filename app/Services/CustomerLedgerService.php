@@ -21,7 +21,12 @@ class CustomerLedgerService
                 ]);
             }
 
-            $applied = min($amount, $locked->debt_balance);
+            if ((int) round($amount * 100) > (int) round($locked->debt_balance * 100)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Payment cannot exceed the outstanding balance.',
+                ]);
+            }
+            $applied = round($amount, 2);
             $locked->debt_balance = round($locked->debt_balance - $applied, 2);
             $locked->save();
             if ($locked->debt_balance <= 0) {

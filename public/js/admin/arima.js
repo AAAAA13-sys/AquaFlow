@@ -217,9 +217,9 @@ async function runForecast() {
     renderDemandChart();
     if (typeof renderInvTable === 'function') renderInvTable();
     if (typeof renderInsights === 'function') renderInsights();
-    alert('Forecast updated from the ARIMA service.');
+    appNotice('Forecast updated from the ARIMA service.');
   } catch (error) {
-    alert(error.message || 'Could not update the forecast. Is the analytics service running?');
+    appNotice(error.message || 'Could not update the forecast. Is the analytics service running?');
   } finally {
     if (button) {
       button.disabled = false;
@@ -242,34 +242,33 @@ async function reportSales() {
 async function exportReport() {
   const record = currentSeriesRecord();
   if (!record) {
-    alert('No forecast available to export.');
+    appNotice('No forecast available to export.');
     return;
   }
 
   let sales;
-  try { sales = await reportSales(); } catch (error) { alert(error.message); return; }
+  try { sales = await reportSales(); } catch (error) { appNotice(error.message); return; }
   const history = record.history || [];
   const forecast = record.forecast || [];
   const rows = ['Day,History,Forecast'];
   const length = Math.max(history.length, forecast.length);
   for (let i = 0; i < length; i++) {
-    rows.push((i + 1) + ',' + (history[i] !== undefined ? history[i] : '') + ',' + (forecast[i] !== undefined ? forecast[i] : ''));
+    rows.push([i + 1, history[i], forecast[i]].map(csvCell).join(','));
   }
 
   const model = record.model || {};
   const header = '# AquaFlow ARIMA report\n' +
-    '# Series,' + record.series + '\n' +
-    '# Model,' + (model.order || '') + '\n' +
-    '# Method,' + (model.method || '') + '\n' +
-    '# MAPE,' + (model.mape ?? '') + '\n' +
-    '# MAE,' + (model.mae ?? '') + '\n' +
-    '# RMSE,' + (model.rmse ?? '') + '\n' +
-    '# AIC,' + (model.aic ?? '') + '\n' +
-    '# ADF p-value,' + (model.adf_pvalue ?? '') + '\n' +
-    '# Ljung-Box p-value,' + (model.ljung_box_pvalue ?? '') + '\n';
+    '# Series,' + csvCell(record.series) + '\n' +
+    '# Model,' + csvCell(model.order) + '\n' +
+    '# Method,' + csvCell(model.method) + '\n' +
+    '# MAPE,' + csvCell(model.mape) + '\n' +
+    '# MAE,' + csvCell(model.mae) + '\n' +
+    '# RMSE,' + csvCell(model.rmse) + '\n' +
+    '# AIC,' + csvCell(model.aic) + '\n' +
+    '# ADF p-value,' + csvCell(model.adf_pvalue) + '\n' +
+    '# Ljung-Box p-value,' + csvCell(model.ljung_box_pvalue) + '\n';
 
-  const cell = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
-  const section = (title, columns, values) => '\n\n' + title + '\n' + columns.map(cell).join(',') + '\n' + values.map(row=>row.map(cell).join(',')).join('\n');
+  const section = (title, columns, values) => '\n\n' + title + '\n' + columns.map(csvCell).join(',') + '\n' + values.map(row=>row.map(csvCell).join(',')).join('\n');
   const csv = header + rows.join('\n') +
     section('Inventory',['Item','Stock','Unit','Safety stock','Reorder point','Supplier'],DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) +
     section('Sales',['Receipt','Date','Customer','Total','Payment'],sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) +
@@ -288,9 +287,9 @@ function restoreForecastView() {
 }
 async function exportReportPDF() {
   const popup = window.open('', '_blank');
-  if (!popup) { alert('Allow popups to open the printable report.'); return; }
+  if (!popup) { appNotice('Allow popups to open the printable report.'); return; }
   let sales;
-  try { sales = await reportSales(); } catch (error) { popup.close(); alert(error.message); return; }
+  try { sales = await reportSales(); } catch (error) { popup.close(); appNotice(error.message); return; }
   const table = (title, headers, rows) => '<h2>' + esc(title) + '</h2><table><thead><tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(cell => '<td>' + esc(String(cell ?? '')) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
   const forecasts = Object.entries(DB.forecasts || {}).flatMap(([name, record]) => (record.forecast || []).map((value, index) => [name, index + 1, value, record.model?.mape]));
   popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AquaFlow report ' + new Date().toISOString().slice(0,10) + '</title><style>body{font:12px sans-serif}table{border-collapse:collapse;width:100%;margin-bottom:20px}th,td{border:1px solid #ccc;padding:6px;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><h1>AquaFlow Report</h1><p>Generated ' + esc(new Date().toLocaleString()) + '</p>' + table('Sales', ['Receipt','Date','Customer','Total','Payment'], sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) + table('Inventory', ['Item','On hand','Unit','Safety stock','Reorder point','Supplier'], DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) + table('Forecasts',['Series','Day','Demand','MAPE'],forecasts) + table('Advisories',['Item','Supplier','Order quantity'],(DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_qty])) + '</body></html>');

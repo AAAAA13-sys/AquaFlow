@@ -16,6 +16,14 @@ x-app-env: &app-env
   SESSION_DRIVER: database
   CACHE_STORE: database
   QUEUE_CONNECTION: database
+  MAIL_MAILER: ${MAIL_MAILER:-smtp}
+  MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_SCHEME: ${MAIL_SCHEME:-smtp}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+  MAIL_FROM_NAME: AquaFlow
   ANALYTICS_URL: http://analytics:5000
   ANALYTICS_TIMEOUT: 240
 services:
@@ -58,6 +66,15 @@ services:
     pull_policy: never
     environment: *app-env
     command: ["php", "artisan", "schedule:work"]
+    healthcheck: {disable: true}
+    depends_on:
+      app: {condition: service_healthy}
+    restart: unless-stopped
+  mail-worker:
+    image: aquaflow/app:${AQUAFLOW_VERSION:?Missing release.env}
+    pull_policy: never
+    environment: *app-env
+    command: ["php", "artisan", "queue:work", "--queue=mail", "--sleep=2", "--tries=2", "--timeout=30", "--max-time=3600"]
     healthcheck: {disable: true}
     depends_on:
       app: {condition: service_healthy}

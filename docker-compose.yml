@@ -63,8 +63,24 @@ services:
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SCHEME: ${MAIL_SCHEME:-smtp}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: AquaFlow
       ANALYTICS_URL: http://analytics:5000
       ANALYTICS_TIMEOUT: ${ANALYTICS_TIMEOUT:-240}
+    volumes:
+      - ./app:/var/www/html/app
+      - ./routes:/var/www/html/routes
+      - ./config:/var/www/html/config
+      - ./resources:/var/www/html/resources
+      - ./public:/var/www/html/public
+      - ./database:/var/www/html/database
+      - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
     depends_on:
       db:
         condition: service_healthy
@@ -89,6 +105,7 @@ services:
         && php artisan aquaflow:forecast --skip-analytics
     environment:
       APP_ENV: production
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
       APP_KEY: ${APP_KEY:?generate an APP_KEY first}
       DB_CONNECTION: mysql
       DB_HOST: db
@@ -184,6 +201,7 @@ services:
       disable: true
     environment:
       APP_ENV: production
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
       APP_KEY: ${APP_KEY:?generate an APP_KEY first}
       DB_CONNECTION: mysql
       DB_HOST: db
@@ -192,6 +210,43 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       ANALYTICS_URL: http://analytics:5000
+      LOG_CHANNEL: stderr
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [aquaflow]
+
+  mail-worker:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+      target: app
+    command: ["php", "artisan", "queue:work", "--queue=mail", "--sleep=2", "--tries=2", "--timeout=30", "--max-time=3600"]
+    # The app image's HEALTHCHECK probes HTTP, but the worker serves no HTTP.
+    # Inheriting it would leave the scheduler permanently "unhealthy".
+    healthcheck:
+      disable: true
+    environment:
+      APP_ENV: production
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
+      APP_KEY: ${APP_KEY:?generate an APP_KEY first}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-aquaflow_db}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      ANALYTICS_URL: http://analytics:5000
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SCHEME: ${MAIL_SCHEME:-smtp}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: AquaFlow
       LOG_CHANNEL: stderr
     depends_on:
       db:

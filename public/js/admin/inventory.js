@@ -116,7 +116,7 @@ async function updLead(i, val) {
       renderInvTable(); renderInsights(); saveDB();
       return;
     } catch (error) {
-      alert(error.message || 'Could not update the lead time.');
+      appNotice(error.message || 'Could not update the lead time.');
       renderInvTable();
       return;
     }
@@ -163,7 +163,7 @@ async function createInventoryItem(event) {
       ? +document.getElementById('invSupplier').value : null
   };
   if (!payload.item_name) {
-    alert('Item name is required.');
+    appNotice('Item name is required.');
     return false;
   }
   try {
@@ -175,7 +175,7 @@ async function createInventoryItem(event) {
     if (typeof renderInsights === 'function') renderInsights();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not add the item.');
+    appNotice(error.message || 'Could not add the item.');
   }
   return false;
 }
@@ -186,7 +186,7 @@ function openInventoryEditor(id) {
   const bodyEl = document.getElementById('invEditBody');
   if (!v || !wrap || !bodyEl) return;
   const supplierOptions = '<option value="">No supplier</option>' + (DB.suppliers || []).map(s =>
-    '<option value="' + esc(supKey(s)) + '"' + (v.supplier === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>'
+    '<option value="' + esc(supKey(s)) + '"' + (v.supplier_id != null && String(v.supplier_id) === String(s.id) ? ' selected' : '') + '>' + esc(s.name) + '</option>'
   ).join('');
   bodyEl.innerHTML =
     '<label class="cell-sub">Item name</label><input id="invEditName" class="form-input" value="' + esc(v.item) + '" maxlength="150">' +
@@ -225,14 +225,14 @@ async function saveInventoryEdit(id) {
     if (typeof renderInsights === 'function') renderInsights();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not save the item.');
+    appNotice(error.message || 'Could not save the item.');
   }
 }
 
 async function deleteInventoryItem(id) {
   const v = findInventory(id);
   if (!v) return;
-  if (!confirm('Delete "' + v.item + '"? Linked products will keep selling with no stock tracking.')) return;
+  if (!await appConfirm('Delete "' + v.item + '"? Linked products will keep selling with no stock tracking.')) return;
   try {
     const result = await API.deleteInventory(id);
     API.removeInventory(id);
@@ -241,7 +241,7 @@ async function deleteInventoryItem(id) {
     if (typeof renderInsights === 'function') renderInsights();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not delete the item.');
+    appNotice(error.message || 'Could not delete the item.');
   }
 }
 
@@ -280,7 +280,7 @@ async function createSupplier(event) {
       ? document.getElementById('supLast').value : null
   };
   if (!payload.name || !payload.supplied_items) {
-    alert('Supplier name and supplied items are required.');
+    appNotice('Supplier name and supplied items are required.');
     return false;
   }
   try {
@@ -293,7 +293,7 @@ async function createSupplier(event) {
     fillInventorySupplierOptions();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not add the supplier.');
+    appNotice(error.message || 'Could not add the supplier.');
   }
   return false;
 }
@@ -346,14 +346,14 @@ async function saveSupplierEdit(key) {
     fillInventorySupplierOptions();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not save the supplier.');
+    appNotice(error.message || 'Could not save the supplier.');
   }
 }
 
 async function deleteSupplier(key) {
   const s = findSupplier(key);
   if (!s) return;
-  if (!confirm('Delete supplier "' + s.name + '"? Linked items will show no supplier.')) return;
+  if (!await appConfirm('Delete supplier "' + s.name + '"? Linked items will show no supplier.')) return;
   if (s.id === undefined || s.id === null) {
     API.removeSupplier(s.name);
     renderSup();
@@ -367,6 +367,6 @@ async function deleteSupplier(key) {
     fillInventorySupplierOptions();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not delete the supplier.');
+    appNotice(error.message || 'Could not delete the supplier.');
   }
 }

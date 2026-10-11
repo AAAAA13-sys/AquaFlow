@@ -82,65 +82,72 @@ function renderUsers() {
   showTableEmpty(body, 6);
 }
 
+let userCreatePending = false;
+let userSavePending = false;
+
 async function createUser(event) {
   if (event) event.preventDefault();
+  if (userCreatePending) return false;
   const errorElement = document.getElementById('userCreateError');
-  const showError = message => { if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); } else alert(message); };
+  const showError = message => { if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); } else appNotice(message); };
   if (errorElement) errorElement.classList.add('hidden');
   const role = document.getElementById('usrRole') ? document.getElementById('usrRole').value : 'cashier';
-  const pinEl = document.getElementById('usrPin');
   const payload = {
     name: document.getElementById('usrName') ? document.getElementById('usrName').value.trim() : '',
     username: document.getElementById('usrUsername') ? document.getElementById('usrUsername').value.trim() : '',
     password: document.getElementById('usrPassword') ? document.getElementById('usrPassword').value : '',
     role: role,
-    pin: (role === 'admin' && pinEl) ? pinEl.value : null
+    email: document.getElementById('usrEmail')?.value.trim() || null,
+    employee_id: Number(document.getElementById('usrEmployee')?.value) || null
   };
   if (!validNewPassword(payload.password)) {
     showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.');
     return false;
   }
-  if (role === 'admin' && !/^[0-9]{4,12}$/.test(payload.pin || '')) {
-    showError('Owner PIN must contain 4–12 digits.');
-    return false;
-  }
+  if (role === 'admin' && !payload.email) { showError('Owner verification email is required.'); return false; }
   if (!payload.name || !payload.username || !payload.password) {
     showError('Name, username and password are required.');
     return false;
   }
-  if (role === 'admin' && !payload.pin) {
-    showError('An Owner PIN is required for admin accounts.');
-    return false;
-  }
+  const button = document.getElementById('userCreateButton');
+  userCreatePending = true;
+  if (button) button.disabled = true;
   try {
     const result = await API.createUser(payload);
     API.replaceUser(result.user);
     document.getElementById('userForm').reset();
-    if (pinEl) pinEl.style.display = 'none';
     renderUsers();
     saveDB();
   } catch (error) {
     showError(error.message || 'Could not add the user.');
+  } finally {
+    userCreatePending = false;
+    if (button) button.disabled = false;
   }
   return false;
 }
 
-function openUserEditor(id) {
+async function openUserEditor(id) {
+  if (userSavePending) return;
   const u = findUser(id);
   const wrap = document.getElementById('userEditWrap');
   const bodyEl = document.getElementById('userEditBody');
   if (!u || !wrap || !bodyEl) return;
+  let employees;
+  try { employees = (await API.request('employees')).employees; } catch (error) { appNotice(error.message); return; }
   bodyEl.innerHTML =
+    '<label for="usrEditEmail">Admin email (sign-in and OTP)</label><input id="usrEditEmail" type="email" class="form-input" maxlength="255" value="' + escUser(u.email || '') + '">' +
+    '<label>Employee (rider/refiller)</label><select id="usrEditEmployee" class="form-input"><option value="">No employee</option>' + employees.map(e => '<option value="' + Number(e.id) + '"' + (e.id === u.employee_id ? ' selected' : '') + '>' + escUser(e.name) + '</option>').join('') + '</select>' +
     '<p class="cell-sub">Editing <b>' + escUser(u.u) + '</b></p>' +
     '<label class="cell-sub">Full name</label><input id="usrEditName" class="form-input" value="' + escUser(u.name) + '" maxlength="100">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Role</label><select id="usrEditRole" class="form-input">' +
     '<option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Cashier (POS only)</option>' +
-    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option></select>' +
+    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option>' +
+    '<option value="rider"' + (u.role === 'rider' ? ' selected' : '') + '>Delivery rider</option><option value="refiller"' + (u.role === 'refiller' ? ' selected' : '') + '>Refiller</option></select>' +
     '<div style="height:.5rem"></div><label class="cell-sub">New password (blank = keep)</label><input id="usrEditPassword" type="password" class="form-input" minlength="8" maxlength="64" autocomplete="new-password">' +
     '<div class="drawer-actions"><button id="usrEditPasswordToggle" type="button" class="btn btn-ghost btn-sm" onclick="togglePassword(\'usrEditPassword\', this)" aria-pressed="false">Show password</button><button type="button" class="btn btn-secondary btn-sm" onclick="generateAccountPassword(\'usrEditPassword\')">Generate password</button></div><p class="credential-hint">8–64 characters, uppercase, lowercase and a number. Leave blank to keep the current password.</p>' +
-    '<div style="height:.5rem"></div><label class="cell-sub">Owner PIN (4–12 digits; blank = keep)</label><input id="usrEditPin" type="password" inputmode="numeric" pattern="[0-9]{4,12}" class="form-input" minlength="4" maxlength="12">' +
     '<p id="userEditError" class="auth-error hidden" role="alert"></p>' +
-    '<div class="drawer-actions" style="margin-top:.75rem;"><button onclick="saveUserEdit(' + u.id + ')" class="btn btn-primary btn-sm">Save</button>' +
+    '<div class="drawer-actions" style="margin-top:.75rem;"><button id="userSaveButton" onclick="saveUserEdit(' + u.id + ')" class="btn btn-primary btn-sm">Save</button>' +
     ' <button onclick="closeUserEditor()" class="btn btn-ghost btn-sm">Cancel</button></div>';
   wrap.classList.remove('hidden');
 }
@@ -151,19 +158,22 @@ function closeUserEditor() {
 }
 
 async function saveUserEdit(id) {
+  if (userSavePending) return;
   const errorElement = document.getElementById('userEditError');
-  const showError = message => { if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); } else alert(message); };
+  const showError = message => { if (errorElement) { errorElement.textContent = message; errorElement.classList.remove('hidden'); } else appNotice(message); };
   if (errorElement) errorElement.classList.add('hidden');
   const payload = {
     name: document.getElementById('usrEditName').value.trim(),
-    role: document.getElementById('usrEditRole').value
+    role: document.getElementById('usrEditRole').value,
+    employee_id: Number(document.getElementById('usrEditEmployee').value) || null,
+    email: document.getElementById('usrEditEmail').value.trim() || null
   };
   const pw = document.getElementById('usrEditPassword').value;
-  const pin = document.getElementById('usrEditPin').value;
   if (pw && !validNewPassword(pw)) { showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.'); return; }
   if (pw) payload.password = pw;
-  if (pin && !/^[0-9]{4,12}$/.test(pin)) { showError('Owner PIN must contain 4–12 digits.'); return; }
-  if (pin) payload.pin = pin;
+  const button = document.getElementById('userSaveButton');
+  userSavePending = true;
+  if (button) button.disabled = true;
   try {
     const result = await API.updateUser(id, payload);
     API.replaceUser(result.user);
@@ -172,6 +182,9 @@ async function saveUserEdit(id) {
     saveDB();
   } catch (error) {
     showError(error.message || 'Could not save the user.');
+  } finally {
+    userSavePending = false;
+    if (button) button.disabled = false;
   }
 }
 
@@ -184,20 +197,20 @@ async function toggleUserActive(id) {
     renderUsers();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not update access.');
+    appNotice(error.message || 'Could not update access.');
   }
 }
 
 async function deleteUser(id) {
   const u = findUser(id);
   if (!u) return;
-  if (!confirm('Delete user "' + u.u + '"?')) return;
+  if (!await appConfirm('Delete user "' + u.u + '"?')) return;
   try {
     await API.deleteUser(id);
     API.removeUser(id);
     renderUsers();
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not delete the user.');
+    appNotice(error.message || 'Could not delete the user.');
   }
 }

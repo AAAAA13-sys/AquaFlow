@@ -43,11 +43,13 @@ class EmployeeAndDeliveryTest extends TestCase
         $this->get('/admin/employees')->assertOk()->assertSee('Add employee')->assertSee('employeeBody', false);
     }
 
-    public function test_cashier_can_deliver_directly_and_repeat_without_duplicate_audit(): void
+    public function test_cashier_can_only_handover_walk_ins_and_retries_are_idempotent(): void
     {
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $this->actingAs($cashier);
         $item = ProductionQueueItem::create(['receipt_number' => 'TEST-DELIVERY', 'customer_name' => 'Ana', 'items_description' => '2 refills', 'order_type' => 'Delivery', 'stage' => 0, 'is_completed' => false]);
+        $this->postJson('/api/queue/'.$item->id.'/deliver')->assertForbidden();
+        $item->update(['order_type' => 'Walk-in']);
         $this->postJson('/api/queue/'.$item->id.'/deliver')->assertOk()->assertJsonPath('item.status', 'delivered');
         $this->postJson('/api/queue/'.$item->id.'/advance')->assertForbidden();
         $item->refresh();

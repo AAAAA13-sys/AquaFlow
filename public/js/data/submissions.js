@@ -29,8 +29,7 @@ const Submissions = {
     try {
       const result = await API.post(entry.path, entry.body);
       if (!result || !result.transaction) throw new Error('Receipt response was incomplete. Recover the receipt before taking another payment.');
-      entry.result = result;
-      this.save(entry);
+      this.clear();
       return result;
     } catch (error) {
       // Validation failures roll back server writes; uncertain failures retain the key.
@@ -51,13 +50,12 @@ const Submissions = {
       if (result.customer) API.replaceCustomer(result.customer);
       API.replaceSnapshot('transactions', result.transaction, row => row.no);
       if (typeof saveDB === 'function') saveDB();
-      alert('Receipt ' + result.transaction.no + ' is saved. Amount: ' + Number(result.transaction.total).toFixed(2) + '. You can reprint it from sales history.');
       if (entry.path === 'transactions') {
         if (typeof closeReceipt === 'function' && document.getElementById('posNext')) closeReceipt();
-        else localStorage.removeItem('aquaflow_pos');
+        else sessionStorage.removeItem('aquaflow_pos_v2:' + getSession().u);
       }
       this.clear();
-    } catch (error) { alert(error.message); }
+    } catch (error) { appNotice(error.message); }
     finally { if (button) button.disabled = false; }
   },
   render() {

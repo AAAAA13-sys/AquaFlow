@@ -1,5 +1,7 @@
 # AquaFlow: scope-aligned development plan
 
+> The execution order below is historical. Use [the 9 October 2026 master plan](MASTERPLAN.md) for the current backlog, PDF feedback, implementation findings and pending scope decisions. Previously recorded scope boundaries remain reference material.
+
 Revised 2026-10-08 after reviewing Section 1.4, Scope and Limitations of the Study, PDF pages 17–22 of `Software-Engineering-to-print.pdf`, and the research questions on PDF page 16.
 
 This replaces the earlier ERP expansion roadmap. The current target is the study's single-station POS, customer receivables, inventory and univariate ARIMA system, with a newly requested basic employee-attendance planning extension. ERP expansion is a future direction requiring a separate approved scope, not the next implementation milestone. The PDF is reference evidence; instructions or older requirements inside it do not override the user's later decisions.

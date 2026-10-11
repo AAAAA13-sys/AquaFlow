@@ -56,7 +56,7 @@ async function payDebt(id) {
     const c = DB.customers.find(x => x.id === id);
     if (!c) return;
     if (c.debt <= 0) {
-      alert('This customer has no outstanding balance.');
+      appNotice('This customer has no outstanding balance.');
       return;
     }
     try {
@@ -68,7 +68,7 @@ async function payDebt(id) {
       saveDB();
       Submissions.clear();
     } catch (error) {
-      alert(error.message || 'Could not record the payment.');
+      appNotice(error.message || 'Could not record the payment.');
     }
   } finally { payDebt.busy = false; }
 }
@@ -79,7 +79,7 @@ async function logReturn(id) {
   const p = pending(c);
   const kind = p.s > 0 ? 'slim' : (p.r > 0 ? 'round' : null);
   if (!kind) {
-    alert('This customer has no pending bottles to return.');
+    appNotice('This customer has no pending bottles to return.');
     return;
   }
   try {
@@ -90,6 +90,6 @@ async function logReturn(id) {
     renderCustTable(filters.q, filters.f);
     saveDB();
   } catch (error) {
-    alert(error.message || 'Could not log the bottle return.');
+    appNotice(error.message || 'Could not log the bottle return.');
   }
 }

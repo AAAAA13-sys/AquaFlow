@@ -21,8 +21,8 @@ const STAGE_RULES = {
     focus: () => document.getElementById('custSearch'),
   },
   2: {
-    message: 'Add at least one item before continuing.',
-    ok: () => POS.cart.length > 0,
+    message: 'Add an item and wait for a successful stock check before continuing.',
+    ok: () => POS.cart.length > 0 && typeof stockPreview !== 'undefined' && stockPreview?.valid === true,
     focus: () => document.getElementById('productGrid'),
   },
 };
@@ -85,7 +85,7 @@ function primaryLabel(step) {
   if (step === 1) return 'Next';
   if (step === 2) return 'Proceed to Summary';
 
-  return isDelivery() ? 'Dispatch Delivery & Print Slip' : 'Complete & Print Receipt';
+  return isDelivery() ? 'Save Delivery & Print Slip' : 'Complete & Print Receipt';
 }
 
 /** Refreshes the action bar's primary button (its label depends on stage AND order type). */
@@ -189,6 +189,7 @@ function initPosHotkeys() {
     const binding = POS_HOTKEYS[event.key];
     if (!binding) return;
 
+    if (document.querySelector('dialog[open]')) return;
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (!binding.whileTyping && posTypingInField(event.target)) return;
 
@@ -266,6 +267,7 @@ function updateDebtPanel() {
   const after = document.getElementById('debtAfter');
   const debt = c === null ? 0 : Number(c.debt);
 
+  if (pay) pay.max = String(debt);
   if (view) view.textContent = peso(debt);
   if (after) after.textContent = peso(Math.max(0, debt - (+((pay && pay.value) || 0))));
 }
@@ -282,8 +284,10 @@ async function settleDebt() {
 
     const pay = document.getElementById('debtPay');
     const amount = +((pay && pay.value) || 0);
-    if (amount <= 0) { showStageError('Enter a payment amount.'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { showStageError('Enter a payment amount.'); return; }
+    if (Math.round(amount * 100) > Math.round(Number(c.debt) * 100)) { showStageError('Payment cannot exceed the outstanding balance.'); return; }
 
+    if (!await appConfirm('Record ' + money(amount) + ' payment from ' + c.name + '?', 'Record payment')) return;
     try {
       const result = await API.settleDebt(c.id, amount);
       API.replaceCustomer(result.customer);
@@ -306,22 +310,47 @@ async function settleDebt() {
 function openRegisterModal() {
   const m = document.getElementById('registerModal');
   if (!m) return;
-  m.classList.remove('hidden');
+  if (!m.open) m.showModal();
+  const error = document.getElementById('registrationError'); if (error) error.textContent = '';
   const name = document.getElementById('regName');
   if (name) name.focus();
 }
 
 function closeRegisterModal() {
   const m = document.getElementById('registerModal');
-  if (m) m.classList.add('hidden');
+  if (m) m.close();
+}
+
+async function requestCloseRegisterModal() {
+  if (requestCloseRegisterModal.busy || saveNewCustomer.busy) return;
+  requestCloseRegisterModal.busy = true;
+  try {
+    if (await appConfirm('Cancel customer registration? Your entered details will be kept until you leave this page.', 'Cancel registration')) closeRegisterModal();
+  } finally { requestCloseRegisterModal.busy = false; }
+}
+
+async function confirmCashierLogout() {
+  if (confirmCashierLogout.busy) return;
+  confirmCashierLogout.busy = true;
+  try {
+    if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
+  } finally { confirmCashierLogout.busy = false; }
 }
 
 async function saveNewCustomer() {
+  if (saveNewCustomer.busy) return;
   const nameEl = document.getElementById('regName');
   const addrEl = document.getElementById('regAddr');
   const name = ((nameEl && nameEl.value) || '').trim();
 
-  if (!name) { alert('Customer name is required.'); return; }
+  const registrationError = document.getElementById('registrationError');
+  if (registrationError) registrationError.textContent = '';
+  if (!/[\p{L}]/u.test(name) || name.length > 150) {
+    if (registrationError) registrationError.textContent = 'Enter a customer name containing letters (maximum 150 characters).';
+    nameEl?.focus(); return;
+  }
+  saveNewCustomer.busy = true;
+  if (!await appConfirm('Register ' + name + ' at ' + (addrEl?.value.trim() || 'no address') + '?', 'Register customer')) { saveNewCustomer.busy = false; return; }
 
   try {
     const result = await API.createCustomer({
@@ -330,16 +359,17 @@ async function saveNewCustomer() {
     });
 
     API.replaceCustomer(result.customer);
-    POS.custId = result.customer.id;
+    await pickCust(result.customer.id);
     saveDB();
     closeRegisterModal();
     if (nameEl) nameEl.value = '';
     if (addrEl) addrEl.value = '';
     renderPOS();
-    alert('Customer registered: ' + result.customer.name);
+    showStageError('Customer registered: ' + result.customer.name);
   } catch (error) {
-    alert(error.message || 'Could not register the customer.');
-  }
+    const errorField = document.getElementById('registrationError');
+    if (errorField) errorField.textContent = error.message || 'Could not register the customer.';
+  } finally { saveNewCustomer.busy = false; }
 }
 
 // ---------- Checkout ----------
@@ -356,21 +386,22 @@ async function syncInventory() {
 function receiptContents(tx) {
   const line = (label, value, total = false) => '<div class="receipt-line' + (total ? ' total' : '') + '"><span>' + esc(label) + '</span><span>' + esc(value) + '</span></div>';
   const debtPayment = tx.type === 'Debt Payment';
+  const isWalkIn = (!tx.cust || tx.cust === 'Walk-in Guest' || tx.type === 'Walk-in') && !tx.customer_id;
   return line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
     (tx.delivery_address ? line('Delivery address', tx.delivery_address) : '') +
     (tx.items || []).map(item => line(item.quantity + ' × ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
     (debtPayment ? '' : line('Vatable sales', money(tx.vatable || 0)) + line('12% VAT (inclusive)', money(tx.vat || 0))) +
     line(debtPayment ? 'Payment received' : 'Total', money(tx.total), true) +
-    line('Payment method', tx.pay === 'Account' ? 'Charged to account' : tx.pay) +
     (tx.pay === 'Cash' && tx.cash_tendered != null && Number(tx.cash_tendered) >= Number(tx.total) ? line('Cash tendered', money(tx.cash_tendered)) + line('Change', money(tx.cash_change || 0)) : '') +
-    (tx.balance_after != null ? line('Account balance after transaction', money(tx.balance_after)) : '') +
+    (tx.balance_after != null && !isWalkIn ? line('Account balance after transaction', money(tx.balance_after)) : '') +
     line('Cashier', tx.by || '—');
 }
 
 function displayTransactionReceipt(tx, reprint = false) {
   const meta = document.getElementById('rMeta'), body = document.getElementById('rBody'), box = document.getElementById('receipt');
   if (!meta || !body || !box) return;
-  meta.textContent = tx.no + '\n' + (tx.date || '') + ' ' + (tx.t || '') + (reprint ? '\nREPRINT' : '');
+  const timeStr = [tx.date, tx.t].filter(Boolean).join(' ');
+  meta.textContent = tx.no + (timeStr ? ' · ' + timeStr : '');
   body.innerHTML = receiptContents(tx);
   box.classList.remove('hidden');
 }
@@ -390,7 +421,7 @@ async function completeSale(sessionName) {
 
     const c = posCust();
     if (isDelivery() && c.name === 'Walk-in Guest') {
-      showStageError('Delivery requires a registered customer - the order is charged to their account.');
+      showStageError('Delivery requires a registered customer.');
       return;
     }
 
@@ -398,8 +429,10 @@ async function completeSale(sessionName) {
     const ten = tenderEl ? (+tenderEl.value || 0) : 0;
     const t = posTotals();
 
-    // Only a walk-in handles cash; a delivery settles on the ledger.
-    if (!isDelivery() && ten < t.total) {
+    const payToRider = isDelivery() && (POS.deliveryPay || 'rider') === 'rider';
+
+    // If payment is collected now (Walk-in or Delivery paying cashier)
+    if (!payToRider && ten < t.total) {
       showStageError('Cash tendered is less than the total due by ' + money(t.total - ten) + '.');
       if (tenderEl) tenderEl.focus();
       return;
@@ -407,14 +440,19 @@ async function completeSale(sessionName) {
 
     showStageError(null);
 
-    // The server derives the payment method from the order type.
     const payload = {
       customer_id: POS.custId,
       order_type: POS.type,
-      cash_tendered: isDelivery() ? 0 : ten,
+      payment_option: payToRider ? 'rider' : 'cashier',
+      cash_tendered: payToRider ? 0 : ten,
       items: POS.cart.map(i => ({ product_id: i.id, quantity: i.q })),
     };
 
+    const confirmNote = isDelivery()
+      ? (payToRider ? ': ' + money(t.total) + ' (to be collected by delivery rider)?' : ': ' + money(t.total) + ' paid in cash now?')
+      : ': ' + money(t.total) + ' paid in cash?';
+
+    if (!await appConfirm('Confirm ' + POS.type + ' order for ' + c.name + confirmNote, 'Confirm sale')) return;
     let result;
     try {
       result = await API.createTransaction(payload);

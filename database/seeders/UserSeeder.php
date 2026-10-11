@@ -31,10 +31,35 @@ class UserSeeder extends Seeder
         User::query()->updateOrCreate(
             ['username' => 'admin'],
             [
+                'email' => 'kmikaelim11@gmail.com',
                 'password' => Hash::make('1234'),
                 'role' => User::ROLE_ADMIN,
-                'name' => 'Yuri Soliven (Station Owner)',
+                'name' => 'Admin (kmikaelim11)',
                 'pin' => Hash::make('2468'),
+                'is_active' => true,
+                'is_bootstrap' => false,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['username' => 'refiller'],
+            [
+                'password' => Hash::make('1234'),
+                'role' => 'refiller',
+                'name' => 'Marco Reyes (Refiller)',
+                'employee_id' => 1,
+                'is_active' => true,
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['username' => 'rider'],
+            [
+                'password' => Hash::make('1234'),
+                'role' => 'rider',
+                'name' => 'Luis Garcia (Rider)',
+                'employee_id' => 2,
                 'is_active' => true,
             ]
         );

@@ -8,10 +8,23 @@
 // ---------- Orders in Progress ----------
 
 let queueStatus = 'active', queuePage = 1, queueRequest = 0, queueSearchTimer;
+function queueWaitLabel(minutes) {
+ const total = Math.max(0, Math.floor(Number(minutes) || 0));
+ if (total < 60) return total + ' min';
+ if (total < 1440) return Math.floor(total / 60) + ' hr' + (total % 60 ? ' ' + total % 60 + ' min' : '');
+ return Math.floor(total / 1440) + ' d' + (Math.floor(total % 1440 / 60) ? ' ' + Math.floor(total % 1440 / 60) + ' hr' : '');
+}
 function renderQueuePage() {
- const list=document.getElementById('queue'); if(!list) return;
- const rows=DB.queue || [];
- list.innerHTML=rows.map(q=>'<article class="queue-card"><div class="flex-between"><b>'+esc(q.no)+'</b><span class="pill '+(q.completed ? 'pill-ok' : 'pill-info')+'">'+(q.completed ? 'Delivered' : 'Active order')+'</span></div><h3>'+esc(q.cust)+'</h3><p>'+esc(q.items)+'</p><p class="queue-meta">'+esc(q.orderType)+' · '+(q.completed ? (q.delivered_at ? 'Delivered '+esc(new Date(q.delivered_at).toLocaleString()) : 'Legacy completed order · handover time unavailable') : Number(q.mins)+' min since order')+'</p>'+(q.completed ? '' : '<button class="btn btn-primary" onclick="deliverQueueOrder('+Number(q.id)+',this)">Mark delivered</button>')+'</article>').join('') || '<div class="cashier-empty"><b>No '+(queueStatus==='active' ? 'active orders' : 'delivered orders')+'</b><p>'+ (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.')+'</p></div>';
+ const list = document.getElementById('queue'); if (!list) return;
+ list.innerHTML = (DB.queue || []).map(q => {
+  const ready = !q.completed && q.orderType === 'Walk-in' && q.fulfillment_status === 'ready';
+  const note = q.completed ? 'Customer received this order' : ready ? 'Ready for customer pickup' : q.fulfillment_status === 'out_for_delivery' ? 'With the delivery rider' : q.orderType === 'Delivery' && q.fulfillment_status === 'ready' ? 'Ready for rider dispatch' : 'Waiting for preparation';
+  const time = q.completed ? (q.delivered_at ? 'Delivered ' + new Date(q.delivered_at).toLocaleString() : 'Handover time unavailable') : 'Waiting ' + queueWaitLabel(q.mins);
+  return '<article class="queue-card' + (ready ? ' queue-card--ready' : '') + '"><div class="queue-card-heading"><span class="queue-receipt">' + esc(q.no) + '</span><span class="pill ' + (q.completed ? 'pill-ok' : 'pill-info') + '">' + (q.completed ? 'Delivered' : 'Active order') + '</span></div>' +
+   '<h3>' + esc(q.cust) + '</h3><div class="queue-order-detail"><span class="queue-channel">' + esc(q.orderType) + '</span><span>' + esc(q.items) + '</span></div>' +
+   '<div class="queue-card-footer"><div><p class="queue-next-action">' + esc(note) + '</p><p class="queue-meta">' + esc(time) + '</p></div>' +
+   (ready ? '<button class="btn btn-primary btn-sm" onclick="deliverQueueOrder(' + Number(q.id) + ',this)">Confirm handover</button>' : '') + '</div></article>';
+ }).join('') || '<div class="cashier-empty"><b>No ' + (queueStatus === 'active' ? 'active orders' : 'delivered orders') + '</b><p>' + (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.') + '</p></div>';
 }
 async function selectQueueStatus(status) {
  queueStatus=status; queuePage=1;
@@ -24,10 +37,10 @@ async function selectQueueStatus(status) {
 }
 function searchQueue() { clearTimeout(queueSearchTimer); queueRequest++; queuePage=1; queueSearchTimer=setTimeout(refreshQueuePage,250); }
 async function deliverQueueOrder(id,button) {
- if(!confirm('Confirm that the customer has received this order?')) return;
+ if(!await appConfirm('Confirm that the customer has received this order?')) return;
  button.disabled=true;
  try { await API.post('queue/'+id+'/deliver'); await refreshQueuePage(); }
- catch(error) { alert(error.message || 'Unable to confirm delivery.'); }
+ catch(error) { appNotice(error.message || 'Unable to confirm delivery.'); }
  finally { button.disabled=false; }
 }
 function changeQueuePage(delta) { queuePage=Math.max(1,queuePage+delta); refreshQueuePage(); }
@@ -65,7 +78,7 @@ function showHistorySkeleton(rows = 6) {
   const body = document.getElementById('hBody');
   if (!body) return;
   body.innerHTML = Array.from({ length: rows }, () =>
-    '<tr aria-hidden="true">' + Array.from({ length: 11 }, () => '<td><span class="af-skeleton-row"></span></td>').join('') + '</tr>'
+    '<tr aria-hidden="true">' + Array.from({ length: 10 }, () => '<td><span class="af-skeleton-row"></span></td>').join('') + '</tr>'
   ).join('');
   body.setAttribute('aria-busy', 'true');
 }
@@ -97,7 +110,7 @@ async function renderHistoryPage() {
       const element = document.getElementById(id);
       if (element) element.innerHTML = '';
     }
-    body.innerHTML = '<tr><td colspan="11" class="cashier-empty"><b>Could not load transactions</b><p>' +
+    body.innerHTML = '<tr><td colspan="10" class="cashier-empty"><b>Could not load transactions</b><p>' +
       esc(error.message || 'Please try again.') + '</p><button type="button" class="btn btn-ghost btn-sm" onclick="renderHistoryPage()">Retry</button></td></tr>';
     return;
   }
@@ -147,13 +160,18 @@ function renderHistoryRows() {
     return '<tr' + (isPayment ? ' class="is-payment-row"' : '') + '>' +
       '<td><b>' + esc(t.no) + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
       '<td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td>' +
-      '<td>' + esc(t.cust || 'Walk-in Guest') + '</td><td>' + esc(t.type) + '</td><td>' + esc(t.gal) + '</td>' +
+      '<td>' + esc(t.cust || 'Walk-in Guest') + '</td>' +
+      '<td><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub">' + esc(t.gal) + (t.gal == 1 ? ' gal' : ' gals') + '</span>' : '') + '</td>' +
       '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
       '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
-      '<td><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';
-  }).join('') || '<tr><td colspan="11" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
+      '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';
+  }).join('') || '<tr><td colspan="10" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
   const nav = document.getElementById('historyPages');
   if (nav) nav.innerHTML = '<span>' + (rows.length ? start + 1 : 0) + '–' + Math.min(rows.length, start + 20) + ' of ' + rows.length + ' records</span><div><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(-1)"' + (cashierHistoryPage === 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + cashierHistoryPage + ' of ' + pages + '</span><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(1)"' + (cashierHistoryPage === pages ? ' disabled' : '') + '>Next</button></div>';
+}
+function toggleCashierFilters() {
+  const panel = document.getElementById('cashierFiltersPanel');
+  if (panel) panel.classList.toggle('hidden');
 }
 function changeHistoryPage(delta) { cashierHistoryPage += delta; renderHistoryRows(); }
 function viewHistoryReceipt(index) { const tx = cashierHistoryRows[index]; if (tx) displayTransactionReceipt(tx, true); }
@@ -163,12 +181,12 @@ async function exportHistoryCsv() {
   try {
     rows = filterTableRows(await historyRows(), 'hBody');
   } catch (error) {
-    alert('Could not export transactions: ' + (error.message || 'Please try again.'));
+    appNotice('Could not export transactions: ' + (error.message || 'Please try again.'));
     return;
   }
 
   const csv = 'OR,Date,Time,Customer,Type,Gallons,Vatable,VAT,Total,Pay,Cashier\n' +
-    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(value => { const cell = String(value ?? ''); return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell; }).join(',')).join('\n');
+    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
 
   downloadCSV(csv, 'cashier-sales.csv');
 }
@@ -182,5 +200,5 @@ async function refreshQueuePage() {
   DB.queue=response.queue || []; renderQueuePage();
   document.getElementById('queueCount').textContent=response.total+' orders';
   document.getElementById('queuePages').innerHTML='<button class="btn btn-ghost btn-sm" onclick="changeQueuePage(-1)"'+(queuePage===1 ? ' disabled' : '')+'>Previous</button><span>Page '+queuePage+'</span><button class="btn btn-ghost btn-sm" onclick="changeQueuePage(1)"'+(!response.has_more ? ' disabled' : '')+'>Next</button>';
- } catch(error) { if(request===queueRequest) document.getElementById('queue').innerHTML='<p role="alert">'+esc(error.message || 'Unable to load orders.')+'</p>'; }
+ } catch(error) { if(request===queueRequest) { document.getElementById('queue').innerHTML='<div class="cashier-empty" role="alert"><p>'+esc(error.message || 'Unable to load orders.')+'</p><button class="btn btn-secondary" onclick="refreshQueuePage()">Retry</button></div>'; document.getElementById('queueCount').textContent='Unavailable'; document.getElementById('queuePages').innerHTML=''; } }
 }

@@ -15,8 +15,8 @@ class OctoberUpdatesTest extends TestCase
     public function test_early_arrival_needs_no_reason_and_departure_uses_nine_elapsed_hours(): void
     {
         $this->seed();
-        $this->actingAs(User::where('username', 'cashier')->firstOrFail());
-        $url = '/api/attendance/employees/'.Employee::firstOrFail()->id;
+        $this->actingAs(User::create(['username' => 'refiller', 'name' => 'Refiller', 'password' => 'Refill123', 'role' => 'refiller', 'employee_id' => Employee::firstOrFail()->id, 'is_active' => true]));
+        $url = '/api/employee/attendance';
         $this->travelTo(now()->setTime(7, 0, 0));
         $this->postJson($url.'/time-in')->assertOk()->assertJsonPath('row.expected_time_out', now()->setTime(16, 0)->format('Y-m-d\TH:i'));
         $this->travelTo(now()->setTime(15, 59, 59));

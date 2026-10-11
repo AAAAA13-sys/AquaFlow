@@ -1,8 +1,15 @@
+require('./frontend-users.cjs');
+require('./frontend-csv.cjs');
+require('./frontend-admin-login.cjs');
+require('./frontend-pos.cjs');
+require('./frontend-pos-confirmations.cjs');
+require('./frontend-queue.cjs');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const root = process.argv[2] || path.resolve(__dirname, '..');
+require('./frontend-inventory-editor.cjs')(root);
 const downloads = [];
 const elements = {};
 const document = {

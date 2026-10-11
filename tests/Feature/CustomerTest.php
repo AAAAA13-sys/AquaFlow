@@ -93,10 +93,25 @@ class CustomerTest extends TestCase
         $response = $this->actingAs($this->cashier)
             ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 99999]);
 
-        $response->assertOk()
-            ->assertJsonPath('customer.debt', 0);
+        $response->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $this->assertEquals(150, $customer->refresh()->debt_balance);
+    }
 
-        $this->assertLessThan(99999, (float) $response->json('applied'));
+    public function test_collection_rejects_fractional_cents(): void
+    {
+        $customer = Customer::where('name', 'Santos Family')->firstOrFail();
+        $this->actingAs($this->cashier)->postJson('/api/customers/'.$customer->id.'/settle', [
+            'submission_key' => (string) Str::uuid(), 'amount' => 1.001,
+        ])->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $this->assertEquals(150, $customer->refresh()->debt_balance);
+    }
+
+    public function test_customer_name_requires_a_letter_but_allows_business_numbers(): void
+    {
+        $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => '1234'])
+            ->assertUnprocessable()->assertJsonValidationErrors('name');
+        $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Block 6 Residents'])
+            ->assertCreated();
     }
 
     public function test_paying_a_settled_account_is_rejected(): void
@@ -118,8 +133,8 @@ class CustomerTest extends TestCase
         $response = $this->actingAs($this->cashier)
             ->postJson('/api/customers/'.$customer->id.'/returns', ['kind' => 'round']);
 
-        $response->assertOk();
-        $this->assertSame(0, $customer->refresh()->pendingRound());
+        $response->assertStatus(410);
+        $this->assertSame(1, $customer->refresh()->pendingRound());
     }
 
     public function test_a_return_with_no_pending_bottles_is_rejected(): void
@@ -128,7 +143,7 @@ class CustomerTest extends TestCase
 
         $this->actingAs($this->cashier)
             ->postJson('/api/customers/'.$customer->id.'/returns', ['kind' => 'slim'])
-            ->assertStatus(422);
+            ->assertStatus(410);
     }
 
     public function test_a_customer_detail_drawer_payload_has_pending_counts(): void

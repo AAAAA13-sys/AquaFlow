@@ -1,5 +1,5 @@
 /* =============================================================================
-   AquaFlow â€” UI System Layer
+   AquaFlow — UI System Layer
    -----------------------------------------------------------------------------
    Standardises button hierarchy, dashboard grid alignment and KPI anatomy.
    Plain CSS on purpose: the app has no asset build step, so nothing here may
@@ -51,9 +51,9 @@
 /* =============================================================================
    1. BUTTON HIERARCHY
    Three tiers, each visually distinct at a glance:
-     .btn-primary    solid fill      â€” commit an action
-     .btn-secondary  outlined        â€” navigate or view
-     .btn-tertiary   text + icon     â€” deep analytics jump
+     .btn-primary    solid fill      — commit an action
+     .btn-secondary  outlined        — navigate or view
+     .btn-tertiary   text + icon     — deep analytics jump
    ========================================================================== */
 
 .btn {
@@ -296,7 +296,7 @@
 }
 
 /* =============================================================================
-   4. ADVISORY CARD â€” action hierarchy inside a panel
+   4. ADVISORY CARD — action hierarchy inside a panel
    ========================================================================== */
 
 .advisory-card {
@@ -334,7 +334,7 @@
 }
 
 /* =============================================================================
-   5. INSIGHT CALLOUTS â€” progressive disclosure
+   5. INSIGHT CALLOUTS — progressive disclosure
    The old `.insight-note` was one grey box holding a 3-part paragraph, which
    read as a wall of text under every panel. Now exactly ONE line is visible
    (the action); meaning and risk live inside a disclosure.
@@ -343,11 +343,11 @@
      <details class="insight">
        <summary class="insight-summary">
          <span class="insight-k insight-k--do">To do</span>
-         <span class="insight-v">â€¦one lineâ€¦</span>
+         <span class="insight-v">…one line…</span>
        </summary>
        <div class="insight-detail">
-         <p class="insight-line"><span class="insight-k">Means</span> â€¦</p>
-         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> â€¦</p>
+         <p class="insight-line"><span class="insight-k">Means</span> …</p>
+         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> …</p>
        </div>
      </details>
    ========================================================================== */
@@ -408,7 +408,7 @@
   font-weight: 500;
 }
 
-/* Small uppercase key chip â€” replaces inline <b> runs. */
+/* Small uppercase key chip — replaces inline <b> runs. */
 .insight-k {
   flex: 0 0 auto;
   font-size: 0.625rem;
@@ -549,7 +549,7 @@
 /* =============================================================================
    7. LEDGER ACTION COMPONENTS
    The ledger's "Remind" button had no stylesheet at all, so it rendered as a
-   default grey browser button repeated on every row â€” visually meaningless and
+   default grey browser button repeated on every row — visually meaningless and
    inconsistent with the rest of the portal. It is now an action group: one real
    outbound action plus one navigation step.
    ========================================================================== */
@@ -890,7 +890,7 @@
 }
 
 /* =============================================================================
-   11. ACCESSIBILITY â€” never rely on colour alone
+   11. ACCESSIBILITY — never rely on colour alone
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1230,3 +1230,10 @@
   .filter-group:has(input[type="datetime-local"]) { width: 100%; flex-basis: 100%; }
   .side-drawer { padding: 18px; }
 }
+
+/* Operational forms must remain readable on phones and at browser zoom. */
+.auth-form input, .form-input, .order-row, .queue-card { font-size: 1rem; }
+.cust-detail, .cust-detail-name, .queue-card p, td { overflow-wrap: anywhere; }
+.qty-ctrl button, .employee-page button { min-height: 44px; min-width: 44px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #0284c7; outline-offset: 2px; }
+dialog::backdrop { background: rgb(15 23 42 / 50%); }

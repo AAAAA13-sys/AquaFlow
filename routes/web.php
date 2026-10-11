@@ -1,10 +1,15 @@
 <?php
 
 use App\Http\Controllers\AdvisoryController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
+use App\Http\Controllers\CartAvailabilityController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\ForecastController;
+use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\QueueController;
@@ -25,10 +30,18 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'auth.cashier-login')->name('cashier.login');
 Route::view('/owner/login', 'auth.owner-login')->name('owner.login');
 
+Route::view('/employee', 'employee.home')->middleware('auth');
+Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
+    Route::get('orders', [FulfillmentController::class, 'index']);
+    Route::post('orders/{id}', [FulfillmentController::class, 'update'])->whereNumber('id');
+    Route::get('attendance', [EmployeePortalController::class, 'attendance']);
+    Route::post('attendance/{action}', [EmployeePortalController::class, 'punch'])->whereIn('action', ['time-in', 'time-out']);
+});
+
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
-    Route::view('/cashier/attendance', 'cashier.attendance')->name('cashier.attendance');
+    Route::redirect('/cashier/attendance', '/cashier')->name('cashier.attendance');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
 
     // Legacy wizard URLs still resolve to the terminal.
@@ -56,6 +69,11 @@ Route::prefix('api')->group(function (): void {
 
     // Login is rate limited to slow down credential stuffing.
     Route::middleware('throttle:10,1')->group(function (): void {
+        Route::post('auth/setup-login', [\App\Http\Controllers\AdminSetupController::class, 'login']);
+        Route::post('auth/setup-owner', [\App\Http\Controllers\AdminSetupController::class, 'prepare']);
+        Route::post('auth/setup-verify', [\App\Http\Controllers\AdminSetupController::class, 'verify']);
+        Route::post('auth/verify-email', [AuthController::class, 'verifyEmail']);
+        Route::post('auth/recover', [AuthController::class, 'recover']);
         Route::post('auth/login', [AuthController::class, 'login'])->name('api.login');
         Route::post('auth/login-owner', [AuthController::class, 'loginOwner'])->name('api.login.owner');
     });
@@ -65,15 +83,15 @@ Route::prefix('api')->group(function (): void {
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
 
-        Route::get('attendance', [\App\Http\Controllers\AttendanceController::class, 'index']);
-        Route::post('attendance/employees/{employeeId}/{action}', [\App\Http\Controllers\AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out']);
-        Route::get('attendance/employees/{employeeId}/changes', [\App\Http\Controllers\AttendanceController::class, 'changes'])->whereNumber('employeeId')->middleware('owner');
+        Route::get('attendance', [AttendanceController::class, 'index'])->middleware('owner');
+        Route::post('attendance/employees/{employeeId}/{action}', [AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out'])->middleware('owner');
+        Route::get('attendance/employees/{employeeId}/changes', [AttendanceController::class, 'changes'])->whereNumber('employeeId')->middleware('owner');
 
         // Customers and receivables
         Route::get('customers', [CustomerController::class, 'index'])->name('api.customers.index');
         Route::post('customers', [CustomerController::class, 'store'])->name('api.customers.store');
         Route::post('customers/{customer}/settle', [CustomerController::class, 'settle'])->name('api.customers.settle');
-        Route::post('customers/{customer}/returns', [CustomerController::class, 'logReturn'])->name('api.customers.returns');
+        Route::post('customers/{customer}/returns', fn () => abort(410, 'Station jug custody is no longer supported.'))->name('api.customers.returns');
 
         // Inventory and dynamic thresholds
         Route::get('inventory', [InventoryController::class, 'index'])->name('api.inventory.index');
@@ -107,17 +125,22 @@ Route::prefix('api')->group(function (): void {
             ->middleware('owner')
             ->name('api.suppliers.destroy');
 
+        Route::post('cart/availability', CartAvailabilityController::class);
+
         // Sales
         Route::get('transactions', [TransactionController::class, 'index'])->name('api.transactions.index');
         Route::post('transactions', [TransactionController::class, 'store'])->name('api.transactions.store');
 
         Route::middleware('owner')->group(function (): void {
-            Route::get('employees', [\App\Http\Controllers\EmployeeController::class, 'index']);
-            Route::post('employees', [\App\Http\Controllers\EmployeeController::class, 'store']);
-            Route::patch('employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'update']);
-            Route::delete('employees/{employee}', [\App\Http\Controllers\EmployeeController::class, 'destroy']);
+            Route::get('employees', [EmployeeController::class, 'index']);
+            Route::post('employees', [EmployeeController::class, 'store']);
+            Route::patch('employees/{employee}', [EmployeeController::class, 'update']);
+            Route::delete('employees/{employee}', [EmployeeController::class, 'destroy']);
         });
         Route::post('queue/{queueItem}/deliver', [QueueController::class, 'deliver']);
+
+        Route::get('fulfillment', [FulfillmentController::class, 'index']);
+        Route::post('fulfillment/{id}', [FulfillmentController::class, 'update'])->whereNumber('id')->middleware('owner');
 
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');

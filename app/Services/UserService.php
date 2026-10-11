@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Employee;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -12,13 +13,16 @@ class UserService
     public function create(array $data): User
     {
 
-        if ($data['role'] === User::ROLE_ADMIN && empty($data['pin'])) {
+        if ($data['role'] === User::ROLE_ADMIN && empty($data['email']) && empty($data['pin'])) {
             throw ValidationException::withMessages([
                 'pin' => 'An Owner PIN is required for admin accounts.',
             ]);
         }
 
+        $this->validateEmployee($data['role'], $data['employee_id'] ?? null);
         $user = User::query()->create([
+            'email' => $data['role'] === User::ROLE_ADMIN ? ($data['email'] ?? null) : null,
+            'employee_id' => in_array($data['role'], ['rider', 'refiller']) ? $data['employee_id'] : null,
             'username' => $data['username'],
             'password' => $data['password'],
             'role' => $data['role'],
@@ -33,6 +37,16 @@ class UserService
     public function update(User $user, array $data, User $actor): User
     {
 
+        $role = $data['role'] ?? $user->role;
+        $employeeId = $data['employee_id'] ?? $user->employee_id;
+        $this->validateEmployee($role, $employeeId);
+        $user->employee_id = in_array($role, ['rider', 'refiller']) ? $employeeId : null;
+        if (array_key_exists('email', $data) && $data['email'] !== $user->email) {
+            if ($user->email_verified_at) {
+                throw ValidationException::withMessages(['email' => 'Verified owner email changes require local recovery enrollment.']);
+            }
+            $user->email = $data['email'];
+        }
         if (array_key_exists('name', $data)) {
             $user->name = $data['name'];
         }
@@ -43,7 +57,7 @@ class UserService
                     'role' => 'You cannot change your own role.',
                 ]);
             }
-            if ($data['role'] === User::ROLE_ADMIN && empty($data['pin'] ?? null) && empty($user->pin)) {
+            if ($data['role'] === User::ROLE_ADMIN && empty($data['pin'] ?? null) && empty($user->pin) && empty($user->email)) {
                 throw ValidationException::withMessages([
                     'pin' => 'An Owner PIN is required for admin accounts.',
                 ]);
@@ -58,7 +72,7 @@ class UserService
             $user->password = $data['password'];
         }
 
-        if ($user->isAdmin() && array_key_exists('pin', $data) && empty($data['pin'])) {
+        if ($user->isAdmin() && ! $user->email && array_key_exists('pin', $data) && empty($data['pin'])) {
             throw ValidationException::withMessages(['pin' => 'An Owner PIN is required for admin accounts.']);
         }
 
@@ -78,6 +92,13 @@ class UserService
         $user->save();
 
         return $user->refresh();
+    }
+
+    private function validateEmployee(string $role, ?int $employeeId): void
+    {
+        if (in_array($role, ['rider', 'refiller']) && ! Employee::whereKey($employeeId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['employee_id' => 'Select an active employee for this account.']);
+        }
     }
 
     public function delete(User $user, ?User $actor): void

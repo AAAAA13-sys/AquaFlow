@@ -95,7 +95,7 @@ const API = {
     const path = window.location.pathname;
     const onLoginPage = path === '/' || path.startsWith('/owner/login');
     if (!onLoginPage) {
-      window.location.href = '/';
+      window.location.href = path.startsWith('/admin') ? '/owner/login' : '/';
     }
   },
 
@@ -113,8 +113,8 @@ const API = {
   login(username, password) {
     return this.post('auth/login', { username: username, password: password });
   },
-  loginOwner(username, password, pin) {
-    return this.post('auth/login-owner', { username: username, password: password, pin: pin });
+  loginOwner(email, password) {
+    return this.post('auth/login-owner', { email: email, password: password });
   },
   logout() { return this.post('auth/logout'); },
   session() { return this.get('auth/session'); },

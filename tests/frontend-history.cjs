@@ -11,7 +11,7 @@ module.exports = async function checkHistory(root) {
     DB:{transactions:[{date:'2099-01-01',no:'CACHED',type:'Walk-in',pay:'Cash'}]},
     API:{transactions:async()=>{throw new Error('Connection lost');}},
     esc:value=>String(value ?? '').replaceAll('<','&lt;'), money:value=>String(value),
-    filterTableRows:rows=>rows, markScrollableTables(){}, downloadCSV:csv=>downloads.push(csv), alert:error=>errors.push(error)
+    filterTableRows:rows=>rows, markScrollableTables(){}, downloadCSV:csv=>downloads.push(csv), appNotice:error=>errors.push(error)
   });
   vm.runInContext(fs.readFileSync(path.join(root,'public/js/pos/panels.js'),'utf8'),ctx);
   await assert.rejects(ctx.historyRows(), /Connection lost/, 'Server failure must not turn a partial cache into a complete report');

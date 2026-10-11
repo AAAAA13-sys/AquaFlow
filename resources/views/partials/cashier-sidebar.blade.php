@@ -1,7 +1,6 @@
 @php($items = [
     ['url' => '/cashier', 'icon' => 'i-terminal', 'label' => 'POS Terminal', 'match' => 'cashier.index'],
     ['url' => '/cashier/queue', 'icon' => 'i-orders', 'label' => 'Orders in Progress', 'match' => 'cashier.queue'],
-    ['url' => '/cashier/attendance', 'icon' => 'i-orders', 'label' => 'Staff Attendance', 'match' => 'cashier.attendance'],
     ['url' => '/cashier/history', 'icon' => 'i-receipt', 'label' => 'Sales & Transactions', 'match' => 'cashier.history'],
 ])
 
@@ -38,7 +37,7 @@
           <span>Owner Portal</span>
         </a>
       @endif
-      <button onclick="logout()" class="sidebar-logout-btn">Logout</button>
+      <button onclick="confirmCashierLogout()" class="sidebar-logout-btn">Logout</button>
     </div>
   </div>
 </aside>

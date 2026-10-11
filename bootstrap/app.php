@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureRoleAccess;
 use App\Http\Middleware\EnsureUserIsOwner;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Only Nginx reaches Apache. It overwrites this header based on its
         // listener (LAN HTTP or the private ngrok HTTPS upstream), never input.
         $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO);
-        $middleware->web(append: [EnsureAccountIsActive::class]);
+        $middleware->web(append: [EnsureAccountIsActive::class, EnsureRoleAccess::class]);
         $middleware->alias([
             'owner' => EnsureUserIsOwner::class,
         ]);

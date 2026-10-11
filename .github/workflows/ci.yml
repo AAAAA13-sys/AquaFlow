@@ -15,6 +15,14 @@ permissions:
   contents: read
 
 jobs:
+  windows-launchers:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify distribution launchers
+        shell: pwsh
+        run: ./tests/distribution-launchers.ps1
+
   # ---------------------------------------------------------------------------
   # Tier 2 + 4: Laravel feature/unit suite against a real MySQL 8 instance.
   # SQLite is not an option - checkout uses MySQL-specific SQL.
@@ -133,6 +141,12 @@ jobs:
 
       - name: Validate compose file
         run: docker compose config --quiet
+
+      - name: Validate distribution compose
+        env:
+          AQUAFLOW_VERSION: ci
+          DB_PASSWORD: ci-not-a-secret
+        run: docker compose -f distribution/compose.yaml config --quiet
 
       - name: Build all images
         run: docker compose build

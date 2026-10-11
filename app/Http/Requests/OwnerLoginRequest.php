@@ -4,14 +4,12 @@ namespace App\Http\Requests;
 
 class OwnerLoginRequest extends LoginRequest
 {
-    /**
-     * @return array<string,mixed>
-     */
     public function rules(): array
     {
         return [
-            ...parent::rules(),
-            'pin' => ['required', ...CredentialRules::pin()],
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'password' => ['required', 'string', 'max:255'],
+            'pin' => ['prohibited'],
         ];
     }
 }

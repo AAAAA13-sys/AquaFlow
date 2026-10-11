@@ -1,6 +1,6 @@
 @extends('layouts.base')
 
-@section('title', 'AquaFlow - Cashier Login')
+@section('title', 'AquaFlow - Employee Login')
 @section('body-class', 'auth-page cashier-auth-theme')
 
 @section('content')
@@ -8,24 +8,28 @@
     <header class="auth-header">
       <div class="auth-logo">AF</div>
       <div>
-        <h1 class="auth-title">Cashier Terminal</h1>
-        <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} POS - Staff only</p>
+        <h1 class="auth-title">Employee Login</h1>
+        <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Staff workspace</p>
       </div>
     </header>
-    <p class="auth-description">Cashiers sign in here to open the POS terminal.</p>
+    <p class="auth-description">For cashiers, delivery riders and refillers.</p>
     <form class="auth-form" onsubmit="event.preventDefault(); doLogin();">
-      @include('partials.login-credentials', ['usernameLabel' => 'Cashier username'])
+      @include('partials.login-credentials', ['usernameLabel' => 'Username'])
 
       <div id="err" class="auth-error hidden">Invalid username or password.</div>
 
-      <button type="submit" class="btn btn-primary btn-block">Open Cashier Terminal</button>
+      <button type="submit" class="btn btn-primary btn-block">Sign in</button>
     </form>
-    <p class="auth-footer-text">Are you the owner? <a href="{{ url('/owner/login') }}" class="auth-link">Go to Owner Login</a></p>
+    <p class="auth-footer-text">Store administrator? <a href="{{ url('/owner/login') }}" class="auth-link">Admin Login</a></p>
   </main>
 
   @include('partials.scripts-base')
 
   <script>
+    function finishLogin(result) {
+      setSession(result.user);
+      window.location.href = result.user.role === 'admin' ? '/admin' : (['rider', 'refiller'].includes(result.user.role) ? '/employee' : '/cashier');
+    }
     async function doLogin() {
       const username = document.getElementById('u').value.trim();
       const password = document.getElementById('p').value;
@@ -40,8 +44,9 @@
 
       if (button) button.disabled = true;
       try {
-        await apiLogin(username, password);
-        window.location.href = '{{ url('/cashier') }}';
+        const result = await apiLogin(username, password);
+        finishLogin(result);
+        if (button) button.disabled = false;
       } catch (error) {
         errorElement.textContent = error.message || 'Invalid username or password.';
         errorElement.classList.remove('hidden');

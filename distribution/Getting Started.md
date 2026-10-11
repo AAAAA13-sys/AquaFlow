@@ -4,7 +4,7 @@
 
 1. Install Docker Desktop for Windows with WSL 2 and Linux containers. Start Docker and wait until it is ready. Docker installation needs internet; the packaged AquaFlow images do not.
 2. Extract the entire AquaFlow ZIP to a permanent, private folder (not a shared network folder). Keep several GB free for Docker images, the database and backups.
-3. Double-click **Setup.cmd**. It loads the packaged images, prepares the database and asks for your owner name, username, password and PIN. Passwords require at least eight characters with uppercase, lowercase and a number. Keep your PIN private.
+3. Double-click **Setup.cmd**. It loads the images, configures private SMTP credentials and prepares the database. Open **Admin Login** at `/owner/login`: use setup email `admin@aquaflow.com`, password `Adm1nP4ss!123`, and code `571067`. Create your own admin with your name, email and password (8+ characters, uppercase, lowercase and number), send an OTP and verify your email. The temporary account is then deleted. Save the displayed recovery codes. Finish this before enabling remote access. Existing stores keep their accounts and skip bootstrap setup.
 4. Open the owner login from the login page. Review station settings, prices and inventory thresholds. Add actual suppliers, employees and cashier accounts; record opening stock through stock entries before selling.
 
 There are four POS products. Setup supplies their catalog and consumption rules, but no sample accounts, customers, employees, sales or opening stock. Running Setup again preserves an existing owner's credentials and catalog. Do not use Setup to upgrade; use Update.
@@ -28,7 +28,7 @@ Allow the chosen port through Windows Firewall on the private network only. Gues
 
 Internet access needs the host online and ngrok available. Account limits and ngrok's browser interstitial may apply. Start never invents a URL: it reads the running agent, and reports when no HTTPS link is ready. Run Start again after connectivity recovers. Local access remains usable if the tunnel cannot connect.
 
-The public link exposes both login pages; the application's account permissions still apply. Use real store accounts with private passwords and owner PINs. The tunnel is HTTPS, with request capture disabled and the agent API bound to the host's loopback only. This adds remote access, not separate databases for each cashier.
+The public link exposes both login pages; the application's account permissions still apply. Use real store accounts with private passwords and admin email OTP. The tunnel is HTTPS, with request capture disabled and the agent API bound to the host's loopback only. This adds remote access, not separate databases for each cashier.
 
 References: https://ngrok.com/download/docker and https://ngrok.com/docs/gateway/agent/api
 
@@ -50,3 +50,12 @@ Do not delete Docker's `aquaflow-store_db_data` volume, factory-reset Docker or 
 4. If an update fails, retain its backup and error output. Do not downgrade images against an upgraded database; use the matching older release with its pre-update backup to recover.
 
 Charts are packaged locally. Typography uses installed system fonts, so internet is not needed for the UI. Forecasts run locally in Python; there are no AI API keys.
+
+
+## Owner email and employee access
+
+Setup now asks for the Gmail sender's app password (hidden), then the owner's private receiving email during account creation. Use `Configure Email.cmd` to change SMTP settings. Each store needs its own credentials; release packages contain no live mail password.
+
+Cashiers, riders and refillers use Employee Login at `/`. Owners use Admin Login at `/owner/login` and enter an emailed code and save the recovery codes displayed after first verification. The previous PIN login is retired. For an existing store, configure its owner destination from the host with `aquaflow:owner-email` before switching users to the updated login. See the source repository's email setup guide for the command.
+
+Create an employee record, then a Rider or Refiller account linked to that employee under Staff & Access. Employees sign in on their phones and record their own attendance. Owners assign riders from Live fulfillment; refillers mark orders ready, then riders dispatch and confirm delivery. Inventory is deducted only at checkout.

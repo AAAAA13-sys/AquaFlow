@@ -6,10 +6,6 @@
       <p id="rMeta" class="receipt-meta"></p>
     </div>
     <div id="rBody" class="receipt-body"></div>
-    <div class="receipt-footer">
-      Thank you for choosing our station.<br>
-      Keep this receipt for your transaction records.
-    </div>
     <div class="button-grid-2 no-print order-type-selector">
       <button onclick="printReceipt()" class="btn btn-ghost">Print</button>
       <button onclick="{{ $closeAction }}" class="btn btn-primary">{{ $closeLabel }}</button>

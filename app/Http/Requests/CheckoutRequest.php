@@ -20,8 +20,7 @@ class CheckoutRequest extends FormRequest
             'submission_key' => ['required', 'uuid'],
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'order_type' => ['required', 'in:Walk-in,Delivery'],
-            // Only meaningful for a walk-in; a delivery is charged to the
-            // account and settles exactly.
+            'payment_option' => ['sometimes', 'nullable', 'in:cashier,rider'],
             'cash_tendered' => ['sometimes', 'numeric', 'min:0', 'max:1000000'],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],

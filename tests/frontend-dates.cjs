@@ -7,7 +7,7 @@ module.exports=async root=>{
  }
  for(const id of ['salesBody','salesSum','salesPagination','salesResults']) elements[id]={innerHTML:'previous'};
  let query; const downloads=[];
- const ctx=vm.createContext({document:{getElementById:id=>elements[id]||null},API:{transactions:async params=>{query=params;return {transactions:[],has_more:false};}},esc:String,filterTableRows:rows=>rows,downloadCSV:csv=>downloads.push(csv),alert(){}});
+ const ctx=vm.createContext({document:{getElementById:id=>elements[id]||null},API:{transactions:async params=>{query=params;return {transactions:[],has_more:false};}},esc:String,filterTableRows:rows=>rows,downloadCSV:csv=>downloads.push(csv),appNotice(){}});
  vm.runInContext(fs.readFileSync(root+'/public/js/admin/sales.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync(root+'/public/js/pos/panels.js','utf8'),ctx);
  for(const method of ['fetchSalesRows','historyRows']) {

@@ -31,40 +31,48 @@
         <div id="custCard" class="active-customer-banner"></div>
       </div>
 
-      <div class="card stage-card stage-grow">
-        <h3 class="panel-heading">Customer List</h3>
+      <div class="card stage-card customer-search-panel">
+        <h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Showing up to 8 matches.</p>
         <label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select><div id="custList" class="customer-list-container scroll-region"></div>
       </div>
     </section>
 
     {{-- ===================================================================
-         STAGE 2: Order type & items
+         STAGE 2: Order type & items (2 columns on PC)
     ==================================================================== --}}
     <section class="pos-stage" data-step="2">
-      <div class="stage-segment" role="group" aria-label="Order type">
-        <button id="bWalk" onclick="setType('Walk-in')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-walkin"></use></svg> Walk-In</button>
-        <button id="bDel" onclick="setType('Delivery')" class="seg-btn"><svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg> Delivery</button>
-      </div>
-      @include('partials.tip', [
-        'text' => 'Walk-In means the customer waits at the counter and pays cash now. Delivery means the order goes to their address and is charged to their account balance. Collections are recorded separately. Choose Delivery only if a customer is already selected.',
-        'label' => 'What is the difference between Walk-In and Delivery?',
-      ])
+      <div class="stage-summary-grid">
+        <div class="card stage-card">
+          <div class="flex-between">
+            <h3 class="panel-heading" style="margin:0;">Products</h3>
+            <p id="orderTypeNote" class="auto-deduct-caption" style="margin:0;"></p>
+          </div>
 
-      <p id="orderTypeNote" class="auto-deduct-caption"></p>
+          <div class="stage-segment" role="group" aria-label="Order type" style="margin:0.5rem 0 0.85rem;">
+            <button type="button" id="bWalk" onclick="confirmOrderType('Walk-in')" class="seg-btn">
+              <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-walkin"></use></svg>
+              <span>Walk-In</span>
+              <span class="walk-tip-icon" title="Walk-In: Customer waits at counter and pays cash now. Delivery: Driver delivers to customer address.">?</span>
+            </button>
+            <button type="button" id="bDel" onclick="confirmOrderType('Delivery')" class="seg-btn">
+              <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg>
+              <span>Delivery</span>
+            </button>
+          </div>
 
-      <div class="card stage-card">
-        <div class="products-grid" id="productGrid">
-          {{-- Rendered from the catalog --}}
+          <div class="products-grid" id="productGrid">
+            {{-- Rendered from the catalog --}}
+          </div>
         </div>
-      </div>
 
-      <div class="card stage-card cart-tray">
-        <div class="flex-between">
-          <h3 class="panel-heading">Order items</h3>
-          <span id="boughtCount" class="order-receipt-tag">0 items</span>
+        <div class="card stage-card cart-tray" style="display:flex;flex-direction:column;min-height:0;">
+          <div class="flex-between">
+            <h3 class="panel-heading" style="margin:0;">Order items</h3>
+            <span id="boughtCount" class="order-receipt-tag">0 items</span>
+          </div>
+          <div id="boughtItems" class="cart-items-container scroll-region" style="flex:1 1 auto;max-height:360px;overflow-y:auto;padding-bottom:10px;"></div>
+          <div class="total-due-banner" style="margin-top:auto;"><span>Order total:</span><b id="boughtTotal">&#8369;0</b></div>
         </div>
-        <div id="boughtItems" class="cart-items-container scroll-region"></div>
-        <div class="total-due-banner"><span>Order total:</span><b id="boughtTotal">&#8369;0</b></div>
       </div>
     </section>
 
@@ -112,7 +120,20 @@
             <span id="payBadge" class="order-receipt-tag">CASH</span>
           </div>
 
-          {{-- Walk-in: cash only --}}
+          {{-- Delivery payment destination: Pay Cashier vs Pay Rider --}}
+          <div id="deliveryPaymentChoice" class="delivery-pay-choice hidden" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px;font-weight:600;margin-bottom:6px;display:block;">Payment Option for Delivery:</label>
+            <div class="stage-segment" style="grid-template-columns:1fr 1fr;gap:6px;">
+              <button type="button" id="payOptCashier" class="seg-btn" style="min-height:38px;font-size:12px;padding:6px 10px;" onclick="setDeliveryPayOption('cashier')">
+                Pay Cashier (Cash)
+              </button>
+              <button type="button" id="payOptRider" class="seg-btn active" style="min-height:38px;font-size:12px;padding:6px 10px;" onclick="setDeliveryPayOption('rider')">
+                Pay to Rider
+              </button>
+            </div>
+          </div>
+
+          {{-- Walk-in cash or Delivery paid in cash at cashier --}}
           <div id="cashPanel">
             <label class="form-label" for="tender">Amount Tendered @include('partials.tip', [
                 'text' => 'The cash the customer hands over. If it is less than the order total the sale cannot be completed yet; the Change figure below shows what to give back.',
@@ -136,15 +157,15 @@
             <p id="deductNote" class="auto-deduct-caption"></p>
           </div>
 
-          {{-- Delivery: charged straight to the customer's ledger --}}
+          {{-- Delivery: pay to rider upon arrival --}}
           <div id="deliveryPanel" class="hidden">
-            <div class="ledger-notice">
-              Automatically charged to customer account. Driver will collect or bill on delivery.
+            <div class="ledger-notice" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;padding:10px;border-radius:8px;font-size:12px;">
+              Customer will pay the delivery rider upon arrival. Debt will clear when rider confirms delivery.
             </div>
 
-            <div class="active-customer-box">
+            <div class="active-customer-box" style="margin-top:10px;">
               <div class="flex-between">
-                <span>Outstanding balance before this order</span>
+                <span>Current customer debt</span>
                 <b id="deliveryBalance" class="text-red-600">&#8369;0</b>
               </div>
               <div class="flex-between" style="margin-top:0.4rem;">
@@ -152,7 +173,7 @@
                 <b id="deliveryThis">&#8369;0</b>
               </div>
               <div class="breakdown-row" style="margin-top:0.4rem;border-top:1px solid var(--border-line);padding-top:0.4rem;">
-                <span>Balance after dispatch</span>
+                <span>Balance until collected</span>
                 <b id="deliveryAfter">&#8369;0</b>
               </div>
             </div>
@@ -196,19 +217,19 @@
   </main>
 
   {{-- Customer registration modal (name + address only) --}}
-  <div id="registerModal" class="overlay-modal hidden">
+  <dialog id="registerModal" class="customer-dialog" aria-labelledby="registerTitle" oncancel="event.preventDefault(); requestCloseRegisterModal()">
     <div class="auth-card" style="max-width:400px;">
-      <h3 class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
+      <h3 id="registerTitle" class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
       <label class="form-label" for="regName">Full Name</label>
       <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz">
       <label class="form-label" for="regAddr">Address</label>
       <input id="regAddr" maxlength="255" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">
-        <button onclick="closeRegisterModal()" class="btn btn-ghost">Cancel</button>
+        <button onclick="requestCloseRegisterModal()" class="btn btn-ghost">Cancel</button>
         <button onclick="saveNewCustomer()" class="btn btn-primary">Save</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   {{-- Thermal receipt modal --}}
   @include('partials.receipt-modal', ['closeAction' => 'closeReceipt()', 'closeLabel' => 'New Sale'])

@@ -103,8 +103,8 @@ function resetSalesFilters() {
 async function exportSalesCSV() {
   let rows;
   try { rows = filterTableRows(filterSalesCashier(await fetchSalesRows()), 'salesBody'); }
-  catch(error) { alert(error.message || 'Could not export transactions.'); return; }
+  catch(error) { appNotice(error.message || 'Could not export transactions.'); return; }
   const csv = 'OR,Date,Time,Customer,Type,Gallons,Total,Pay,Cashier\n' +
-    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by].map(value => { const cell = String(value ?? ''); return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell; }).join(',')).join('\n');
+    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
   downloadCSV(csv, 'sales-audit.csv');
 }

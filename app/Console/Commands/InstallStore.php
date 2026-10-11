@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\AdminSetupService;
 use App\Services\StoreInstallationService;
 use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
@@ -21,18 +22,12 @@ class InstallStore extends Command
             return self::SUCCESS;
         }
         $details = [
-            'name' => $this->ask('Owner name'),
-            'username' => $this->ask('Owner username'),
-            'password' => $this->secret('Password (8+ characters, uppercase, lowercase and number)'),
-            'pin' => $this->secret('Owner PIN (4-12 digits)'),
+            'name' => 'First-run Setup', 'username' => 'aquaflow_setup',
+            'password' => AdminSetupService::PASSWORD,
+            'email' => AdminSetupService::EMAIL,
         ];
-        if ($details['password'] !== $this->secret('Repeat password')) {
-            $this->error('Passwords do not match. Run Setup again.');
-
-            return self::FAILURE;
-        }
         try {
-            $installer->install($details);
+            $installer->install($details, true);
         } catch (ValidationException $exception) {
             foreach ($exception->validator->errors()->all() as $message) {
                 $this->error($message);
@@ -40,7 +35,7 @@ class InstallStore extends Command
 
             return self::FAILURE;
         }
-        $this->info('Store ready. Review prices and settings, then record actual opening stock before selling.');
+        $this->info('Open /owner/login on the store host and complete first-run admin setup. The setup account cannot access store operations.');
 
         return self::SUCCESS;
     }

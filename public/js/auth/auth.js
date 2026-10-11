@@ -11,28 +11,30 @@ function getSession() {
 }
 
 function setSession(user) {
+  if (getSession()?.u !== user.u || ['rider', 'refiller'].includes(user.role)) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
   localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, t: Date.now() }));
 }
 
 // Cashier login (server-verified)
 async function apiLogin(username, password) {
   const result = await API.login(username, password);
-  setSession(result.user);
+  if (result.user) setSession(result.user);
   return result;
 }
 
-// Owner login (server-verified, requires the Owner PIN)
-async function apiLoginOwner(username, password, pin) {
-  const result = await API.loginOwner(username, password, pin);
-  setSession(result.user);
+// Admin login starts email verification; no authenticated session until OTP succeeds.
+async function apiLoginOwner(email, password) {
+  const result = await API.loginOwner(email, password);
+  if (result.user) setSession(result.user);
   return result;
 }
 
 // Clears both the session and the local mirror, then returns to login.
 function logout() {
+  const loginUrl = getSession()?.role === 'admin' ? '/owner/login' : '/';
   const finish = () => {
-    try { localStorage.removeItem('session'); } catch (e) { /* ignore */ }
-    window.location.href = '/';
+    try { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); localStorage.removeItem('session'); } catch (e) { /* ignore */ }
+    window.location.href = loginUrl;
   };
   if (typeof API !== 'undefined' && API) {
     API.logout().then(finish).catch(finish);

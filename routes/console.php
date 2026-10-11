@@ -20,3 +20,5 @@ Schedule::command('aquaflow:forecast')
     ->withoutOverlapping()
     ->onOneServer()
     ->description('Refresh ARIMA forecasts and inventory thresholds');
+
+\Illuminate\Support\Facades\Schedule::call(fn () => \Illuminate\Support\Facades\DB::table('owner_login_challenges')->where('expires_at', '<', now()->subDay())->delete())->daily();

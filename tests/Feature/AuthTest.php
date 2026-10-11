@@ -22,7 +22,7 @@ class AuthTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertSee('Cashier Terminal');
+        $response->assertSee('Employee Login')->assertDontSee('id="otpForm"', false)->assertSee('/owner/login', false);
         $response->assertSee('csrf-token', false);
     }
 
@@ -30,7 +30,7 @@ class AuthTest extends TestCase
     {
         $this->get('/owner/login')
             ->assertOk()
-            ->assertSee('Owner PIN');
+            ->assertSee('Admin Login')->assertSee('Admin email')->assertSee('Send OTP')->assertSee('Email verification code')->assertDontSee('Admin username')->assertDontSee('id="otpForm" class="auth-form hidden"', false)->assertDontSee('id="pin"', false);
     }
 
     public function test_u_s01_cashier_can_log_in(): void
@@ -66,13 +66,14 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_u_s02_owner_can_log_in_with_the_pin(): void
+    public function test_u_s02_legacy_owner_pin_cannot_bypass_email(): void
     {
         $this->postJson('/api/auth/login-owner', [
             'username' => 'admin',
             'password' => '1234',
             'pin' => '2468',
-        ])->assertOk()->assertJsonPath('user.role', 'admin');
+        ])->assertUnprocessable();
+        $this->assertGuest();
     }
 
     public function test_wrong_owner_pin_is_rejected(): void
@@ -81,7 +82,7 @@ class AuthTest extends TestCase
             'username' => 'admin',
             'password' => '1234',
             'pin' => '0000',
-        ])->assertStatus(401);
+        ])->assertUnprocessable();
     }
 
     public function test_protected_endpoints_require_a_session(): void

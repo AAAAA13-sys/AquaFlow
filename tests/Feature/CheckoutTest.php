@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ContainerCustodyLog;
 use App\Models\Customer;
+use App\Models\Employee;
 use App\Models\InventoryItem;
 use App\Models\ProductionQueueItem;
 use App\Models\Transaction;
@@ -166,7 +167,7 @@ class CheckoutTest extends TestCase
         $this->assertSame($before - 2, $this->stock('5-Gal Replacement Slim Jugs'));
     }
 
-    public function test_a_new_jug_cannot_be_delivered(): void
+    public function test_a_new_jug_delivery_charges_the_ledger_and_creates_fulfillment(): void
     {
         $customer = Customer::query()->where('name', 'Reyes Store')->firstOrFail();
 
@@ -175,7 +176,9 @@ class CheckoutTest extends TestCase
             'order_type' => 'Delivery',
             'cash_tendered' => 300,
             'items' => [['product_id' => 'newR', 'quantity' => 1]],
-        ]))->assertStatus(422);
+        ]))->assertCreated();
+        $this->assertEquals(750, $customer->fresh()->debt_balance);
+        $this->assertDatabaseHas('production_queue', ['customer_name' => $customer->name, 'order_type' => 'Delivery', 'is_completed' => false]);
     }
 
     public function test_the_till_offers_exactly_the_four_counter_items(): void
@@ -235,14 +238,14 @@ class CheckoutTest extends TestCase
 
     // ---------- Catalogue & validation ----------
 
-    public function test_brand_new_jugs_are_flagged_walk_in_only_with_live_stock(): void
+    public function test_brand_new_jugs_allow_delivery_with_live_stock(): void
     {
         $response = $this->actingAs($this->cashier)->getJson('/api/bootstrap');
 
         $newS = collect($response->json('products'))->firstWhere('id', 'newS');
         $slim = collect($response->json('products'))->firstWhere('id', 'slim');
 
-        $this->assertTrue($newS['walk_in_only']);
+        $this->assertFalse($newS['walk_in_only']);
         $this->assertIsInt($newS['stock']);
 
         // A refill consumes no container, so it carries no stock figure.
@@ -428,8 +431,9 @@ class CheckoutTest extends TestCase
 
         $this->actingAs(User::where('username', 'admin')->firstOrFail())
             ->postJson('/api/queue/'.$item->id.'/advance')
-            ->assertOk()
-            ->assertJsonPath('item.stage', 1);
+            ->assertForbidden();
+        $refiller = User::create(['username' => 'refiller', 'name' => 'Refiller', 'role' => 'refiller', 'employee_id' => Employee::firstOrFail()->id, 'password' => 'Refill123', 'is_active' => true]);
+        $this->actingAs($refiller)->postJson('/api/employee/orders/'.$item->id, ['action' => 'ready', 'version' => 0, 'submission_key' => (string) Str::uuid()])->assertOk()->assertJsonPath('order.status', 'ready');
     }
 
     public function test_duplicate_cart_entries_have_identical_priced_and_stored_lines(): void
@@ -514,5 +518,14 @@ class CheckoutTest extends TestCase
             'is_completed' => false])->forceFill(['created_at' => now()->subDay()])->save();
         $this->actingAs($this->cashier)->getJson('/api/queue')->assertOk()
             ->assertJsonFragment(['no' => 'OR-OLD']);
+    }
+
+    public function test_historical_guest_cannot_accrue_delivery_debt_after_upgrade(): void
+    {
+        $guest = Customer::create(['name' => 'Walk-in Guest', 'address' => '-', 'contact' => '-']);
+        $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
+            'customer_id' => $guest->id, 'order_type' => 'Delivery',
+        ]))->assertUnprocessable();
+        $this->assertEquals(0, $guest->fresh()->debt_balance);
     }
 }

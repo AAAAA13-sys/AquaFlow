@@ -33,11 +33,15 @@ function global:Invoke-RestMethod {
 }
 function Assert($condition, $message) { if (!$condition) { throw $message } }
 try {
+    $global:answers = [Collections.Generic.Queue[string]]::new()
+    $global:answers.Enqueue('test@gmail.com')
+    $global:answers.Enqueue('abcdefghijklmnop')
     $output = (& "$workspace/AquaFlow.ps1" setup 6>&1) -join "`n"
     Assert ($output -match 'http://192.168.1.25:8080') 'LAN address was not displayed'
+    Assert ($output -notmatch 'abcdefghijklmnop') 'SMTP credential was printed'
     $original = Get-Content "$workspace/.env" -Raw
     Assert ($original -match 'APP_KEY=base64:[A-Za-z0-9+/]{43}=') 'Missing encryption key'
-    Assert (($original -split "`n" | Where-Object { $_ -match '^.*PASSWORD=' }).Count -eq 2) 'Missing database secrets'
+    Assert (($original -split "`n" | Where-Object { $_ -match '^.*PASSWORD=' }).Count -eq 3) 'Missing database secrets'
     Assert (($global:calls -join "`n") -notmatch 'seed|generate-history|down|volume rm') 'Destructive or demo command found'
     & "$workspace/AquaFlow.ps1" setup
     Assert ((Get-Content "$workspace/.env" -Raw) -eq $original) 'Setup replaced existing secrets'
@@ -46,7 +50,7 @@ try {
     & "$workspace/AquaFlow.ps1" update
     $callText = $global:calls -join "`n"
     Assert ($callText.IndexOf('mysqldump') -lt $callText.IndexOf('load --input')) 'Update loaded images before backup'
-    Assert ($callText.IndexOf('stop ngrok web worker app analytics') -lt $callText.IndexOf('mysqldump')) 'Update did not stop writers before backup'
+    Assert ($callText.IndexOf('stop ngrok web worker mail-worker app analytics') -ge 0 -and $callText.IndexOf('stop ngrok web worker mail-worker app analytics') -lt $callText.IndexOf('mysqldump')) 'Update did not stop writers before backup'
     $backup = Get-ChildItem "$workspace/backups" -Directory | Select-Object -First 1
     Assert ((Get-Content "$($backup.FullName)/release.env") -eq 'AQUAFLOW_VERSION=test') 'Backup has incorrect previous release version'
     Assert ((Get-Content "$workspace/installed.env") -eq 'AQUAFLOW_VERSION=new') 'Installed version not recorded'

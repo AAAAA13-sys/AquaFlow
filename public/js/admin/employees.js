@@ -27,4 +27,4 @@ async function saveEmployee(event,id) {
  catch(failure) { error.textContent=failure.message || 'Unable to save employee.'; error.classList.remove('hidden'); }
  finally { button.disabled=false; } return false;
 }
-async function deleteEmployee(id) { const employee=employees.find(e=>e.id===id); if(!employee || !confirm('Delete '+employee.name+' from the employee directory?')) return; try { await API.request('employees/'+id,{method:'DELETE'}); await loadEmployees(); } catch(error) { alert(error.message); } }
+async function deleteEmployee(id) { const employee=employees.find(e=>e.id===id); if(!employee || !await appConfirm('Delete '+employee.name+' from the employee directory?')) return; try { await API.request('employees/'+id,{method:'DELETE'}); await loadEmployees(); } catch(error) { appNotice(error.message); } }
