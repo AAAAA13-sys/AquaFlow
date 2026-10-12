@@ -11,6 +11,7 @@
       'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null],
       'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null],
       'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points', 'badge' => 'badgeStock'],
+      'till'       => ['label' => 'Till & Prices',   'hint' => 'What the cashier sells', 'badge' => null],
       'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances'],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null],
       'attendance' => ['label' => 'Attendance', 'hint' => 'Store team', 'badge' => null],
@@ -18,7 +19,7 @@
       'users'      => ['label' => 'Staff & Access',  'hint' => 'Users',          'badge' => null],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null],
   ];
-  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['inventory', 'suppliers', 'arima'], 'Team' => ['employees', 'attendance'], 'Administration' => ['users', 'settings']];
+  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['till', 'inventory', 'suppliers', 'arima'], 'Team' => ['employees', 'attendance'], 'Administration' => ['users', 'settings']];
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 

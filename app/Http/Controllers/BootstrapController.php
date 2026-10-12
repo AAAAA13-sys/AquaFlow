@@ -36,7 +36,8 @@ class BootstrapController extends Controller
 
         $payload = [
             'products' => ProductResource::collection(
-                Product::query()->with('inventoryItem')->where('is_active', true)->orderBy('id')->get()
+                Product::query()->with('inventoryItem')->where('is_active', true)
+                    ->orderBy('sort_order')->orderBy('id')->get()
             ),
             'inventory' => InventoryItemResource::forItems(
                 InventoryItem::query()->with('supplier')->orderBy('id')->get(),

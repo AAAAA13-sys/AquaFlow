@@ -245,34 +245,37 @@ async function pickCust(id) {
 
 // ---------- One-touch product tiles ----------
 
+// Till presentation is derived from the product's category and container kind,
+// never from hardcoded ids. The catalog is owner-managed now (Till & Prices), so
+// an id this file has never seen must still render a correct, labelled button.
+//
+// Order is whatever the server sends (products.sort_order). The client does not
+// re-sort, so the owner's arrangement is exactly what the cashier sees.
+
 const PRODUCT_THEMES = {
-  slim: 'prod-theme-blue',
-  round: 'prod-theme-teal',
-  newS: 'prod-theme-gray',
-  newR: 'prod-theme-gray'
+  refill: 'prod-theme-blue',
+  container: 'prod-theme-gray',
+  consumable: 'prod-theme-yellow',
+  cleaning: 'prod-theme-purple'
 };
 
 const PRODUCT_SUBTITLES = {
-  slim: 'Bring your own jug',
-  round: 'Bring your own jug',
-  newS: 'For Sale - brand new',
-  newR: 'For Sale - brand new'
+  refill: 'Bring your own jug',
+  container: 'For Sale - brand new',
+  consumable: 'Supply',
+  cleaning: 'Supply'
 };
 
 function productTheme(product) {
-  if (PRODUCT_THEMES[product.id]) return PRODUCT_THEMES[product.id];
+  // Slim and round refills stay visually distinct.
   if (product.cat === 'refill') return product.kind === 'R' ? 'prod-theme-teal' : 'prod-theme-blue';
-  return 'prod-theme-gray';
+
+  return PRODUCT_THEMES[product.cat] || 'prod-theme-gray';
 }
 
 function productSubtitle(product) {
-  if (PRODUCT_SUBTITLES[product.id]) return PRODUCT_SUBTITLES[product.id];
-  if (product.cat === 'refill') return 'Refill';
-  return 'For Sale';
+  return PRODUCT_SUBTITLES[product.cat] || 'For Sale';
 }
-
-/** Tile order: refills first, then brand-new containers. */
-const POS_TILE_ORDER = ['slim', 'round', 'newS', 'newR'];
 
 function renderProducts() {
   const grid = document.getElementById('productGrid');
@@ -280,13 +283,8 @@ function renderProducts() {
 
   const delivering = isDelivery();
 
-  const items = (DB.products || [])
-    .filter(product => product.sold_at_pos !== false)
-    .sort((a, b) => {
-      const ai = POS_TILE_ORDER.indexOf(a.id);
-      const bi = POS_TILE_ORDER.indexOf(b.id);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    });
+  // Server order, no client-side re-sort.
+  const items = (DB.products || []).filter(product => product.sold_at_pos !== false);
 
   grid.innerHTML = items.map(product => {
     const price = Number(product.price).toLocaleString(undefined, {

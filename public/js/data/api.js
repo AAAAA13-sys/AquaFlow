@@ -143,6 +143,11 @@ const API = {
   updateSupplier(id, payload) { return this.patch('suppliers/' + id, payload); },
   deleteSupplier(id) { return this.del('suppliers/' + id); },
 
+  // Till catalog (owner-managed products)
+  products() { return this.get('products'); },
+  createProduct(product) { return this.post('products', product); },
+  updateProduct(id, payload) { return this.patch('products/' + id, payload); },
+
   // Sales
   transactions(params) { return this.getWithQuery('transactions', params); },
   createTransaction(payload) { return Submissions.send('transactions', payload); },
@@ -188,6 +193,7 @@ const API = {
   removeInventory(id) { this.removeSnapshot('inventory', id); },
   replaceSupplier(supplier) { this.replaceSnapshot('suppliers', supplier, this.supplierId); },
   removeSupplier(idOrName) { this.removeSnapshot('suppliers', idOrName, this.supplierId); },
+  replaceProduct(product) { this.replaceSnapshot('products', product); },
   replaceUser(user) { this.replaceSnapshot('users', user); },
   removeUser(id) { this.removeSnapshot('users', id); }
 };

@@ -284,3 +284,42 @@
   cursor: default;
 }
 
+/* Till & Prices - one card per product the store can sell. */
+.till-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.till-card .insight-row {
+  align-items: center;
+  gap: 12px;
+}
+
+/* An unsaved price field reads as an input, not as static text. */
+.till-card .till-price {
+  width: 110px;
+  min-height: 38px;
+  padding: 6px 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.till-card .drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Hidden items stay visible so they can be brought back, but read as inactive. */
+.till-card-off {
+  opacity: 0.62;
+}
+
+.till-card-off .panel-heading {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+

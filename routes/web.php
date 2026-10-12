@@ -12,6 +12,7 @@ use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SettingsController;
@@ -55,7 +56,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings'])
             ->name('admin.tab');
     });
 });
@@ -113,7 +114,16 @@ Route::prefix('api')->group(function (): void {
             ->name('api.inventory.recalculate');
 
         Route::middleware('owner')->group(function (): void {
-            Route::get('products/recipes', [RecipeController::class, 'index']);
+            // Which stock row a sale consumes - the same shape the POS needs.
+        Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
+        Route::post('products', [ProductController::class, 'store'])
+            ->middleware('owner')
+            ->name('api.products.store');
+        Route::patch('products/{product}', [ProductController::class, 'update'])
+            ->middleware('owner')
+            ->name('api.products.update');
+
+        Route::get('products/recipes', [RecipeController::class, 'index']);
             Route::put('products/{product}/recipe', [RecipeController::class, 'update']);
             Route::get('inventory/{inventory}/movements', [StockMovementController::class, 'index']);
             Route::post('inventory/{inventory}/movements', [StockMovementController::class, 'store']);

@@ -31,6 +31,7 @@ class Product extends Model
         'category',
         'container_kind',
         'is_active',
+        'sort_order',
         'sold_at_pos',
         'inventory_item_id',
         'inventory_units_per_sale',
@@ -42,6 +43,7 @@ class Product extends Model
         return [
             'price' => 'float',
             'is_active' => 'boolean',
+            'sort_order' => 'integer',
             'sold_at_pos' => 'boolean',
             'inventory_units_per_sale' => 'integer',
             'walk_in_only' => 'boolean',

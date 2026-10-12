@@ -8,3 +8,4 @@
 <script src="{{ asset('js/admin/stock.js') }}?v={{ asset_version('js/admin/stock.js') }}"></script>
 
 <script src="{{ asset('js/admin/employees.js') }}?v={{ asset_version('js/admin/employees.js') }}"></script>
+<script src="{{ asset('js/admin/till.js') }}?v={{ asset_version('js/admin/till.js') }}"></script>
