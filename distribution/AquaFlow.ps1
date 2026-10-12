@@ -146,6 +146,9 @@ try {
             Compose up -d --wait --wait-timeout 300 db
             Compose run --rm --no-deps app php artisan migrate --force
             Compose run --rm --no-deps app php artisan aquaflow:install-store
+            Write-Host ''
+            Write-Host 'A SETUP CODE was printed just above. Copy it now - it is stored only as a hash and cannot be looked up later. Lost it? Run Setup.cmd again.' -ForegroundColor Yellow
+            Write-Host ''
             Copy-Item release.env installed.env -Force
             Start-Store
         }
@@ -153,6 +156,12 @@ try {
         'start' { Start-Store }
         'stop' { Compose --profile remote stop }
         'remote' {
+            # Do not open a public tunnel while first-run setup is unfinished: the
+            # login page would be reachable before the owner has claimed the store.
+            & docker.exe compose --env-file release.env --env-file .env -f compose.yaml run --rm --no-deps app php artisan aquaflow:setup-status 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 1) {
+                throw 'Owner setup is not finished. Complete it at /owner/login on this PC before enabling remote access.'
+            }
             Write-Host 'This enables a public HTTPS tunnel to this store, including both login pages.'
             Write-Host 'Get this store PC''s authtoken from https://dashboard.ngrok.com/get-started/your-authtoken'
             $secureToken = Read-Host 'Paste the ngrok authtoken (hidden)' -AsSecureString

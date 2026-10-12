@@ -38,11 +38,15 @@ function sendAdminOtp() {
 function submitAdminLogin() {
   return adminAction(async () => {
     if (firstRun) {
-      await API.post('auth/setup-login', {...adminCredentials(), code:field('otp').value});
+      // Step 1 needs only the per-install setup code. The owner supplies their own
+      // email and password in step 2, so there are no credentials to collect here.
+      await API.post('auth/setup-login', {secret: field('otp').value.trim().toUpperCase()});
       field('adminForm').classList.add('hidden');
       field('setupForm').classList.remove('hidden');
       field('setupStep').textContent = 'Step 2 of 3: Enter station and owner details';
-      field('p').value = ''; field('otp').value = '';
+      // The email/password fields are absent from the first-run form, so clear
+      // whatever is actually present rather than assuming they exist.
+      ['p', 'otp'].forEach(id => { const el = field(id); if (el) el.value = ''; });
       field('setupStation').focus();
     } else finishAdmin(await API.post('auth/verify-email', {code:field('otp').value}));
   });

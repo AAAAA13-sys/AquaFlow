@@ -88,7 +88,7 @@ class OwnerEmailService
                 return [];
             }
             $codes = array_map(fn () => bin2hex(random_bytes(10)), range(1, 8));
-            $user->update(['email_verified_at' => now(), 'pin' => null, 'recovery_codes' => array_map(fn ($code) => Hash::make($code), $codes)]);
+            $user->update(['email_verified_at' => now(), 'recovery_codes' => array_map(fn ($code) => Hash::make($code), $codes)]);
 
             return $codes;
         });

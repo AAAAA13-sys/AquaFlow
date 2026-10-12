@@ -24,7 +24,6 @@ class UpdateUserRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:100'],
             'role' => ['sometimes', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN, 'rider', 'refiller'])],
             'password' => ['sometimes', 'nullable', ...CredentialRules::password()],
-            'pin' => ['sometimes', 'nullable', ...CredentialRules::pin()],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

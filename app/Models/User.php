@@ -22,6 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'is_bootstrap',
+        'bootstrap_secret_hash',
         'email',
         'email_verified_at',
         'recovery_codes',
@@ -30,14 +31,13 @@ class User extends Authenticatable
         'password',
         'role',
         'name',
-        'pin',
         'is_active',
     ];
 
     protected $hidden = [
+        'bootstrap_secret_hash',
         'recovery_codes',
         'password',
-        'pin',
     ];
 
     protected function casts(): array

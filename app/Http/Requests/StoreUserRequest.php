@@ -25,7 +25,6 @@ class StoreUserRequest extends FormRequest
             'email' => ['required_if:role,admin', 'nullable', 'email:rfc', 'max:255', 'unique:users,email'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($this->route('user')?->id)],
             'name' => ['required', 'string', 'max:100'],
-            'pin' => ['nullable', ...CredentialRules::pin()],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

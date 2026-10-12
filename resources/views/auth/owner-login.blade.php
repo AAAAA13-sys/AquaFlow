@@ -5,7 +5,7 @@
   @php($firstRun = \App\Models\User::where('is_bootstrap', true)->exists() && ! \App\Models\User::where('role', 'admin')->where('is_bootstrap', false)->exists())
   <main class="auth-card" id="adminLogin" data-first-run="{{ $firstRun ? '1' : '0' }}">
     <header class="auth-header"><div class="auth-logo">AF</div><div><h1 class="auth-title">Admin Login</h1><p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Admin portal</p></div></header>
-    <p class="auth-description" id="loginDescription">{{ $firstRun ? 'First-time setup: enter the setup email, password and code supplied with your installation. You must create and verify your own admin account before using the store.' : 'Enter your admin email and password, send an OTP, then enter the code from your inbox.' }}</p>
+    <p class="auth-description" id="loginDescription">{{ $firstRun ? 'First-time setup: enter the setup code printed by Setup on the store host. You then create and verify your own admin account before the store can be used.' : 'Enter your admin email and password, send an OTP, then enter the code from your inbox.' }}</p>
     <div id="err" class="auth-error hidden" role="alert"></div>
     @if($firstRun)
     <ol class="setup-progress" aria-label="Store setup steps"><li>Unlock installation</li><li>Enter station and owner details</li><li>Verify your email</li></ol>
@@ -13,13 +13,19 @@
     @endif
     <p id="loginStatus" role="status" aria-live="polite"></p>
     <form id="adminForm" class="auth-form" onsubmit="event.preventDefault(); submitAdminLogin();">
-      <label class="form-label" for="adminEmail">Admin email</label>
-      <input id="adminEmail" type="email" class="form-input" autocomplete="username" required maxlength="255">
-      <label class="form-label" for="p">Password</label>
-      <div class="credential-control"><input id="p" type="password" class="form-input" autocomplete="current-password" required maxlength="255"><button type="button" class="btn btn-ghost btn-sm" onclick="togglePassword('p', this)" aria-controls="p" aria-pressed="false">Show</button></div>
-      <label class="form-label" for="otp">{{ $firstRun ? 'Setup code' : 'Email verification code' }}</label>
-      <input id="otp" class="form-input" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
-      @unless($firstRun)<button type="button" class="btn btn-secondary" onclick="sendAdminOtp()">Send OTP</button>@endunless
+      @if($firstRun)
+        <label class="form-label" for="otp">Setup code</label>
+        <input id="otp" class="form-input" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" minlength="12" maxlength="12" required>
+        <p class="auth-footer-text">Printed once by Setup on the store host. Lost it? Run Setup again for a new code.</p>
+      @else
+        <label class="form-label" for="adminEmail">Admin email</label>
+        <input id="adminEmail" type="email" class="form-input" autocomplete="username" required maxlength="255">
+        <label class="form-label" for="p">Password</label>
+        <div class="credential-control"><input id="p" type="password" class="form-input" autocomplete="current-password" required maxlength="255"><button type="button" class="btn btn-ghost btn-sm" onclick="togglePassword('p', this)" aria-controls="p" aria-pressed="false">Show</button></div>
+        <label class="form-label" for="otp">Email verification code</label>
+        <input id="otp" class="form-input" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
+        <button type="button" class="btn btn-secondary" onclick="sendAdminOtp()">Send OTP</button>
+      @endif
       <button type="submit" class="btn btn-primary btn-block">{{ $firstRun ? 'Continue to admin setup' : 'Sign in' }}</button>
     </form>
     <form id="setupForm" class="auth-form hidden" onsubmit="event.preventDefault(); verifySetup();">

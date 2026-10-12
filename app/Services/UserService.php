@@ -5,20 +5,12 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\StockMovement;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class UserService
 {
     public function create(array $data): User
     {
-
-        if ($data['role'] === User::ROLE_ADMIN && empty($data['email']) && empty($data['pin'])) {
-            throw ValidationException::withMessages([
-                'pin' => 'An Owner PIN is required for admin accounts.',
-            ]);
-        }
-
         $this->validateEmployee($data['role'], $data['employee_id'] ?? null);
         $user = User::query()->create([
             'email' => $data['role'] === User::ROLE_ADMIN ? ($data['email'] ?? null) : null,
@@ -27,7 +19,6 @@ class UserService
             'password' => $data['password'],
             'role' => $data['role'],
             'name' => $data['name'],
-            'pin' => ! empty($data['pin']) ? Hash::make($data['pin']) : null,
             'is_active' => $data['is_active'] ?? true,
         ]);
 
@@ -57,27 +48,11 @@ class UserService
                     'role' => 'You cannot change your own role.',
                 ]);
             }
-            if ($data['role'] === User::ROLE_ADMIN && empty($data['pin'] ?? null) && empty($user->pin) && empty($user->email)) {
-                throw ValidationException::withMessages([
-                    'pin' => 'An Owner PIN is required for admin accounts.',
-                ]);
-            }
             $user->role = $data['role'];
-            if ($user->role !== User::ROLE_ADMIN) {
-                $user->pin = null;
-            }
         }
 
         if (! empty($data['password'] ?? null)) {
             $user->password = $data['password'];
-        }
-
-        if ($user->isAdmin() && ! $user->email && array_key_exists('pin', $data) && empty($data['pin'])) {
-            throw ValidationException::withMessages(['pin' => 'An Owner PIN is required for admin accounts.']);
-        }
-
-        if (array_key_exists('pin', $data)) {
-            $user->pin = ! empty($data['pin']) ? Hash::make($data['pin']) : null;
         }
 
         if (array_key_exists('is_active', $data)) {

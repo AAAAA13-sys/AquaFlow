@@ -17,11 +17,19 @@ function page(firstRun) {
   await normal.ctx.submitAdminLogin(); assert.equal(normal.calls[1].path,'auth/verify-email'); assert.equal(normal.element('recoveryCodes').textContent,'saved-code'); assert.equal(normal.element('p').value,'');
   const setup=page(true);
   setup.element('setupStation').value='My Water Station';
-  setup.element('adminEmail').value='admin@aquaflow.com'; setup.element('p').value='Adm1nP4ss!123'; setup.element('otp').value='571067';
-  await setup.ctx.submitAdminLogin(); assert.equal(setup.calls[0].path,'auth/setup-login'); assert.equal(setup.ctx.user,undefined);
+  // First-run unlock takes the per-install setup code and nothing else: no email,
+  // no password, and not the retired 'code' field.
+  setup.element('otp').value='k7m2qx9b4tzp';
+  await setup.ctx.submitAdminLogin();
+  assert.equal(setup.calls[0].path,'auth/setup-login');
+  assert.equal(setup.calls[0].body.secret,'K7M2QX9B4TZP');
+  assert.equal(setup.calls[0].body.email,undefined);
+  assert.equal(setup.calls[0].body.password,undefined);
+  assert.equal(setup.calls[0].body.code,undefined);
+  assert.equal(setup.ctx.user,undefined);
   setup.element('setupName').value='Owner'; setup.element('setupEmail').value='private@example.com'; setup.element('setupPassword').value='Private123'; setup.element('setupConfirm').value='Private123';
   await setup.ctx.sendSetupOtp(); assert.equal(setup.calls[1].path,'auth/setup-owner'); assert.equal(setup.calls[1].body.email,'private@example.com');
   assert.equal(setup.calls[1].body.station_name,'My Water Station');
   setup.element('setupOtp').value='123456'; await setup.ctx.verifySetup(); assert.equal(setup.calls[2].path,'auth/setup-verify'); assert.equal(setup.ctx.user.role,'admin');
-  console.log('PASS: admin email payload, OTP verification, restricted setup flow and recovery code display.');
+  console.log('PASS: admin email payload, OTP verification, setup-code-only unlock, restricted setup flow and recovery code display.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Users and access control (RBAC).
  *
- * Credentials are bcrypt hashes: the password column holds the account
- * password and `pin` holds the Owner PIN (never stored in plain text).
+ * Credentials are bcrypt hashes. `pin` was the reusable Owner PIN; it is created
+ * here because fresh installs run this migration first, and dropped again by
+ * 2026_10_12_000001_drop_pin_from_users once owner sign-in moved to email OTP.
  */
 return new class extends Migration
 {

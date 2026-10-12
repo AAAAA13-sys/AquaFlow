@@ -13,9 +13,9 @@ class AdminSetupController extends Controller
 {
     public function login(Request $request, AdminSetupService $setup)
     {
-        $data = $request->validate(['email' => ['required', 'email', 'max:255'], 'password' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'size:6']]);
+        $data = $request->validate(['secret' => ['required', 'string', 'max:64']]);
         $user = $setup->bootstrap($data);
-        abort_unless($user, 401, 'Invalid setup credentials or setup has already finished.');
+        abort_unless($user, 401, 'Invalid setup code, or setup has already finished.');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -144,7 +144,6 @@ class OwnerEmailTest extends TestCase
         $this->assertCount(8, $codes);
         $this->assertSame($owner->id, $service->recovery($owner, $codes[0])?->id);
         $this->assertNull($service->recovery($owner, $codes[0]));
-        $this->assertNull($owner->fresh()->pin);
     }
 
     public function test_log_transport_cannot_receive_verification_secrets(): void

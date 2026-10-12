@@ -7,11 +7,14 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Demo accounts. Passwords and the Owner PIN are bcrypt hashed, never stored
- * in plain text.
+ * Demo accounts for local development.
  *
- *   cashier / 1234
- *   admin   / 1234  + Owner PIN 2468
+ *   cashier  / 1234
+ *   admin    / 1234   (owner sign-in is email + password + emailed code)
+ *
+ * These are development fixtures only. A distributed store is created through
+ * Setup, which installs no sample accounts and generates its own one-time setup
+ * code - this seeder must never run against store data.
  */
 class UserSeeder extends Seeder
 {
@@ -23,7 +26,6 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('1234'),
                 'role' => User::ROLE_CASHIER,
                 'name' => 'Juan Dela Cruz (Cashier #01)',
-                'pin' => null,
                 'is_active' => true,
             ]
         );
@@ -35,7 +37,6 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('1234'),
                 'role' => User::ROLE_ADMIN,
                 'name' => 'Admin (kmikaelim11)',
-                'pin' => Hash::make('2468'),
                 'is_active' => true,
                 'is_bootstrap' => false,
                 'email_verified_at' => now(),

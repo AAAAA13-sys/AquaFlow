@@ -25,7 +25,6 @@ class StoreInstallationTest extends TestCase
         $owner = User::sole();
         $this->assertTrue($owner->isAdmin());
         $this->assertTrue(Hash::check('Store123', $owner->password));
-        $this->assertNull($owner->pin);
         $this->assertSame('owner@example.com', $owner->email);
         foreach (['transactions', 'employees', 'suppliers', 'stock_movements'] as $table) {
             $this->assertDatabaseCount($table, 0);

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Services\AdminSetupService;
+use App\Services\StoreInstallationService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +23,7 @@ class AdminSetupRequest extends FormRequest
         return [
             'station_name' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email:rfc', 'max:255', Rule::notIn([AdminSetupService::EMAIL]), Rule::unique('users', 'email')->ignore($this->session()->get('setup_user'))],
+            'email' => ['required', 'email:rfc', 'max:255', Rule::notIn([StoreInstallationService::BOOTSTRAP_EMAIL]), Rule::unique('users', 'email')->ignore($this->session()->get('setup_user'))],
             'password' => ['required', 'confirmed', ...CredentialRules::password()],
         ];
     }
