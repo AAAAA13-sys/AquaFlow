@@ -28,7 +28,13 @@ class RecipeStockRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const RECIPE_ITEMS = ['SHRINK_SLIM', 'SHRINK_ROUND', 'CLEAR_COVER'];
+    private const RECIPE_ITEMS = [
+        'Clear Cover',
+        'Shrink Seal (Circle Top Slim)',
+        'Shrink Seal (Circle Back)',
+        'Shrink Seal (Circle Nozzle)',
+        'Shrink Seal (Circle Top Round)',
+    ];
 
     /** The exact state an upgraded installation is left in. */
     private function simulateUpgradedStore(): void

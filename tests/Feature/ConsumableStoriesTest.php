@@ -31,7 +31,14 @@ class ConsumableStoriesTest extends TestCase
             'order_type' => 'Walk-in', 'cash_tendered' => 500,
             'items' => [['product_id' => 'slim', 'quantity' => 2], ['product_id' => 'round', 'quantity' => 1]],
         ])->assertCreated();
-        foreach (['SHRINK_SLIM' => 6, 'SHRINK_ROUND' => 1, 'CLEAR_COVER' => 3] as $name => $qty) {
+        $expectedDecrements = [
+            'Shrink Seal (Circle Top Slim)' => 2,
+            'Shrink Seal (Circle Back)' => 2,
+            'Shrink Seal (Circle Nozzle)' => 2,
+            'Shrink Seal (Circle Top Round)' => 1,
+            'Clear Cover' => 3,
+        ];
+        foreach ($expectedDecrements as $name => $qty) {
             $item = InventoryItem::where('item_name', $name)->firstOrFail();
             $this->assertSame($before[$name] - $qty, $item->stock_on_hand);
             $this->assertDatabaseHas('stock_movements', ['inventory_item_id' => $item->id,
@@ -42,7 +49,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s57_missing_cover_rolls_back_sales_and_audit(): void
     {
-        InventoryItem::where('item_name', 'CLEAR_COVER')->update(['stock_on_hand' => 0]);
+        InventoryItem::where('item_name', 'Clear Cover')->update(['stock_on_hand' => 0]);
         $before = DB::table('transactions')->count();
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => Customer::where('name', 'Walk-in Guest')->value('id'),
@@ -56,7 +63,7 @@ class ConsumableStoriesTest extends TestCase
     public function test_u_s59_u_s65_restock_metadata_history_and_thresholds(): void
     {
         $owner = User::where('username', 'admin')->firstOrFail();
-        $item = InventoryItem::where('item_name', 'CLEAR_COVER')->firstOrFail();
+        $item = InventoryItem::where('item_name', 'Clear Cover')->firstOrFail();
         $before = $item->stock_on_hand;
         $supplier = DB::table('suppliers')->value('id');
         $this->actingAs($owner)->postJson('/api/inventory/'.$item->id.'/movements', [
@@ -73,7 +80,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s62_adjustments_need_reasons_and_cannot_make_negative_stock(): void
     {
-        $item = InventoryItem::where('item_name', 'CLEAR_COVER')->firstOrFail();
+        $item = InventoryItem::where('item_name', 'Clear Cover')->firstOrFail();
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $this->postJson('/api/inventory/'.$item->id.'/movements', ['type' => 'adjustment', 'qty' => -1])
             ->assertUnprocessable()->assertJsonValidationErrors('reason');
@@ -85,7 +92,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s55_only_owners_can_edit_recipes_and_quantities_are_validated(): void
     {
-        $item = InventoryItem::where('item_name', 'SHRINK_SLIM')->firstOrFail();
+        $item = InventoryItem::where('item_name', 'Shrink Seal (Circle Top Slim)')->firstOrFail();
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())
             ->putJson('/api/products/slim/recipe', ['consumables' => []])->assertForbidden();
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
@@ -110,7 +117,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s30_legacy_stock_edits_also_have_an_audit_trail(): void
     {
-        $item = InventoryItem::where('item_name', 'CLEAR_COVER')->firstOrFail();
+        $item = InventoryItem::where('item_name', 'Clear Cover')->firstOrFail();
         $this->actingAs(User::where('username', 'admin')->firstOrFail())
             ->patchJson('/api/inventory/'.$item->id, ['stock_on_hand' => $item->stock_on_hand - 3])->assertOk();
         $this->assertDatabaseHas('stock_movements', ['inventory_item_id' => $item->id, 'qty' => -3,
@@ -125,7 +132,14 @@ class ConsumableStoriesTest extends TestCase
             'order_type' => 'Walk-in', 'cash_tendered' => 500,
             'items' => [['product_id' => 'newS', 'quantity' => 1], ['product_id' => 'newR', 'quantity' => 1]],
         ])->assertCreated();
-        foreach (['SHRINK_SLIM' => 3, 'SHRINK_ROUND' => 1, 'CLEAR_COVER' => 2] as $name => $qty) {
+        $expectedNewJugDecrements = [
+            'Shrink Seal (Circle Top Slim)' => 1,
+            'Shrink Seal (Circle Back)' => 1,
+            'Shrink Seal (Circle Nozzle)' => 1,
+            'Shrink Seal (Circle Top Round)' => 1,
+            'Clear Cover' => 2,
+        ];
+        foreach ($expectedNewJugDecrements as $name => $qty) {
             $this->assertSame($before[$name] - $qty, InventoryItem::where('item_name', $name)->value('stock_on_hand'));
         }
     }
@@ -153,7 +167,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s16_today_filter_excludes_older_transactions(): void
     {
-        $old = Transaction::firstOrFail();
+        $old = $this->reportTransaction();
         $old->update(['transaction_date' => today()->subDay()]);
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())
             ->getJson('/api/transactions?days=0')->assertOk()->assertJsonMissing(['no' => $old->receipt_number]);
@@ -162,7 +176,7 @@ class ConsumableStoriesTest extends TestCase
     public function test_u_s63_history_is_paginated_and_owner_only(): void
     {
         $owner = User::where('username', 'admin')->firstOrFail();
-        $item = InventoryItem::where('item_name', 'CLEAR_COVER')->firstOrFail();
+        $item = InventoryItem::where('item_name', 'Clear Cover')->firstOrFail();
         for ($i = 0; $i < 21; $i++) {
             StockMovement::create(['inventory_item_id' => $item->id,
                 'type' => 'adjustment', 'qty' => 1, 'user_id' => $owner->id, 'notes' => 'Audit '.$i]);
@@ -177,7 +191,7 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s21_damaged_merchandise_is_an_audited_stock_write_off(): void
     {
-        $item = InventoryItem::where('item_name', '5-Gal Replacement Slim Jugs')->firstOrFail();
+        $item = InventoryItem::where('item_name', '5 Gallon Slim Jug')->firstOrFail();
         $before = $item->stock_on_hand;
         $this->actingAs(User::where('username', 'admin')->firstOrFail())
             ->postJson('/api/inventory/'.$item->id.'/movements', ['type' => 'damage', 'qty' => -1, 'reason' => 'damage', 'notes' => 'Cracked new retail jug'])
@@ -186,9 +200,18 @@ class ConsumableStoriesTest extends TestCase
         $this->assertDatabaseHas('stock_movements', ['inventory_item_id' => $item->id, 'type' => 'damage', 'qty' => -1]);
     }
 
+    private function reportTransaction(): Transaction
+    {
+        return Transaction::create(['receipt_number' => 'QA-REPORT',
+            'customer_id' => Customer::where('name', 'Walk-in Guest')->firstOrFail()->id,
+            'cashier_id' => User::where('username', 'cashier')->firstOrFail()->id,
+            'order_type' => 'Walk-in', 'payment_method' => 'Cash', 'total_amount' => 50,
+            'transaction_date' => today(), 'transaction_time' => '08:00:00']);
+    }
+
     public function test_report_pages_include_sales_beyond_the_recent_cache(): void
     {
-        $template = Transaction::firstOrFail()->getAttributes();
+        $template = $this->reportTransaction()->getAttributes();
         unset($template['id']);
         $rows = [];
         for ($i = 0; $i < 201; $i++) {

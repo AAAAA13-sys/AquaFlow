@@ -23,12 +23,12 @@ class CartAvailabilityTest extends TestCase
     public function test_shared_ingredients_limit_the_whole_cart_without_deducting_stock(): void
     {
         $this->seed();
-        $caps = InventoryItem::where('item_name', 'Non-Spill Caps')->firstOrFail();
-        $caps->update(['stock_on_hand' => 3]);
+        $cover = InventoryItem::where('item_name', 'Clear Cover')->firstOrFail();
+        $cover->update(['stock_on_hand' => 3]);
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())
             ->postJson('/api/cart/availability', ['items' => [['product_id' => 'slim', 'quantity' => 2]]])
             ->assertOk()->assertJsonPath('valid', true)->assertJsonPath('additional.round', 1);
-        $this->assertSame(3, $caps->fresh()->stock_on_hand);
+        $this->assertSame(3, $cover->fresh()->stock_on_hand);
         $this->postJson('/api/cart/availability', ['items' => [
             ['product_id' => 'slim', 'quantity' => 2], ['product_id' => 'round', 'quantity' => 2],
         ]])->assertOk()->assertJsonPath('valid', false);

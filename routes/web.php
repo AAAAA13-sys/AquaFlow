@@ -36,12 +36,14 @@ Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(funct
     Route::post('orders/{id}', [FulfillmentController::class, 'update'])->whereNumber('id');
     Route::get('attendance', [EmployeePortalController::class, 'attendance']);
     Route::post('attendance/{action}', [EmployeePortalController::class, 'punch'])->whereIn('action', ['time-in', 'time-out']);
+    Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show']);
+    Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update']);
 });
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
-    Route::redirect('/cashier/attendance', '/cashier')->name('cashier.attendance');
+    Route::view('/cashier/attendance', 'cashier.attendance')->name('cashier.attendance');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
 
     // Legacy wizard URLs still resolve to the terminal.
@@ -83,9 +85,13 @@ Route::prefix('api')->group(function (): void {
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
 
-        Route::get('attendance', [AttendanceController::class, 'index'])->middleware('owner');
-        Route::post('attendance/employees/{employeeId}/{action}', [AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out'])->middleware('owner');
+        Route::get('attendance', [AttendanceController::class, 'index']);
+        Route::post('attendance/employees/{employeeId}/{action}', [AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out']);
         Route::get('attendance/employees/{employeeId}/changes', [AttendanceController::class, 'changes'])->whereNumber('employeeId')->middleware('owner');
+
+        // Personal profile and settings
+        Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('api.profile.show');
+        Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('api.profile.update');
 
         // Customers and receivables
         Route::get('customers', [CustomerController::class, 'index'])->name('api.customers.index');

@@ -18,7 +18,7 @@
       <div class="sales-filter-heading"><h3>Filter transactions</h3><button type="button" class="btn btn-tertiary btn-sm" onclick="resetSalesFilters()">Reset filters</button></div>
       <div class="sales-filter-controls">
       <div class="filter-group">
-        <label class="form-label" for="fFrom">From ({{ config('app.timezone') }})</label>
+        <label class="form-label" for="fFrom">From</label>
         <input id="fFrom" type="datetime-local" step="60" value="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" onchange="renderSalesTable()">
       </div>
       <div class="filter-group">

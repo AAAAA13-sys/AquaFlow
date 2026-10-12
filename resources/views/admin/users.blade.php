@@ -46,7 +46,7 @@
         <tbody id="usersBody"></tbody>
       </table>
     </div>
-    <p class="auth-footer-text text-center">Cashiers can only open the POS terminal. Owners get full access and the analytics.</p>
+    <p class="auth-footer-text text-center">Cashiers use the cashier portal. Riders and refillers use their employee workspace. Owners manage the station and analytics.</p>
   </section>
 
   @include('partials.editor-drawer', ['drawerId' => 'userEditWrap', 'bodyId' => 'userEditBody', 'title' => 'Edit user', 'closeAction' => 'closeUserEditor()'])
@@ -54,4 +54,5 @@
 
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Staff & Access'])
 renderUsers();
+startPageRefresh(async () => { await loadFromServer(); renderUsers(); renderSidebarBadges(); renderStamp(); });
 @endcomponent

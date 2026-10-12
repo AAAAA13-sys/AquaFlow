@@ -48,7 +48,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('1234'),
                 'role' => 'refiller',
                 'name' => 'Marco Reyes (Refiller)',
-                'employee_id' => 1,
+                'employee_id' => \App\Models\Employee::where('name', 'Marco Reyes')->firstOrFail()->id,
                 'is_active' => true,
             ]
         );
@@ -59,7 +59,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('1234'),
                 'role' => 'rider',
                 'name' => 'Luis Garcia (Rider)',
-                'employee_id' => 2,
+                'employee_id' => \App\Models\Employee::where('name', 'Luis Garcia')->firstOrFail()->id,
                 'is_active' => true,
             ]
         );

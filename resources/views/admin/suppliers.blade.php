@@ -34,4 +34,5 @@
 
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Suppliers'])
 renderSup();
+startPageRefresh(async () => { await loadFromServer(); renderSup(); renderSidebarBadges(); renderStamp(); });
 @endcomponent

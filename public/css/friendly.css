@@ -45,11 +45,12 @@
 }
 
 th .term-hint {
-  display: block;
-  margin-left: 0;
+  display: inline-block;
+  margin-left: 0.35rem;
   font-size: 0.82em;
   text-transform: none;
   letter-spacing: 0;
+  vertical-align: middle;
 }
 
 .pill[title] {
@@ -133,14 +134,14 @@ th .term-hint {
 
 .kpi-label {
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   color: var(--af-muted);
   text-transform: none;
   letter-spacing: 0.01em;
 }
 
 .kpi-subtext {
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: var(--af-muted);
 }
 
@@ -153,8 +154,9 @@ th .term-hint {
 
 .pill {
   font-weight: 600;
+  font-size: 0.82rem;
   border-radius: 999px;
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.65rem;
   letter-spacing: 0.01em;
 }
 
@@ -188,22 +190,27 @@ th .term-hint {
   border-collapse: separate;
   border-spacing: 0;
   border-radius: var(--af-radius-sm);
-  overflow: hidden;
+  font-size: 0.94rem;
 }
 
 .clean thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: #EDF1F7;
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   color: var(--af-muted);
   border-bottom: 1px solid var(--af-edge);
-  padding: 0.65rem 0.75rem;
-  vertical-align: bottom;
+  padding: 0.75rem 0.85rem;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .clean tbody td {
   border-bottom: 1px solid #f1f5f9;
-  padding: 0.7rem 0.75rem;
+  padding: 0.8rem 0.85rem;
+  font-size: 0.94rem;
 }
 
 .clean tbody tr:last-child td {
@@ -221,7 +228,8 @@ th .term-hint {
 /* ---- 5. Insight copy ------------------------------------------------------ */
 
 .insight-row {
-  padding: 0.45rem 0;
+  padding: 0.55rem 0;
+  font-size: 0.92rem;
   border-bottom: 1px dashed var(--border-line);
 }
 
@@ -233,14 +241,16 @@ th .term-hint {
   background: #EDF1F7;
   border-left: 3px solid #cbd5e1;
   border-radius: 0 var(--af-radius-sm) var(--af-radius-sm) 0;
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.9rem;
   margin-top: 0.7rem;
   color: #334155;
+  font-size: 0.88rem;
   line-height: 1.55;
 }
 
 .insight-sub {
   font-weight: 500;
+  font-size: 0.84rem;
   color: var(--af-muted);
 }
 

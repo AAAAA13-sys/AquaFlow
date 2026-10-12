@@ -248,6 +248,14 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
       MAIL_FROM_NAME: AquaFlow
       LOG_CHANNEL: stderr
+    volumes:
+      - ./app:/var/www/html/app
+      - ./routes:/var/www/html/routes
+      - ./config:/var/www/html/config
+      - ./resources:/var/www/html/resources
+      - ./public:/var/www/html/public
+      - ./database:/var/www/html/database
+      - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
     depends_on:
       db:
         condition: service_healthy

@@ -63,6 +63,7 @@
           <div class="products-grid" id="productGrid">
             {{-- Rendered from the catalog --}}
           </div>
+          <div id="stockPreview" class="hidden" aria-live="polite"></div>
         </div>
 
         <div class="card stage-card cart-tray" style="display:flex;flex-direction:column;min-height:0;">
@@ -157,10 +158,10 @@
             <p id="deductNote" class="auto-deduct-caption"></p>
           </div>
 
-          {{-- Delivery: pay to rider upon arrival --}}
+          {{-- Delivery: charged to the customer ledger --}}
           <div id="deliveryPanel" class="hidden">
             <div class="ledger-notice" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;padding:10px;border-radius:8px;font-size:12px;">
-              Customer will pay the delivery rider upon arrival. Debt will clear when rider confirms delivery.
+              Automatically charged to customer account. Delivery confirmation does not record a payment; record collections separately.
             </div>
 
             <div class="active-customer-box" style="margin-top:10px;">

@@ -63,7 +63,7 @@ class TransactionRetryTest extends TestCase
     public function test_failed_sale_can_be_retried_without_a_partial_submission(): void
     {
         $data = $this->sale();
-        $cover = InventoryItem::where('item_name', 'CLEAR_COVER')->firstOrFail();
+        $cover = InventoryItem::whereIn('item_name', ['Clear Cover', 'CLEAR_COVER'])->firstOrFail();
         $cover->update(['stock_on_hand' => 0]);
         $this->postJson('/api/transactions', $data)->assertUnprocessable();
         $this->assertDatabaseMissing('transactions', ['submission_key' => $data['submission_key']]);

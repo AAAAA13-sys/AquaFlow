@@ -8,7 +8,7 @@ class AttendancePunchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isEmployee() === true;
+        return $this->user() !== null && ! $this->user()->isAdmin();
     }
 
     public function rules(): array

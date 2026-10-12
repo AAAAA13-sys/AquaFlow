@@ -157,19 +157,20 @@ class CheckoutTest extends TestCase
 
     public function test_u_s18_u_s33_a_new_jug_is_retail_merchandise_that_depletes_stock(): void
     {
-        $before = $this->stock('5-Gal Replacement Slim Jugs');
+        $before = $this->stock('5 Gallon Slim Jug');
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 500,
             'items' => [['product_id' => 'newS', 'quantity' => 2]],
         ]))->assertCreated();
 
-        $this->assertSame($before - 2, $this->stock('5-Gal Replacement Slim Jugs'));
+        $this->assertSame($before - 2, $this->stock('5 Gallon Slim Jug'));
     }
 
     public function test_a_new_jug_delivery_charges_the_ledger_and_creates_fulfillment(): void
     {
         $customer = Customer::query()->where('name', 'Reyes Store')->firstOrFail();
+        $customer->update(['debt_balance' => 500]);
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'customer_id' => $customer->id,
@@ -215,25 +216,25 @@ class CheckoutTest extends TestCase
 
     public function test_u_s28_every_refilled_gallon_consumes_one_cap_and_one_seal(): void
     {
-        $caps = $this->stock('Non-Spill Caps');
-        $seals = $this->stock('Heat Shrink Seals');
+        $cover = $this->stock('Clear Cover');
+        $seal = $this->stock('Shrink Seal (Circle Top Slim)');
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->assertCreated();
 
-        $this->assertSame($caps - 2, $this->stock('Non-Spill Caps'));
-        $this->assertSame($seals - 2, $this->stock('Heat Shrink Seals'));
+        $this->assertSame($cover - 2, $this->stock('Clear Cover'));
+        $this->assertSame($seal - 2, $this->stock('Shrink Seal (Circle Top Slim)'));
     }
 
     public function test_a_new_jug_does_not_consume_caps(): void
     {
-        $caps = $this->stock('Non-Spill Caps');
+        $jugStock = $this->stock('5 Gallon Slim Jug');
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 300,
             'items' => [['product_id' => 'newS', 'quantity' => 1]],
         ]))->assertCreated();
 
-        $this->assertSame($caps, $this->stock('Non-Spill Caps'));
+        $this->assertSame($jugStock - 1, $this->stock('5 Gallon Slim Jug'));
     }
 
     // ---------- Catalogue & validation ----------
@@ -432,7 +433,7 @@ class CheckoutTest extends TestCase
         $this->actingAs(User::where('username', 'admin')->firstOrFail())
             ->postJson('/api/queue/'.$item->id.'/advance')
             ->assertForbidden();
-        $refiller = User::create(['username' => 'refiller', 'name' => 'Refiller', 'role' => 'refiller', 'employee_id' => Employee::firstOrFail()->id, 'password' => 'Refill123', 'is_active' => true]);
+        $refiller = User::create(['username' => 'qa_checkout_refiller', 'name' => 'Refiller', 'role' => 'refiller', 'employee_id' => Employee::where('name', 'Carla Mendoza')->firstOrFail()->id, 'password' => 'Refill123', 'is_active' => true]);
         $this->actingAs($refiller)->postJson('/api/employee/orders/'.$item->id, ['action' => 'ready', 'version' => 0, 'submission_key' => (string) Str::uuid()])->assertOk()->assertJsonPath('order.status', 'ready');
     }
 
@@ -472,7 +473,7 @@ class CheckoutTest extends TestCase
 
     public function test_u_s15_insufficient_consumables_roll_back_the_entire_delivery(): void
     {
-        InventoryItem::query()->where('item_name', 'Heat Shrink Seals')->update(['stock_on_hand' => 1]);
+        InventoryItem::query()->where('item_name', 'Clear Cover')->update(['stock_on_hand' => 1]);
         $customer = Customer::query()->where('name', '!=', 'Walk-in Guest')->firstOrFail();
         $beforeCustomer = $customer->getAttributes();
         $beforeStock = InventoryItem::query()->pluck('stock_on_hand', 'id')->all();
@@ -484,7 +485,7 @@ class CheckoutTest extends TestCase
             'customer_id' => $customer->id,
             'order_type' => 'Delivery',
         ]))->assertUnprocessable()->assertJsonValidationErrors('items')
-            ->assertJsonPath('errors.items.0', 'Insufficient stock: Heat Shrink Seals is short by 1 pcs.');
+            ->assertJsonPath('errors.items.0', 'Insufficient stock: Clear Cover is short by 1 pcs.');
 
         $this->assertSame($transactions, Transaction::count());
         $this->assertSame($items, TransactionItem::count());
@@ -496,19 +497,19 @@ class CheckoutTest extends TestCase
 
     public function test_u_s15_insufficient_new_jug_stock_rejects_the_sale(): void
     {
-        InventoryItem::query()->where('item_name', '5-Gal Replacement Slim Jugs')->update(['stock_on_hand' => 1]);
+        InventoryItem::query()->where('item_name', '5 Gallon Slim Jug')->update(['stock_on_hand' => 1]);
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 500,
             'items' => [['product_id' => 'newS', 'quantity' => 2]],
         ]))->assertUnprocessable()->assertJsonValidationErrors('items');
-        $this->assertSame(1, $this->stock('5-Gal Replacement Slim Jugs'));
+        $this->assertSame(1, $this->stock('5 Gallon Slim Jug'));
     }
 
     public function test_u_s15_exact_available_stock_can_be_sold(): void
     {
-        InventoryItem::query()->where('item_name', 'Heat Shrink Seals')->update(['stock_on_hand' => 2]);
+        InventoryItem::query()->where('item_name', 'Clear Cover')->update(['stock_on_hand' => 2]);
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->assertCreated();
-        $this->assertSame(0, $this->stock('Heat Shrink Seals'));
+        $this->assertSame(0, $this->stock('Clear Cover'));
     }
 
     public function test_u_s25_unfinished_orders_from_yesterday_remain_visible(): void

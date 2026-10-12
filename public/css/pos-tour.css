@@ -1,0 +1,149 @@
+/* AquaFlow — POS Interactive Product Tour Styles */
+.af-tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 9990;
+  transition: opacity 0.25s ease;
+}
+
+.af-tour-card {
+  position: fixed;
+  z-index: 9995;
+  width: min(380px, calc(100vw - 32px));
+  background: #FFFFFF;
+  border: 1px solid #BFDBFE;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(29, 78, 216, 0.08);
+  padding: 20px;
+  box-sizing: border-box;
+  animation: afTourFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes afTourFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.af-tour-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.af-tour-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.af-tour-close-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.af-tour-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.af-tour-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.af-tour-body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+  margin: 0 0 18px;
+}
+
+.af-tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.af-tour-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.af-tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #CBD5E1;
+  transition: all 0.2s ease;
+}
+
+.af-tour-dot.active {
+  background: #1D4ED8;
+  width: 20px;
+  border-radius: 9999px;
+}
+
+.af-tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.af-tour-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.af-tour-btn-ghost {
+  background: transparent;
+  color: #64748B;
+}
+
+.af-tour-btn-ghost:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.af-tour-btn-primary {
+  background: #1D4ED8;
+  color: #FFFFFF;
+}
+
+.af-tour-btn-primary:hover {
+  background: #1E40AF;
+}
+
+.af-tour-spotlight {
+  position: relative;
+  z-index: 9992 !important;
+  box-shadow: 0 0 0 4px #1D4ED8, 0 0 0 9999px rgba(15, 23, 42, 0.5) !important;
+  border-radius: 12px;
+  transition: box-shadow 0.25s ease;
+}

@@ -4,6 +4,7 @@ require('./frontend-admin-login.cjs');
 require('./frontend-pos.cjs');
 require('./frontend-pos-confirmations.cjs');
 require('./frontend-queue.cjs');
+require('./frontend-refresh.cjs');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
@@ -22,9 +23,11 @@ const ctx = vm.createContext({console, document, crypto:require('node:crypto').w
   URL:{createObjectURL(blob) { downloads.push(blob); return 'blob:test'; }},
   localStorage:{getItem(){return null;},setItem(){}}, DB:{transactions:[]},
 });
-for (const file of ['auth/auth.js','data/api.js','data/store.js','admin/navigation.js','admin/inventory.js','admin/settings.js','admin/sales.js','admin/arima.js','admin/insights.js','admin/customers.js','admin/stock.js','pos/checkout.js','pos/panels.js']) {
+for (const file of ['auth/auth.js','data/api.js','data/store.js','data/profile.js','admin/navigation.js','admin/inventory.js','admin/settings.js','admin/sales.js','admin/arima.js','admin/insights.js','admin/customers.js','admin/stock.js','pos/checkout.js','pos/panels.js']) {
   vm.runInContext(fs.readFileSync(path.join(root,'public/js',file),'utf8'),ctx,{filename:file});
 }
+assert.equal(ctx.computeInitials('Ada Lovelace'), 'AL');
+assert.equal(ctx.computeInitials('Cashier'), 'CA');
 const API = vm.runInContext('API',ctx);
 const savedReceipt=ctx.receiptContents({cust:'<Ada>',type:'Walk-in',pay:'Cash',by:'Sam',total:35,vatable:31.25,vat:3.75,cash_tendered:50,cash_change:15,items:[{quantity:1,name:'Saved refill',unit_price:35,line_total:35}]});
 assert.ok(savedReceipt.includes('Saved refill'));
@@ -101,7 +104,7 @@ ctx.DB.meta={generated_at:'2026-10-06T09:00:00'};
 ctx.DB.transactions=[{date:'2026-10-06',total:70,type:'Walk-in',pay:'Cash'},{date:'2026-10-06',total:30,type:'Debt Payment',pay:'Cash'},{date:'2026-10-05',total:100,type:'Walk-in',pay:'Cash'}];
 ctx.renderInsights();
 assert.ok(elements.kRev.textContent.includes('70'));
-assert.equal(elements.kGal.textContent,'30 gal');
+assert.equal(elements.kGal.textContent,'30 gallons');
 // Overview must not invent urgency when the station has no records.
 elements.insActions={innerHTML:''};elements.advisory={innerHTML:''};elements.insRunway={innerHTML:''};
 ctx.DB.advisories=[];

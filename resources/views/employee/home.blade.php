@@ -10,19 +10,22 @@
 <main class="emp-container" data-role="{{ auth()->user()->role }}" data-name="{{ auth()->user()->name }}" data-user="{{ auth()->user()->username }}">
   <!-- Top App Bar -->
   <header class="emp-header">
-    <div class="emp-user-info">
+    <div class="emp-user-info" onclick="openProfileModal()" style="cursor:pointer;" title="Click to view profile and change password" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openProfileModal()">
       @php
         $names = explode(' ', trim(auth()->user()->name));
         $initials = strtoupper(substr($names[0] ?? 'E', 0, 1) . substr($names[count($names) - 1] ?? '', 0, 1));
         $roleName = auth()->user()->role === 'rider' ? 'Delivery Rider' : (auth()->user()->role === 'refiller' ? 'Refiller' : ucfirst(auth()->user()->role));
       @endphp
-      <div class="emp-avatar">{{ $initials }}</div>
+      <div class="emp-avatar" id="empAvatar">{{ $initials }}</div>
       <div class="emp-user-text">
-        <h1>{{ auth()->user()->name }}</h1>
+        <h1 id="empHeaderName">{{ auth()->user()->name }}</h1>
         <span class="emp-role-tag">{{ $roleName }}</span>
       </div>
     </div>
-    <button type="button" class="emp-signout-btn" onclick="logout()">Sign out</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button type="button" class="emp-profile-btn" onclick="openProfileModal()">Settings</button>
+      <button type="button" class="emp-signout-btn" onclick="confirmEmployeeLogout()">Sign out</button>
+    </div>
   </header>
 
   <!-- Status Bar (No refresh here) -->

@@ -147,8 +147,8 @@ function renderInsights() {
   const sales = (DB.transactions || []).filter(t => t.date === today && t.type !== 'Debt Payment');
   setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
   setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
-  setText('kGal', Math.round(I.fTotal) + ' gal');
-  setText('kGalSub', '30d avg ' + Math.round(I.avg30) + ' | 7d forecast ' + I.band(I.fAvg) + ' gal/day');
+  setText('kGal', Math.round(I.fTotal).toLocaleString() + ' gallons');
+  setText('kGalSub', '7-day forecast ' + I.band(I.fAvg) + ' gallons/day');
   // Counts only genuinely actionable items. Unconfigured items are surfaced as
 // a separate "set a threshold" prompt so they never read as emergencies.
 const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
@@ -162,9 +162,8 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
   setText('kLia', money(I.totalDebt));
   setText('kLiaSub', I.custs.filter(c => c.debt > 0).length + ' customers with outstanding balances');
 
-  // Name the single biggest debtor. "₱40,495 owed" is a number; naming the
-  // customer turns it into somewhere to go.
-  const topDebtor = I.custs.length ? I.custs[0] : null;
+  // Name the single biggest debtor only if there is a real outstanding balance.
+  const topDebtor = I.custs.find(c => Number(c.debt) > 0);
   setText('kLiaTop', topDebtor
     ? 'Largest balance: ' + topDebtor.name + ' — ' + money(topDebtor.debt)
     : '');
@@ -174,12 +173,9 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
     const hasHistory = (DB.history || DB.history30 || []).length > 0;
     insDemand.innerHTML = hasHistory ?
       '<div class="insight-row"><span>Sales trend · last 7 vs previous 7 days</span><b class="' + (I.trend >= 0 ? 'text-green-700' : 'text-red-600') + '">' + (I.trend >= 0 ? '+' : '−') + Math.abs(I.trend).toFixed(1) + '%</b></div>' +
-      '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' gal</b></div>' +
-      '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' gal</b></div>' +
-      '<p class="insight-note">Forecasts are estimates' + tipHtml(
-        'A forecast is a projection, not a promise. The model is back-tested against your own past sales, and the range shown is its typical error margin. Treat it as a planning aid, not a guarantee.',
-        'What does it mean that forecasts are estimates?'
-      ) + '. Review the demand forecast before planning filling and delivery work.</p>' :
+      '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' gallons</b></div>' +
+      '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' gallons</b></div>' +
+      '<p class="insight-note">Forecasts are estimates. Review the demand forecast before planning filling and delivery work.</p>' :
       '<p class="overview-empty">No sales history yet. Sales patterns will appear as transactions are recorded.</p>';
   }
 
@@ -187,10 +183,7 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
   if (insRunway && !I.runway.length) insRunway.innerHTML = '<p class="overview-empty">No inventory items recorded yet.</p>';
   if (insRunway && I.runway.length) {
     insRunway.innerHTML = I.runway.filter(r => !r.unconfigured).slice(0, 4).map(r =>
-      '<div class="insight-row"><span>' + esc(r.item) + ' <span class="insight-sub">' + r.on.toLocaleString() + ' ' + esc(r.unit) + ' remaining</span>' + tipHtml(
-        'Days of stock cover. The system compares what you hold against how fast this item has been selling recently, then shows how long that should last. Red means you have less time than your supplier needs to deliver.',
-        'What do the days here mean?'
-      ) + '</span>' +
+      '<div class="insight-row"><span>' + esc(r.item) + '<span class="insight-sub">' + r.on.toLocaleString() + ' ' + esc(r.unit) + ' remaining</span></span>' +
       '<b class="' + (r.days <= r.lead ? 'text-red-600' : r.status !== 'OK' ? 'text-yellow-700' : 'text-green-700') + '">' + (r.days === 999 ? 'No estimate' : r.days.toFixed(1) + ' days') + '</b></div>'
     ).join('') || '<p class="overview-empty">Set a reorder point on each item to see stock runway.</p>';
   }
@@ -218,7 +211,7 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
       '/admin/inventory', urgent ? 'View stock' : 'Set thresholds') +
       action(debtor ? 'watch' : 'ok', 'COLLECTIONS', debtor ? debtor.name : 'No outstanding balances',
       debtor ? money(debtor.debt) + ' outstanding. Review the customer ledger before collection.' : 'Customer balances are clear.', '/admin/customers', 'View balances') +
-      action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gal forecast' : 'Forecast not available',
+      action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gallons forecast' : 'Forecast not available',
       I.fTotal > 0 ? 'Projected refill demand over the next seven days. Check the forecast before planning.' : 'Record sales and update the forecast to start planning demand.', '/admin/arima', 'View forecast');
   }
 
@@ -382,19 +375,21 @@ function renderLedger() {
   if (elP) elP.textContent = money(I.totalDebt);
   const tb = document.getElementById('topLiaBody');
   if (tb) {
-    tb.innerHTML = filterTableRows(I.custs.filter(c => c.debt > 0), 'topLiaBody').map(c => {
+    tb.innerHTML = filterTableRows(I.custs, 'topLiaBody').map(c => {
       const hasContact = !!dialNumber(c.contact);
+      const isZero = !c.debt || Number(c.debt) <= 0;
 
       return '<tr>' +
         '<td><span class="ledger-name">' + esc(c.name) + '</span>' +
           '<span class="cell-sub">' + (c.contact ? dialNumber(c.contact) : 'No contact on file') + '</span></td>' +
-        '<td class="num ledger-balance"><span class="debt">' + money(c.debt) + '</span>' +
+        '<td class="num ledger-balance"><span class="' + (isZero ? 'balance-zero' : 'debt') + '">' + money(c.debt) + '</span>' +
           '</td>' +
         '<td><div class="ledger-actions">' +
-          '<button type="button" class="action-message" data-cust="' + c.id + '"' +
-            (hasContact ? '' : ' aria-disabled="true" title="No contact number on file"') +
-            '>Remind</button>' +
-          '<button class="btn btn-tertiary btn-sm" onclick="showSection(\'cust\')">Balances</button>' +
+          (isZero
+            ? '<button type="button" class="btn btn-secondary btn-sm" onclick="showSection(\'cust\')">View</button>'
+            : '<button type="button" class="action-message" data-cust="' + c.id + '"' +
+                (hasContact ? '' : ' aria-disabled="true" title="No contact number on file"') +
+                '>Remind</button><button class="btn btn-tertiary btn-sm" onclick="showSection(\'cust\')">Balances</button>') +
         '</div></td>' +
       '</tr>';
     }).join('');

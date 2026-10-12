@@ -15,6 +15,56 @@
       <div class="overview-shortcuts"><a href="{{ url('/admin/sales') }}" class="btn btn-secondary">View sales</a><a href="{{ url('/cashier') }}" class="btn btn-primary">Open POS &rarr;</a></div>
     </header>
 
+    <section class="card onboarding-checklist-card" id="onboardingChecklist">
+      <div class="onboarding-card-head">
+        <div>
+          <h3 class="onboarding-card-title">Getting Started Checklist</h3>
+          <p class="onboarding-card-desc">Essential setup steps for launching your water station operations.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="onboardingProgressBadge" class="pill pill-ok">Setup Guide</span>
+          <button type="button" onclick="toggleOnboardingChecklist()" class="btn btn-ghost btn-sm" id="btnToggleOnboarding" style="padding:4px 10px;min-height:30px;font-size:12px;">Dismiss</button>
+        </div>
+      </div>
+      <div class="onboarding-steps-grid" id="onboardingStepsGrid">
+        <a href="{{ url('/admin/inventory') }}" class="onboarding-step-item" id="stepInventory">
+          <div class="onboarding-step-icon" aria-hidden="true">1</div>
+          <div class="onboarding-step-text">
+            <span class="onboarding-step-label">Stock & Supplies</span>
+            <span class="onboarding-step-sub">Check gallon catalog, caps, and water inventory items.</span>
+          </div>
+        </a>
+        <a href="{{ url('/admin/suppliers') }}" class="onboarding-step-item" id="stepSuppliers">
+          <div class="onboarding-step-icon" aria-hidden="true">2</div>
+          <div class="onboarding-step-text">
+            <span class="onboarding-step-label">Connect Suppliers</span>
+            <span class="onboarding-step-sub">Register water filtration & consumable supply partners.</span>
+          </div>
+        </a>
+        <a href="{{ url('/admin/users') }}" class="onboarding-step-item" id="stepStaff">
+          <div class="onboarding-step-icon" aria-hidden="true">3</div>
+          <div class="onboarding-step-text">
+            <span class="onboarding-step-label">Staff & Access</span>
+            <span class="onboarding-step-sub">Create cashiers, delivery riders, and refiller accounts.</span>
+          </div>
+        </a>
+        <a href="{{ url('/admin/settings') }}" class="onboarding-step-item" id="stepSettings">
+          <div class="onboarding-step-icon" aria-hidden="true">4</div>
+          <div class="onboarding-step-text">
+            <span class="onboarding-step-label">Station Settings</span>
+            <span class="onboarding-step-sub">Verify station name, receipt headers, and business settings.</span>
+          </div>
+        </a>
+        <a href="{{ url('/cashier') }}" class="onboarding-step-item" id="stepPos">
+          <div class="onboarding-step-icon" aria-hidden="true">5</div>
+          <div class="onboarding-step-text">
+            <span class="onboarding-step-label">Open POS Terminal</span>
+            <span class="onboarding-step-sub">Run a test walk-in refill or customer transaction.</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
     {{-- KPI values start as skeletons rather than a literal "-". A dash reads as
              a real zero to an owner glancing at the screen; a shimmer reads as
              "not loaded yet". The ids are kept: renderInsights() overwrites
@@ -78,7 +128,10 @@
         <div id="insDemand"></div>
       </div>
       <div class="card">
-        <h3 class="panel-heading">Stock runway</h3>
+        <h3 class="panel-heading">Stock runway @include('partials.tip', [
+          'text' => 'Days of stock cover: how many days the quantity you hold should last at your recent selling rate. Red means you have less time than your supplier needs to deliver.',
+          'label' => 'What does stock runway mean?',
+        ])</h3>
         <p class="auto-deduct-caption">The four items with the shortest stock coverage.</p>
         <div id="insRunway"></div>
       </div>
@@ -91,24 +144,37 @@
     {{-- 3. REFERENCE. The tables behind the cards above. --}}
     <div class="dashboard-row-2col overview-reference">
       <div class="card">
-        <h3 class="panel-heading">Stock Check <span class="term-hint">reorder points</span></h3>
-        <div id="invFilterTabs" class="filter-tabs no-print" role="group" aria-label="Filter stock by type"></div>
-        @include('partials.table-filters', ['target' => 'invBodyDash', 'label' => 'stock', 'refresh' => 'renderInvTable()'])
+        <h3 class="panel-heading">Stock Check</h3>
+        <p class="auto-deduct-caption">New Slim Jugs: <strong id="ledgerSlim">Loading</strong> � New Round Jugs: <strong id="ledgerRound">Loading</strong></p>
+        <div class="stock-check-toolbar no-print">
+          <div class="stock-search-group">
+            <input id="invBodyDashSearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()" aria-label="Search stock">
+          </div>
+          <div id="invFilterTabs" class="filter-tabs" role="group" aria-label="Filter stock by type"></div>
+          <div class="stock-sort-group">
+            <select id="invBodyDashOrder" onchange="renderInvTable()" aria-label="Sort stock">
+              <option value="highest">Highest stock first</option>
+              <option value="lowest">Least to highest stock</option>
+              <option value="newest">New to Old</option>
+              <option value="oldest">Old to New</option>
+            </select>
+          </div>
+        </div>
         <div class="data-table-wrapper">
           <table class="clean">
             <thead>
               <tr>
-                <th>Item <span class="term-hint">type & supplier</span></th>
+                <th>Item</th>
                 <th class="num">In Stock</th>
-                <th class="num">Reorder Below <span class="term-hint">ROP</span>@include('partials.tip', [
+                <th class="num">Reorder Below @include('partials.tip', [
                   'text' => 'Reorder point: the quantity at which you should buy more. Once stock falls to this number or lower the item is flagged, so you can reorder before you run out.',
-                  'label' => 'What is ROP, the reorder point?',
+                  'label' => 'What is the reorder point?',
                 ])</th>
                 <th class="num">Lasts @include('partials.tip', [
                   'text' => 'Days of stock cover: how many days the quantity you hold should last at your recent selling rate. "n/a" means no reorder point is set for this item yet, so no estimate can be made.',
                   'label' => 'What does the Lasts column mean?',
                 ])</th>
-                <th>Status</th>
+                <th class="text-center">Status</th>
               </tr>
             </thead>
             <tbody id="invBodyDash"></tbody>
@@ -118,20 +184,27 @@
       </div>
 
       <div class="card">
-        <h3 class="panel-heading">New jugs &amp; customer balances</h3>
-        <div class="overview-jug-stock">
-          <div class="ledger-box kpi-blue"><b>New Slim Jugs</b><p id="ledgerSlim" class="kpi-value">-</p></div>
-          <div class="ledger-box kpi-green"><b>New Round Jugs</b><p id="ledgerRound" class="kpi-value">-</p></div>
+        <h3 class="panel-heading">Outstanding Customer Balances</h3>
+        <div class="customer-balances-toolbar no-print">
+          <div class="customer-search-group">
+            <input id="topLiaBodySearch" type="search" class="form-input" placeholder="Search customer balances" oninput="renderLedger()" aria-label="Search customer balances">
+          </div>
+          <div class="customer-sort-group">
+            <select id="topLiaBodyOrder" onchange="renderLedger()" aria-label="Sort customer balances">
+              <option value="highest">Highest balance first</option>
+              <option value="lowest">Least to highest balance</option>
+              <option value="newest">New to Old</option>
+              <option value="oldest">Old to New</option>
+            </select>
+          </div>
         </div>
-        <p class="section-label">Outstanding Customer Balances</p>
-        @include('partials.table-filters', ['target' => 'topLiaBody', 'label' => 'customer balances', 'refresh' => 'renderLedger()'])
         <div class="data-table-wrapper">
           <table class="clean">
             <thead>
               <tr>
                 <th>Customer</th>
                 <th class="num">Outstanding</th>
-                <th class="num">Action</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="topLiaBody"></tbody>
@@ -175,4 +248,6 @@
 renderInvTable();
 renderInsights();
 renderDemandChart();
+startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderInsights(); renderDemandChart(); renderSidebarBadges(); renderStamp(); });
 @endcomponent
+<script src="{{ asset('js/admin/dashboard-onboarding.js') }}?v={{ asset_version('js/admin/dashboard-onboarding.js') }}"></script>

@@ -15,9 +15,23 @@ class OwnerEmailTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function seedLoginUsers(): void
+    {
+        User::create(['name' => 'Owner', 'password' => 'Owner123', 'username' => 'admin', 'role' => 'admin', 'email' => null, 'email_verified_at' => null, 'is_active' => true, 'is_bootstrap' => false]);
+        User::create(['name' => 'Cashier', 'password' => 'Cashier123', 'username' => 'cashier', 'role' => 'cashier', 'is_active' => true]);
+    }
+
+
+    public function test_fixed_code_cannot_log_in_without_a_password_challenge(): void
+    {
+        $this->seedLoginUsers();
+        $this->postJson('/api/auth/verify-email', ['code' => '123456'])->assertUnprocessable();
+        $this->assertGuest();
+    }
+
     public function test_password_only_creates_pending_challenge_and_pin_cannot_bypass_email(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $owner = User::where('role', 'admin')->firstOrFail();
@@ -30,7 +44,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_employee_login_rejects_even_an_email_enrolled_owner(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         $owner = User::where('role', 'admin')->firstOrFail();
         $owner->update(['email' => 'owner@example.com', 'password' => 'Owner123']);
@@ -41,7 +55,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_admin_login_rejects_staff_and_requires_otp_before_access(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $this->postJson('/api/auth/login-owner', ['email' => 'staff@example.com', 'password' => '1234'])->assertUnauthorized();
@@ -61,7 +75,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_admin_email_is_required_and_unknown_email_or_wrong_password_sends_nothing(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         $owner = User::where('role', 'admin')->firstOrFail();
         $owner->update(['email' => 'owner@example.com', 'password' => 'Owner123']);
@@ -75,7 +89,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_email_login_uses_registered_recipient_and_recovery_uses_email(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $owner = User::where('role', 'admin')->firstOrFail();
@@ -89,7 +103,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_code_is_bound_to_session_expires_and_can_only_be_used_once(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $owner = User::where('role', 'admin')->firstOrFail();
@@ -109,7 +123,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_attempt_limit_recovery_reuse_and_stale_job_delivery(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $owner = User::where('role', 'admin')->firstOrFail();
@@ -135,7 +149,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_log_transport_cannot_receive_verification_secrets(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         config(['mail.default' => 'log']);
         $owner = User::where('role', 'admin')->firstOrFail();
         $owner->update(['email' => 'owner@example.com']);
@@ -145,7 +159,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_changing_password_invalidates_an_unconsumed_challenge(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         Queue::fake();
         config(['mail.default' => 'smtp']);
         $owner = User::where('role', 'admin')->firstOrFail();
@@ -159,7 +173,7 @@ class OwnerEmailTest extends TestCase
 
     public function test_upgrade_prompts_only_for_missing_owner_destinations(): void
     {
-        $this->seed();
+        $this->seedLoginUsers();
         $this->artisan('aquaflow:enroll-owner-email')
             ->expectsQuestion('Private verification email for admin', 'owner@example.com')
             ->assertExitCode(0);

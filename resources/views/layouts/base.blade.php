@@ -11,10 +11,15 @@
   <link rel="stylesheet" href="{{ asset('css/friendly.css') }}?v={{ asset_version('css/friendly.css') }}">
   <link rel="stylesheet" href="{{ asset('css/ui-system.css') }}?v={{ asset_version('css/ui-system.css') }}">
   @stack('styles')
+  <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ asset_version('css/theme.css') }}">
   <script>window.SPRITE_URL = @json(asset('icons/sprite.svg'));</script>
 </head>
 <body class="@yield('body-class')">
 @yield('content')
+@auth
+@include('partials.profile-modal')
+@include('partials.attendance-clock-modal')
+@endauth
 @stack('scripts')
 </body>
 </html>

@@ -242,7 +242,7 @@
 }
 
 .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-muted);
   letter-spacing: 0.01em;
@@ -258,7 +258,7 @@
 }
 
 .kpi-subtext {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   margin: 0;
 }
@@ -270,7 +270,7 @@
   margin-top: 0.55rem;
   padding-top: 0.5rem;
   border-top: 1px dashed rgba(100, 116, 139, 0.4);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   line-height: 1.35;
   color: var(--text-slate);
   font-weight: 500;
@@ -402,7 +402,7 @@
 }
 
 .insight-v {
-  font-size: 0.8125rem;
+  font-size: 0.92rem;
   line-height: 1.45;
   color: var(--text-dark);
   font-weight: 500;
@@ -411,11 +411,11 @@
 /* Small uppercase key chip — replaces inline <b> runs. */
 .insight-k {
   flex: 0 0 auto;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.15rem 0.4rem;
+  padding: 0.2rem 0.45rem;
   border-radius: 4px;
   background: var(--surface-subtle);
   color: var(--text-muted);
@@ -444,7 +444,7 @@
   gap: 0.5rem;
   align-items: flex-start;
   margin: 0.5rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   line-height: 1.5;
   color: var(--text-slate);
 }
@@ -455,13 +455,13 @@
 
 /* Legacy paragraph form: keep it readable rather than deleting it outright. */
 .insight-note {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   line-height: 1.55;
   color: var(--text-slate);
   background: var(--surface-subtle);
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
-  padding: 0.6rem 0.7rem;
+  padding: 0.7rem 0.85rem;
   margin: 0.6rem 0 0;
 }
 
@@ -473,7 +473,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.82rem;
+  font-size: 0.94rem;
 }
 
 /* Numeric columns: right-aligned, tabular figures, never wrapped. Applies to
@@ -486,27 +486,40 @@
 }
 
 .clean thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #EDF1F7;
   text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .clean thead th.num {
   text-align: right;
 }
 
+.clean th.text-center,
+.clean td.text-center {
+  text-align: center;
+}
+
 /* Unit suffixes inside a numeric cell are context, not the figure. */
 .num-unit {
-  display: block;
-  font-size: 0.68rem;
+  display: inline-block;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.01em;
-  margin-top: 0.05rem;
+  margin-left: 0.35rem;
+  vertical-align: baseline;
+  white-space: nowrap;
 }
 
 .clean tbody td {
   vertical-align: middle;
   border-bottom: 1px solid #F1F5F9;
-  padding: 0.55rem 0.6rem;
+  padding: 0.75rem 0.8rem;
 }
 
 .clean tbody tr:last-child td {
@@ -523,14 +536,14 @@
 
 /* Status pill and figures both sit optically centred in their column. */
 .clean td .pill {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
 }
 
 /* Secondary line inside a cell. The old --text-dim (#94A3B8) failed contrast on
    white; #4A5568 is the replacement and still reads as secondary. */
 .cell-sub {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   font-weight: 500;
   color: #4A5568;
   margin-top: 0.1rem;
@@ -566,8 +579,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
   font-weight: 600;
   line-height: 1.2;
   color: var(--surface-white);
@@ -1184,8 +1197,8 @@
   position: fixed;
   z-index: 130;
   width: max-content;
-  max-width: min(250px, calc(100vw - 24px));
-  padding: 0.6rem 0.7rem;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 0.6rem 0.75rem;
   border-radius: var(--radius-sm);
   background: #0F172A;
   color: #F1F5F9;
@@ -1195,6 +1208,7 @@
   text-align: left;
   white-space: normal;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  pointer-events: auto;
 }
 
 .af-tip-layer[hidden] { display: none; }

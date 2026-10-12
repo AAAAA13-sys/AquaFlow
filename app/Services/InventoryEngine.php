@@ -25,14 +25,23 @@ class InventoryEngine
     private const FALLBACK_DAILY_RATES = [
         'Soap' => 1.2,
         'Sponges' => 1.5,
-        'Slim Jugs' => 1.8,
-        'Round Jugs' => 1.4,
+        'Slim Jug' => 1.8,
+        'Round Jug' => 1.4,
     ];
 
     // Demand Mapping & Profiles
     public function demandSeries(string $item): ?string
     {
-        if (in_array($item, ['SHRINK_SLIM', 'SHRINK_ROUND', 'CLEAR_COVER'], true)) {
+        if (in_array($item, [
+            'Clear Cover',
+            'Shrink Seal (Circle Top Slim)',
+            'Shrink Seal (Circle Back)',
+            'Shrink Seal (Circle Nozzle)',
+            'Shrink Seal (Circle Top Round)',
+            'SHRINK_SLIM',
+            'SHRINK_ROUND',
+            'CLEAR_COVER',
+        ], true)) {
             return $item;
         }
 

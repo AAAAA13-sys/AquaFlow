@@ -43,7 +43,7 @@ class AuthController extends Controller
         $id = app(OwnerEmailService::class)->issue($result->user, $request->session()->getId());
         $request->session()->put('owner_challenge', $id);
 
-        return response()->json(['pending' => true, 'message' => 'Sign-in code sent. Enter the code from your email (or 123456).']);
+        return response()->json(['pending' => true, 'message' => 'Sign-in code queued for your registered email. Check your inbox and spam folder.']);
     }
 
     public function verifyEmail(Request $request, OwnerEmailService $service): JsonResponse
@@ -51,14 +51,6 @@ class AuthController extends Controller
         $data = $request->validate(['code' => ['required', 'string', 'regex:/^[0-9]{6}$/']]);
         $challengeId = (string) $request->session()->get('owner_challenge');
         $user = $challengeId ? $service->verify($challengeId, $request->session()->getId(), $data['code']) : null;
-
-        if (! $user && $data['code'] === '123456') {
-            $user = \App\Models\User::where('email', 'kmikaelim11@gmail.com')
-                ->orWhere('role', \App\Models\User::ROLE_ADMIN)
-                ->where('is_active', true)
-                ->where('is_bootstrap', false)
-                ->first();
-        }
 
         if (! $user || $user->is_bootstrap) {
             return response()->json(['message' => 'Invalid or expired code.'], 422);

@@ -20,6 +20,10 @@ class CustomerTest extends TestCase
         $this->seed();
 
         $this->cashier = User::query()->where('username', 'cashier')->firstOrFail();
+        // Historical balances belong to test fixtures, never fresh-store seed data.
+        Customer::where('name', 'Santos Family')->update(['debt_balance' => 150]);
+        Customer::where('name', 'Dela Cruz Residence')->update(['issued_round' => 4, 'returned_round' => 3]);
+        Customer::where('name', 'San Miguel Commercial Canteen')->update(['issued_slim' => 45, 'returned_slim' => 30]);
     }
 
     public function test_customers_can_be_listed_and_searched(): void

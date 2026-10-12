@@ -83,6 +83,27 @@ body.employee-page {
   color: var(--emp-brand);
 }
 
+.emp-profile-btn {
+  background: #ffffff;
+  border: 1px solid var(--emp-border);
+  color: var(--emp-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.emp-profile-btn:hover,
+.emp-profile-btn:active {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
 .emp-signout-btn {
   background: #ffffff;
   border: 1px solid var(--emp-border);

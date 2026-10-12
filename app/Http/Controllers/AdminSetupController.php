@@ -28,6 +28,7 @@ class AdminSetupController extends Controller
     {
         $id = $setup->prepare($request->session()->get('setup_user'), $request->validated(), $request->session()->getId());
         $request->session()->put('setup_challenge', $id);
+        $request->session()->put('setup_station_name', $request->validated('station_name'));
 
         return response()->json(['message' => 'Check your email for the verification code.']);
     }
@@ -36,10 +37,10 @@ class AdminSetupController extends Controller
     {
         abort_unless($request->session()->has('setup_user') && $request->session()->get('setup_expires', 0) > now()->timestamp, 403);
         $data = $request->validate(['code' => ['required', 'string', 'regex:/^[0-9]{6}$/']]);
-        $user = $setup->complete($request->session()->get('setup_user'), (string) $request->session()->get('setup_challenge'), $request->session()->getId(), $data['code']);
+        $user = $setup->complete($request->session()->get('setup_user'), (string) $request->session()->get('setup_challenge'), $request->session()->getId(), $data['code'], $request->session()->get('setup_station_name'));
         abort_unless($user, 422, 'Invalid or expired verification code.');
         $codes = $email->enroll($user);
-        $request->session()->forget(['setup_user', 'setup_expires', 'setup_challenge']);
+        $request->session()->forget(['setup_user', 'setup_expires', 'setup_challenge', 'setup_station_name']);
         Auth::login($user);
         $request->session()->regenerate();
 

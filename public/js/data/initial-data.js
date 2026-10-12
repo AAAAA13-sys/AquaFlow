@@ -13,20 +13,17 @@ const DB = {
   products: [
     { id: 'slim', name: 'Slim 5-Gal Refill', price: 35, group: 'refill', kind: 'S', cat: 'refill' },
     { id: 'round', name: 'Round 5-Gal Refill', price: 35, group: 'refill', kind: 'R', cat: 'refill' },
-    { id: 'caps', name: 'Non-Spill Caps Pack 50', price: 15, group: 'consumable', kind: 'X', cat: 'consumable' },
-    { id: 'seals', name: 'Heat Shrink Seals Pack 100', price: 20, group: 'consumable', kind: 'X', cat: 'consumable' },
-    { id: 'soap', name: 'Gallon Sanitizing Soap and Sponge', price: 10, group: 'cleaning', kind: 'X', cat: 'cleaning' },
-    { id: 'newS', name: 'New Slim Bottle Deposit', price: 250, group: 'container', kind: 'S', cat: 'container' },
-    { id: 'newR', name: 'New Round Bottle Deposit', price: 250, group: 'container', kind: 'R', cat: 'container' }
+    { id: 'newS', name: 'New Slim 5-Gal Jug', price: 250, group: 'container', kind: 'S', cat: 'container' },
+    { id: 'newR', name: 'New Round 5-Gal Jug', price: 250, group: 'container', kind: 'R', cat: 'container' }
   ],
   inventory: [
-    { id: 1, item: 'Non-Spill Caps', cat: 'Consumable', on: 450, unit: 'pcs', ss: 150, rop: 600, lead: 2, supplier: 'SealPack' },
-    { id: 2, item: 'Heat Shrink Seals', cat: 'Consumable', on: 2100, unit: 'pcs', ss: 300, rop: 1200, lead: 2, supplier: 'SealPack' },
-    { id: 3, item: '5-Micron Sediment Filter Cartridges', cat: 'Filtration', on: 2, unit: 'units', ss: 1, rop: 2, lead: 3, supplier: 'ChemClean' },
-    { id: 4, item: 'Food-Grade Soap', cat: 'Cleaning', on: 18, unit: 'btls', ss: 5, rop: 10, lead: 1, supplier: 'ChemClean' },
-    { id: 5, item: 'Sanitizing Sponges', cat: 'Cleaning', on: 24, unit: 'pcs', ss: 5, rop: 15, lead: 1, supplier: 'ChemClean' },
-    { id: 6, item: '5-Gal Replacement Slim Jugs', cat: 'Asset', on: 40, unit: 'units', ss: 10, rop: 25, lead: 4, supplier: 'SealPack' },
-    { id: 7, item: '5-Gal Replacement Round Jugs', cat: 'Asset', on: 35, unit: 'units', ss: 10, rop: 25, lead: 4, supplier: 'SealPack' }
+    { id: 1, item: 'Clear Cover', cat: 'Consumable', on: 5, unit: 'pcs', ss: 2, rop: 5, lead: 2, supplier: 'SealPack' },
+    { id: 2, item: 'Shrink Seal (Circle Top Slim)', cat: 'Consumable', on: 5, unit: 'pcs', ss: 2, rop: 5, lead: 2, supplier: 'SealPack' },
+    { id: 3, item: 'Shrink Seal (Circle Back)', cat: 'Consumable', on: 5, unit: 'pcs', ss: 2, rop: 5, lead: 2, supplier: 'SealPack' },
+    { id: 4, item: 'Shrink Seal (Circle Nozzle)', cat: 'Consumable', on: 5, unit: 'pcs', ss: 2, rop: 5, lead: 2, supplier: 'SealPack' },
+    { id: 5, item: 'Shrink Seal (Circle Top Round)', cat: 'Consumable', on: 5, unit: 'pcs', ss: 2, rop: 5, lead: 2, supplier: 'SealPack' },
+    { id: 6, item: '5 Gallon Slim Jug', cat: 'Asset', on: 5, unit: 'units', ss: 2, rop: 5, lead: 4, supplier: 'SealPack' },
+    { id: 7, item: '5 Gallon Round Jug', cat: 'Asset', on: 5, unit: 'units', ss: 2, rop: 5, lead: 4, supplier: 'SealPack' }
   ],
   customers: [
     { id: 1, name: 'San Miguel Commercial Canteen', addr: 'Kapitolyo, Pasig', contact: '0917-000-1001', issuedS: 45, returnedS: 30, issuedR: 10, returnedR: 10, debt: 24800, tx: 62, last: '2026-09-21' },

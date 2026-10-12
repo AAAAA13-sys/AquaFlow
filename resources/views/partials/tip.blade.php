@@ -13,5 +13,6 @@
 --}}
 <span class="af-tip" data-tip="{{ $text }}">
   <button type="button" class="af-tip-btn" aria-expanded="false"
-          aria-label="{{ $label ?? 'Show explanation' }}">?</button>
+          aria-label="{{ $label ?? 'Show explanation' }}"
+          title="{{ $text }}">?</button>
 </span>

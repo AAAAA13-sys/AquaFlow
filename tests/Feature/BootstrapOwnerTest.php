@@ -24,7 +24,8 @@ class BootstrapOwnerTest extends TestCase
         $this->assertGuest();
         $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
         $this->get('/admin')->assertRedirect('/owner/login');
-        $this->postJson('/api/auth/setup-owner', ['name' => 'My Owner', 'email' => 'real@example.com', 'password' => 'MyPassword123', 'password_confirmation' => 'MyPassword123'])->assertOk();
+        $this->postJson('/api/auth/setup-owner', ['station_name' => 'My Water Station', 'name' => 'My Owner', 'email' => 'real@example.com', 'password' => 'MyPassword123', 'password_confirmation' => 'MyPassword123'])->assertOk();
+        $this->assertNotSame('My Water Station', \App\Models\SystemSetting::value('station_name'));
         $this->assertGuest();
         $this->postJson('/api/auth/login-owner', ['email' => 'real@example.com', 'password' => 'MyPassword123'])->assertUnauthorized();
         $job = Queue::pushed(SendOwnerCode::class)->last();
@@ -33,6 +34,7 @@ class BootstrapOwnerTest extends TestCase
         $this->assertDatabaseCount('users', 1);
         $this->assertAuthenticatedAs(User::sole());
         $this->assertFalse(User::sole()->is_bootstrap);
+        $this->assertSame('My Water Station', \App\Models\SystemSetting::value('station_name'));
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/setup-login', ['email' => 'admin@aquaflow.com', 'password' => 'Adm1nP4ss!123', 'code' => '571067'])->assertUnauthorized();
         $this->artisan('aquaflow:install-store')->assertSuccessful();

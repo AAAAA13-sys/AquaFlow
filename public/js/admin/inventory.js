@@ -59,14 +59,20 @@ function renderInvTable() {
     body.innerHTML = filterTableRows(DB.inventory, 'invBody').map(v => {
       const i = DB.inventory.indexOf(v);
       const st = statusOf(v);
-      return '<tr' + (isUnconfigured(v) ? ' class="is-unconfigured"' : '') + '><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
-        '<td>' + esc(v.cat) + '</td><td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
-        '<td class="num">' + (isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : v.ss) + '</td><td class="num" id="rop' + i + '">' + (isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : v.rop) + '</td>' +
-        '<td><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
-        '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
-        '<td style="white-space:nowrap;">' +
-        (v.id ? ' <button onclick="openStockDetail(' + v.id + ')" class="btn btn-secondary btn-sm">History</button> <button onclick="openInventoryEditor(' + v.id + ')" class="btn btn-secondary btn-sm">Edit</button>' +
-        ' <button onclick="deleteInventoryItem(' + v.id + ')" class="btn btn-secondary btn-sm">Del</button>' : '') + '</td></tr>';
+      const supplierSub = v.supplier ? '<span class="cell-sub">' + esc(v.supplier) + '</span>' : '';
+      const unitText = esc(v.unit || 'pcs');
+      const minVal = isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : ('<b>' + Number(v.ss).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span>');
+      const ropVal = isUnconfigured(v) ? '<span class="pill-neutral">Not set</span>' : ('<b>' + Number(v.rop).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span>');
+      return '<tr' + (isUnconfigured(v) ? ' class="is-unconfigured"' : '') + '>' +
+        '<td><b>' + esc(v.item) + '</b>' + supplierSub + '</td>' +
+        '<td class="nowrap">' + esc(v.cat) + '</td>' +
+        '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span></td>' +
+        '<td class="num">' + minVal + '</td>' +
+        '<td class="num" id="rop' + i + '">' + ropVal + '</td>' +
+        '<td class="text-center"><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
+        '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
+        '<td class="text-center" style="white-space:nowrap;">' +
+        (v.id ? '<div class="table-actions"><button onclick="openStockDetail(' + v.id + ')" class="btn btn-secondary btn-sm">History</button><button onclick="openInventoryEditor(' + v.id + ')" class="btn btn-secondary btn-sm">Edit</button><button onclick="deleteInventoryItem(' + v.id + ')" class="btn btn-secondary btn-sm btn-del" title="Delete item">Delete</button></div>' : '') + '</td></tr>';
     }).join('');
     showTableEmpty(body, 8);
   }
@@ -92,12 +98,16 @@ function renderInvTable() {
           ? '<span class="pill-neutral">n/a</span>'
           : (v.days_left === null || v.days_left === undefined
             ? '&mdash;'
-            : Number(v.days_left).toFixed(1) + 'd');
-        return '<tr' + (unconfigured ? ' class="is-unconfigured"' : '') + '><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + esc(v.cat) + ' | ' + esc(v.supplier) + '</span></td>' +
+            : Number(v.days_left).toFixed(1) + ' days');
+        const sub = v.supplier ? esc(v.cat) + ' | ' + esc(v.supplier) : esc(v.cat);
+        const ropVal = unconfigured
+          ? '<span class="pill-neutral">Not set</span>'
+          : '<b>' + Number(v.rop).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit || 'pcs') + '</span>';
+        return '<tr' + (unconfigured ? ' class="is-unconfigured"' : '') + '><td><b>' + esc(v.item) + '</b><span class="cell-sub">' + sub + '</span></td>' +
           '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
-          '<td class="num">' + (unconfigured ? '<span class="pill-neutral">Not set</span>' : v.rop) + '</td>' +
+          '<td class="num">' + ropVal + '</td>' +
           '<td class="num">' + days + '</td>' +
-          '<td><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
+          '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
       }).join('');
     }
   }

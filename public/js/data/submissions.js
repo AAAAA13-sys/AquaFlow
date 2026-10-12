@@ -29,7 +29,8 @@ const Submissions = {
     try {
       const result = await API.post(entry.path, entry.body);
       if (!result || !result.transaction) throw new Error('Receipt response was incomplete. Recover the receipt before taking another payment.');
-      this.clear();
+      entry.result = result;
+      this.save(entry);
       return result;
     } catch (error) {
       // Validation failures roll back server writes; uncertain failures retain the key.

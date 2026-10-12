@@ -26,7 +26,7 @@ function currentSeriesRecord() {
 
 function currentSeriesUnit() {
   const name = currentSeriesName();
-  if (name === 'Refill Gallons') return 'gal';
+  if (name === 'Refill Gallons') return 'gallons';
   if (name === 'Sediment Filters') return 'units';
   return 'pcs';
 }
@@ -92,7 +92,7 @@ function renderForecast() {
     '<span class="pill pill-info" title="' + (model.order || 'ARIMA') + '">Forecast model</span> ' +
     seasonalPill + ' ' + mapePill + ' ' + residPill;
 
-  if (meta) meta.innerHTML = metaHtml;
+  if (meta) meta.innerHTML = '';
   if (metaDash) metaDash.innerHTML = metaHtml;
 
   if (table) {
@@ -101,17 +101,29 @@ function renderForecast() {
     const action = firstItem
       ? 'order ' + Number(firstItem.order_quantity).toLocaleString() + ' ' + firstItem.unit + ' of ' + firstItem.item + ' from ' + firstItem.supplier
       : 'check the Stock & Supplies tab for what to order';
+    const actionFormatted = action.charAt(0).toUpperCase() + action.slice(1);
 
     table.innerHTML = rows.map(r =>
       '<div class="insight-row"><span>' + r[0] + '</span><b>' + Math.round(r[1]).toLocaleString() + ' ' + unit + '</b></div>'
-    ).join('') + '<p class="insight-note"><b>What this means:</b> about ' + next3.toLocaleString() + ' ' + unit + ' are projected for the next 3 days.<br>' +
-    '<b>What to do:</b> ' + action + '.<br>' +
-    '<b>How reliable is this?</b> When AquaFlow was tested on days it had not seen before, its answer was off by about ' + (model.mape ?? '-') +
-    '% on average <span class="term-hint">(MAPE ' + (model.mape ?? '-') + '%)</span>' +
-    (model.ljung_box_pvalue !== undefined
-      ? ', and its residual test ' + (residOk ? 'found no significant remaining pattern' : 'found a remaining pattern') +
-        ' <span class="term-hint">(Ljung-Box p = ' + model.ljung_box_pvalue + ')</span>'
-      : '') + '. Treat it as a good guide, not an exact number.</p>';
+    ).join('') +
+    '<div class="arima-insights-box">' +
+      '<div class="arima-insight-item">' +
+        '<div class="arima-insight-badge arima-badge--means">What this means</div>' +
+        '<div class="arima-insight-body">About <strong>' + next3.toLocaleString() + ' ' + unit + '</strong> are projected for the next 3 days.</div>' +
+      '</div>' +
+      '<div class="arima-insight-item">' +
+        '<div class="arima-insight-badge arima-badge--action">What to do</div>' +
+        '<div class="arima-insight-body">' + actionFormatted + '.</div>' +
+      '</div>' +
+      '<div class="arima-insight-item">' +
+        '<div class="arima-insight-badge arima-badge--reliability">How reliable is this?</div>' +
+        '<div class="arima-insight-body">When AquaFlow was tested on days it had not seen before, its answer was off by about <strong>' + (model.mape ?? '-') + '%</strong> on average' +
+        (model.ljung_box_pvalue !== undefined
+          ? ', and its residual test ' + (residOk ? 'found no significant remaining pattern' : 'found a remaining pattern') +
+            ' (Ljung-Box p = ' + model.ljung_box_pvalue + ')'
+          : '') + '. Treat it as a good guide, not an exact number.</div>' +
+      '</div>' +
+    '</div>';
   }
 }
 

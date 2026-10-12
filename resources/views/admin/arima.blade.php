@@ -42,7 +42,6 @@
         <p class="settings-help">Daily view shows the latest 30 days of recorded demand alongside the stored forecast.</p>
         <canvas id="chArima" height="160" role="img"
                 aria-label="Chart of recorded daily demand for the last 30 days against the forecast for the next 7 days."></canvas>
-        <div id="fcMeta" class="orders-queue-list order-type-selector"></div>
       </div>
       <div class="card">
         <h3 class="panel-heading">Supply planning</h3>
@@ -56,4 +55,5 @@
 restoreForecastView();
 renderForecast();
 renderArimaChart();
+startPageRefresh(async () => { await loadFromServer(); renderForecast(); renderArimaChart(); renderSidebarBadges(); renderStamp(); });
 @endcomponent

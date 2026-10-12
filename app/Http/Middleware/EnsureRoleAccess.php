@@ -13,10 +13,12 @@ class EnsureRoleAccess
         if ($user && $user->isEmployee()) {
             $user->load('employee');
             abort_unless($user->employee && $user->employee->is_active, 403, 'Employee access is inactive.');
-            abort_unless($request->is('employee', 'api/employee/*', 'api/auth/logout', 'api/auth/session', '/'), 403);
+            abort_unless($request->is('employee', 'api/employee/*', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/'), 403);
         }
         if ($user && $request->is('employee', 'api/employee/*')) {
-            abort_unless($user->isEmployee(), 403);
+            if (! $request->is('api/employee/attendance*', 'api/employee/profile*')) {
+                abort_unless($user->isEmployee(), 403);
+            }
         }
 
         return $next($request);

@@ -7,6 +7,10 @@
     <header class="auth-header"><div class="auth-logo">AF</div><div><h1 class="auth-title">Admin Login</h1><p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Admin portal</p></div></header>
     <p class="auth-description" id="loginDescription">{{ $firstRun ? 'First-time setup: enter the setup email, password and code supplied with your installation. You must create and verify your own admin account before using the store.' : 'Enter your admin email and password, send an OTP, then enter the code from your inbox.' }}</p>
     <div id="err" class="auth-error hidden" role="alert"></div>
+    @if($firstRun)
+    <ol class="setup-progress" aria-label="Store setup steps"><li>Unlock installation</li><li>Enter station and owner details</li><li>Verify your email</li></ol>
+    <p id="setupStep" class="setup-step-note" role="status">Step 1 of 3: Unlock installation</p>
+    @endif
     <p id="loginStatus" role="status" aria-live="polite"></p>
     <form id="adminForm" class="auth-form" onsubmit="event.preventDefault(); submitAdminLogin();">
       <label class="form-label" for="adminEmail">Admin email</label>
@@ -20,6 +24,7 @@
     </form>
     <form id="setupForm" class="auth-form hidden" onsubmit="event.preventDefault(); verifySetup();">
       <h2>Create your admin account</h2><p>Use your own email. Verify it to replace the temporary setup account.</p>
+      <label for="setupStation">Station name</label><input id="setupStation" class="form-input" autocomplete="organization" maxlength="100" required>
       <label for="setupName">Your name</label><input id="setupName" class="form-input" autocomplete="name" maxlength="100" required>
       <label for="setupEmail">Your admin email</label><input id="setupEmail" type="email" class="form-input" autocomplete="email" maxlength="255" required>
       <label for="setupPassword">New password</label><div class="credential-control"><input id="setupPassword" type="password" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" required><button type="button" class="btn btn-ghost btn-sm" onclick="togglePassword('setupPassword', this)" aria-controls="setupPassword" aria-pressed="false">Show</button></div>

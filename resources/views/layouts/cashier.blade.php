@@ -2,6 +2,7 @@
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/cashier.css') }}?v={{ asset_version('css/cashier.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/pos-tour.css') }}?v={{ asset_version('css/pos-tour.css') }}">
 @endpush
 
 @section('content')

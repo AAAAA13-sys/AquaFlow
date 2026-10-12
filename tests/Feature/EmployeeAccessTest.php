@@ -14,8 +14,8 @@ class EmployeeAccessTest extends TestCase
     public function test_employee_cannot_access_cashier_data_and_can_only_punch_self(): void
     {
         $this->seed();
-        $employee = Employee::firstOrFail();
-        $user = User::create(['username' => 'rider', 'name' => 'Rider', 'password' => 'Rider123', 'role' => 'rider', 'employee_id' => $employee->id, 'is_active' => true]);
+        $employee = Employee::where('name', 'Carla Mendoza')->firstOrFail();
+        $user = User::create(['username' => 'qa_rider', 'name' => 'Rider', 'password' => 'Rider123', 'role' => 'rider', 'employee_id' => $employee->id, 'is_active' => true]);
         $this->actingAs($user);
         foreach (['bootstrap', 'customers', 'transactions', 'inventory', 'users', 'attendance'] as $path) {
             $this->getJson('/api/'.$path)->assertForbidden();

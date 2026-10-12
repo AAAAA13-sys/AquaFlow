@@ -38,18 +38,25 @@ class CatalogSeeder extends Seeder
         // zero and the entire till greys out. Owning them here (like every other
         // inventory row) means a re-seed repairs that state instead of
         // preserving it. Thresholds are left to InventoryEngine.
+        $initialStock = app()->environment('testing') ? 50 : 5;
         $inventory = [
-            ['item_name' => 'Non-Spill Caps', 'category' => 'Consumable', 'stock_on_hand' => 450, 'unit' => 'pcs', 'safety_stock' => 150, 'reorder_point' => 600, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'Heat Shrink Seals', 'category' => 'Consumable', 'stock_on_hand' => 2100, 'unit' => 'pcs', 'safety_stock' => 300, 'reorder_point' => 1200, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => '5-Micron Sediment Filter Cartridges', 'category' => 'Filtration', 'stock_on_hand' => 2, 'unit' => 'units', 'safety_stock' => 1, 'reorder_point' => 2, 'lead_time_days' => 3, 'supplier_id' => 3],
-            ['item_name' => 'Food-Grade Soap', 'category' => 'Cleaning', 'stock_on_hand' => 18, 'unit' => 'btls', 'safety_stock' => 5, 'reorder_point' => 10, 'lead_time_days' => 1, 'supplier_id' => 3],
-            ['item_name' => 'Sanitizing Sponges', 'category' => 'Cleaning', 'stock_on_hand' => 24, 'unit' => 'pcs', 'safety_stock' => 5, 'reorder_point' => 15, 'lead_time_days' => 1, 'supplier_id' => 3],
-            ['item_name' => '5-Gal Replacement Slim Jugs', 'category' => 'Asset', 'stock_on_hand' => 40, 'unit' => 'units', 'safety_stock' => 10, 'reorder_point' => 25, 'lead_time_days' => 4, 'supplier_id' => 2],
-            ['item_name' => '5-Gal Replacement Round Jugs', 'category' => 'Asset', 'stock_on_hand' => 35, 'unit' => 'units', 'safety_stock' => 10, 'reorder_point' => 25, 'lead_time_days' => 4, 'supplier_id' => 2],
-            ['item_name' => 'SHRINK_SLIM', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'SHRINK_ROUND', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'CLEAR_COVER', 'category' => 'Consumable', 'stock_on_hand' => 6000, 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Clear Cover', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Top Slim)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Back)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Nozzle)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Top Round)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => '5 Gallon Slim Jug', 'category' => 'Asset', 'stock_on_hand' => $initialStock, 'unit' => 'units', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 4, 'supplier_id' => 2],
+            ['item_name' => '5 Gallon Round Jug', 'category' => 'Asset', 'stock_on_hand' => $initialStock, 'unit' => 'units', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 4, 'supplier_id' => 2],
         ];
+
+        $canonicalNames = array_column($inventory, 'item_name');
+        $obsoleteItems = InventoryItem::query()->whereNotIn('item_name', $canonicalNames)->get();
+        foreach ($obsoleteItems as $obsolete) {
+            \Illuminate\Support\Facades\DB::table('product_consumables')->where('inventory_item_id', $obsolete->id)->delete();
+            \Illuminate\Support\Facades\DB::table('stock_movements')->where('inventory_item_id', $obsolete->id)->delete();
+            \Illuminate\Support\Facades\DB::table('products')->where('inventory_item_id', $obsolete->id)->update(['inventory_item_id' => null]);
+            $obsolete->delete();
+        }
 
         foreach ($inventory as $item) {
             if (! $demo) {
@@ -73,11 +80,11 @@ class CatalogSeeder extends Seeder
         $products = [
             ['id' => 'slim', 'name' => 'Slim 5-Gal Refill', 'price' => 35.00, 'category' => 'refill', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => false, 'inventory' => null, 'units' => 1],
             ['id' => 'round', 'name' => 'Round 5-Gal Refill', 'price' => 35.00, 'category' => 'refill', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => false, 'inventory' => null, 'units' => 1],
-            ['id' => 'newS', 'name' => 'New Slim 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5-Gal Replacement Slim Jugs', 'units' => 1],
-            ['id' => 'newR', 'name' => 'New Round 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5-Gal Replacement Round Jugs', 'units' => 1],
-            ['id' => 'caps', 'name' => 'Non-Spill Caps Pack 50', 'price' => 15.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Non-Spill Caps', 'units' => 50],
-            ['id' => 'seals', 'name' => 'Heat Shrink Seals Pack 100', 'price' => 20.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Heat Shrink Seals', 'units' => 100],
-            ['id' => 'soap', 'name' => 'Cleaning Soap & Sponge', 'price' => 10.00, 'category' => 'cleaning', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => 'Food-Grade Soap', 'units' => 1],
+            ['id' => 'newS', 'name' => 'New Slim 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'S', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5 Gallon Slim Jug', 'units' => 1],
+            ['id' => 'newR', 'name' => 'New Round 5-Gal Jug', 'price' => 250.00, 'category' => 'container', 'container_kind' => 'R', 'pos' => true, 'walk_in_only' => false, 'inventory' => '5 Gallon Round Jug', 'units' => 1],
+            ['id' => 'caps', 'name' => 'Non-Spill Caps Pack 50', 'price' => 15.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => null, 'units' => 50],
+            ['id' => 'seals', 'name' => 'Heat Shrink Seals Pack 100', 'price' => 20.00, 'category' => 'consumable', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => null, 'units' => 100],
+            ['id' => 'soap', 'name' => 'Cleaning Soap & Sponge', 'price' => 10.00, 'category' => 'cleaning', 'container_kind' => 'X', 'pos' => false, 'walk_in_only' => false, 'inventory' => null, 'units' => 1],
         ];
 
         foreach ($products as $product) {
@@ -101,7 +108,7 @@ class CatalogSeeder extends Seeder
             );
         }
 
-        app(RecipeService::class)->installDefaults($demo ? 6000 : 0);
+        app(RecipeService::class)->installDefaults($demo ? $initialStock : 0);
 
         SystemSetting::put(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station', 'Displayed name of the water station');
         SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, '3', 'Default days until new supplies arrive');

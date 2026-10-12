@@ -82,7 +82,7 @@ class AttendanceService
 
     public function punch(int $employeeId, string $action, User $user, ?string $reason = null): array
     {
-        abort_unless($user->isEmployee() && (int) $user->employee_id === $employeeId, 403);
+        abort_if($user->isEmployee() && (int) $user->employee_id !== $employeeId, 403);
 
         return DB::transaction(function () use ($employeeId, $action, $user, $reason): array {
             $employee = Employee::withTrashed()->lockForUpdate()->findOrFail($employeeId);
@@ -97,14 +97,14 @@ class AttendanceService
                         throw ValidationException::withMessages(['attendance' => 'This attendance record is already finalized as absent or on leave.']);
                     }
 
-                    if ($a->time_out) {
-                        $a->update(['time_out' => null, 'time_out_by' => null]);
-                    }
-
+                    // A retried time-in must never reopen a completed attendance record.
                     return $this->row($employee, $a, $date);
                 }
                 if (! $employee->is_active || $employee->trashed()) {
                     throw ValidationException::withMessages(['employee' => 'Inactive employees cannot time in.']);
+                }
+                if ($now->format('H:i') > '08:00' && $reason === '') {
+                    throw ValidationException::withMessages(['reason' => 'Explain the late arrival (store opening is 8 AM).']);
                 }
                 $a = EmployeeAttendance::create(['employee_id' => $employeeId, 'attendance_date' => $date, 'type' => 'present', 'time_in' => $now, 'time_in_by' => $user->id, 'version' => 1]);
             } else {
@@ -116,6 +116,9 @@ class AttendanceService
                 }
                 if ($now->lt($a->time_in)) {
                     throw ValidationException::withMessages(['attendance' => 'Time out cannot precede time in. Ask an admin to review the record.']);
+                }
+                if ($now->lt($a->time_in->copy()->addHours(9)) && $reason === '') {
+                    throw ValidationException::withMessages(['reason' => 'Explain the early departure: nine hours from time in are required, including breaks.']);
                 }
                 $a->update(['time_out' => $now, 'time_out_by' => $user->id, 'version' => $a->version + 1]);
             }

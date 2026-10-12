@@ -13,9 +13,9 @@
 #s-dash .overview-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 #s-dash .overview-header h2 { font-size: clamp(23px, 2.5vw, 30px); letter-spacing: -.8px; margin: 4px 0 8px; }
 /* Colour for the masthead lives in the override block at the end of this file. */
-#s-dash .overview-header p:not(.overview-eyebrow), #s-dash .overview-hint { font-size: 13px; line-height: 1.6; }
+#s-dash .overview-header p:not(.overview-eyebrow), #s-dash .overview-hint { font-size: 14.5px; line-height: 1.6; }
 /* Was #1D4ED8 at 3.91:1 on white. #1D4ED8 is the same hue at 5.9:1. */
-#s-dash .overview-eyebrow { color: #1D4ED8; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
+#s-dash .overview-eyebrow { color: #1D4ED8; font-size: 11.5px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
 #s-dash .overview-shortcuts { display: flex; gap: 10px; flex-shrink: 0; }
 #s-dash .kpi-cards-grid { gap: 14px; }
 /* ---------------------------------------------------------------------
@@ -60,13 +60,14 @@
   border-top-color: #1D4ED8;
   background-color: #F5F8FF;
 }
-#s-dash .kpi-label { font-size: 12px; color: #475569; min-height: 32px; }
+#s-dash .kpi-label { font-size: 14px; color: #475569; min-height: 28px; }
 #s-dash .kpi-value { font-size: clamp(20px, 2vw, 28px); letter-spacing: -.6px; color: #0f172a; line-height: 1.2; margin: 10px 0; overflow-wrap: anywhere; }
-#s-dash .kpi-subtext { line-height: 1.5; color: #475569; }
+#s-dash .kpi-subtext { font-size: 13.5px; line-height: 1.5; color: #475569; }
 /* Was display: none, which suppressed the largest-debtor line that
    insights.js already computes and dashboard.blade.php already renders.
    ui-system.css styles .kpi-micro properly; this was the only thing hiding it. */
-#s-dash .kpi-micro { display: block; font-size: 11.5px; }
+#s-dash .kpi-micro { display: block; font-size: 13px; }
+#s-dash .kpi-micro:empty { display: none; }
 #s-dash .overview-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 #s-dash h3 { margin: 4px 0 8px; font-size: 17px; letter-spacing: -.25px; }
 #s-dash .overview-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -91,18 +92,117 @@
 #s-dash .overview-action--watch { border-color: #F3E2C4; border-left-color: #D97706; background-color: #FFFAF0; }
 #s-dash .overview-action--info { border-color: #D7E1F5; border-left-color: #1D4ED8; background-color: #F6F9FF; }
 #s-dash .overview-action--danger h4 { color: #991B1B; }
-#s-dash .overview-action-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: #475569; }
-#s-dash .overview-action h4 { font-size: 15px; margin: 10px 0 8px; color: #0B1220; }
-#s-dash .overview-action p { font-size: 12px; line-height: 1.6; color: #475569; margin: 0 0 16px; }
+#s-dash .overview-action-label { font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px; color: #475569; }
+#s-dash .overview-action h4 { font-size: 16px; margin: 10px 0 8px; color: #0B1220; }
+#s-dash .overview-action p { font-size: 13.5px; line-height: 1.6; color: #475569; margin: 0 0 16px; }
 #s-dash .overview-action a { margin-top: auto; }
 #s-dash .dash-row-chart { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; }
 #s-dash .card--rail { border-left: 1px solid var(--border-line); }
-#s-dash .advisory-card { padding: 14px; font-size: 12px; line-height: 1.6; margin-bottom: 12px; }
+#s-dash .advisory-card { padding: 14px; font-size: 13.5px; line-height: 1.6; margin-bottom: 12px; }
 #s-dash .advisory-card .btn { display: block; margin-top: 12px; }
 #s-dash .dashboard-row-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-#s-dash .insight-row { align-items: flex-start; flex-wrap: wrap; padding: 12px 0; font-size: 12px; line-height: 1.6; }
-#s-dash .insight-row b { font-size: 12px; }
+#s-dash .insight-row { align-items: flex-start; flex-wrap: wrap; padding: 12px 0; font-size: 14px; line-height: 1.6; }
+#s-dash .insight-row b { font-size: 14px; }
 #s-dash .overview-reference { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+#s-dash .stock-check-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 16px;
+  flex-wrap: nowrap;
+}
+#s-dash .stock-search-group {
+  flex: 0 0 190px;
+  min-width: 140px;
+}
+#s-dash .stock-search-group input {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-line);
+  background: #FFFFFF;
+  font-size: 13.5px;
+  color: #0F172A;
+  box-sizing: border-box;
+}
+#s-dash .stock-check-toolbar .filter-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#s-dash .stock-check-toolbar .filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+#s-dash .stock-check-toolbar .filter-tab {
+  white-space: nowrap;
+}
+#s-dash .stock-sort-group {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+#s-dash .stock-sort-group select {
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-line);
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0F172A;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+#s-dash .customer-balances-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 16px;
+  flex-wrap: nowrap;
+}
+#s-dash .customer-search-group {
+  flex: 0 1 240px;
+  min-width: 150px;
+}
+#s-dash .customer-search-group input {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-line);
+  background: #FFFFFF;
+  font-size: 13.5px;
+  color: #0F172A;
+  box-sizing: border-box;
+}
+#s-dash .customer-sort-group {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+#s-dash .customer-sort-group select {
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-line);
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0F172A;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.balance-zero {
+  color: var(--text-muted);
+  font-weight: 600;
+}
 #s-dash .data-table-wrapper { max-height: 370px; overflow: auto; margin-top: 12px; border-radius: 10px; border: 1px solid var(--border-line); }
 #s-dash table { margin: 0; }
 #s-dash thead th { position: sticky; top: 0; background: #EDF1F7; z-index: 1; }
@@ -173,4 +273,110 @@
 #s-dash .overview-shortcuts .btn-primary:hover {
   background: var(--brand-tint);
   color: var(--brand-active);
+}
+
+/* =============================================================================
+   AquaFlow — Owner Getting Started Onboarding Checklist
+   ========================================================================== */
+.onboarding-checklist-card {
+  margin: 1.25rem 0 0;
+  padding: 1.25rem 1.5rem;
+  background: #FFFFFF;
+  border: 1px solid var(--border-line, #D3DAE5);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.onboarding-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #EDF2F7;
+}
+
+.onboarding-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-slate, #1E293B);
+  margin: 0 0 2px;
+}
+
+.onboarding-card-desc {
+  font-size: 0.825rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.onboarding-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.85rem;
+}
+
+.onboarding-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #F8FAFD;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.onboarding-step-item:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.08);
+}
+
+.onboarding-step-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.onboarding-step-item.is-done .onboarding-step-icon {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+
+.onboarding-step-item.is-done {
+  border-color: #BBF7D0;
+  background: #F0FDF4;
+}
+
+.onboarding-step-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-step-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-slate, #1E293B);
+  margin-bottom: 2px;
+}
+
+.onboarding-step-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748B;
+  line-height: 1.4;
 }

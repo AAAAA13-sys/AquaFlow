@@ -64,12 +64,12 @@ class PageTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Order Type', false)
-            ->assertSee("setType('Walk-in')", false)
-            ->assertSee("setType('Delivery')", false);
+            ->assertSee("confirmOrderType('Walk-in')", false)
+            ->assertSee("confirmOrderType('Delivery')", false);
 
         // Stage 1 must not offer an order type: it belongs to stage 2.
         $stageOne = explode('data-step="2"', $response->getContent())[0];
-        $this->assertStringNotContainsString('setType(', $stageOne);
+        $this->assertStringNotContainsString('confirmOrderType(', $stageOne);
     }
 
     public function test_stage_two_lists_products_and_the_items_bought(): void
@@ -204,7 +204,7 @@ class PageTest extends TestCase
     {
         $this->actingAs($this->cashier)->get('/cashier/queue')
             ->assertOk()
-            ->assertSee('Orders in Progress &amp; Queue', false)
+            ->assertSee('Orders in Progress', false)
             ->assertSee('Active orders', false)
             ->assertSee('Delivered', false)
             ->assertSee('id="queue"', false)
@@ -230,14 +230,17 @@ class PageTest extends TestCase
     {
         $pages = [
             '/cashier' => 'POS Terminal',
-            '/cashier/queue' => 'Orders in Progress &amp; Queue',
+            '/cashier/queue' => 'Orders in Progress',
             '/cashier/history' => 'Sales &amp; Transaction History',
         ];
 
         foreach ($pages as $url => $marker) {
-            $this->actingAs($this->cashier)->get($url)
-                ->assertOk()
-                ->assertSee($marker, false);
+            $response = $this->actingAs($this->cashier)->get($url)->assertOk()->assertSee($marker, false);
+            $document = new \DOMDocument;
+            @$document->loadHTML($response->getContent());
+            $active = (new \DOMXPath($document))->query('//nav[@id="sideNav"]//a[@aria-current="page"]');
+            $this->assertSame(1, $active->length);
+            $this->assertSame($url, parse_url($active->item(0)->getAttribute('href'), PHP_URL_PATH));
         }
     }
 

@@ -33,9 +33,9 @@ class InventoryTest extends TestCase
     {
         $series = [
             'Refill Gallons' => [200, 210, 220, 230, 400, 410, 220],
-            'Non-Spill Caps' => [200, 210, 220, 230, 400, 410, 220],
-            'Heat Shrink Seals' => [200, 210, 220, 230, 400, 410, 220],
-            'Sediment Filters' => [0.1, 0.1, 0.1, 0.1, 0.2, 0.2, 0.1],
+            'Clear Cover' => [200, 210, 220, 230, 400, 410, 220],
+            'Shrink Seal (Circle Top Slim)' => [200, 210, 220, 230, 400, 410, 220],
+            '5 Gallon Slim Jug' => [0.1, 0.1, 0.1, 0.1, 0.2, 0.2, 0.1],
         ];
 
         foreach ($series as $name => $values) {
@@ -70,7 +70,7 @@ class InventoryTest extends TestCase
         $response = $this->actingAs($this->cashier)->getJson('/api/inventory');
 
         $response->assertOk()
-            ->assertJsonCount(10, 'inventory')
+            ->assertJsonCount(7, 'inventory')
             ->assertJsonStructure(['inventory' => [['id', 'item', 'on', 'ss', 'rop', 'target', 'lead', 'status']], 'advisories']);
 
         $first = $response->json('inventory.0');
@@ -80,7 +80,7 @@ class InventoryTest extends TestCase
 
     public function test_raising_the_lead_time_raises_safety_stock_and_rop(): void
     {
-        $caps = $this->item('Non-Spill Caps');
+        $caps = $this->item('Clear Cover');
         $ropBefore = $caps->reorder_point;
         $safetyBefore = $caps->safety_stock;
 
@@ -99,13 +99,13 @@ class InventoryTest extends TestCase
     public function test_lead_time_out_of_range_is_rejected(): void
     {
         $this->actingAs($this->owner)
-            ->patchJson('/api/inventory/'.$this->item('Non-Spill Caps')->id, ['lead_time_days' => 99])
+            ->patchJson('/api/inventory/'.$this->item('Clear Cover')->id, ['lead_time_days' => 99])
             ->assertStatus(422);
     }
 
     public function test_stock_can_be_adjusted_up_and_down(): void
     {
-        $caps = $this->item('Non-Spill Caps');
+        $caps = $this->item('Clear Cover');
         $before = $caps->stock_on_hand;
 
         $this->actingAs($this->owner)
@@ -123,7 +123,7 @@ class InventoryTest extends TestCase
 
     public function test_stock_never_goes_negative(): void
     {
-        $item = $this->item('5-Micron Sediment Filter Cartridges');
+        $item = $this->item('5 Gallon Slim Jug');
         $item->update(['stock_on_hand' => 0]);
 
         for ($i = 0; $i < 3; $i++) {
@@ -143,19 +143,19 @@ class InventoryTest extends TestCase
 
         $response = $this->actingAs($this->owner)->postJson('/api/inventory/recalculate');
 
-        $response->assertOk()->assertJsonPath('updated', 10);
+        $response->assertOk()->assertJsonPath('updated', 7);
     }
 
     public function test_u_s46_advisories_endpoint_returns_a_draft_purchase_order(): void
     {
         // Force a shortage so there is something to advise on.
-        $this->item('Non-Spill Caps')->update(['stock_on_hand' => 10]);
+        $this->item('Clear Cover')->update(['stock_on_hand' => 1]);
 
         $response = $this->actingAs($this->cashier)->getJson('/api/advisories');
 
         $response->assertOk()->assertJsonStructure(['generated_at', 'count', 'advisories', 'draft_po']);
 
-        $advisory = collect($response->json('advisories'))->firstWhere('item', 'Non-Spill Caps');
+        $advisory = collect($response->json('advisories'))->firstWhere('item', 'Clear Cover');
         $this->assertNotNull($advisory);
         $this->assertSame('critical', $advisory['severity']);
         $this->assertGreaterThan(0, $advisory['order_quantity']);
@@ -171,8 +171,8 @@ class InventoryTest extends TestCase
      */
     public function test_days_remaining_is_identical_across_the_inventory_list_and_advisories(): void
     {
-        $this->item('Non-Spill Caps')->update(['stock_on_hand' => 12]);
-        $this->item('5-Micron Sediment Filter Cartridges')->update(['stock_on_hand' => 2]);
+        $this->item('Clear Cover')->update(['stock_on_hand' => 12]);
+        $this->item('Shrink Seal (Circle Top Slim)')->update(['stock_on_hand' => 2]);
 
         $inventory = collect(
             $this->actingAs($this->owner)->getJson('/api/inventory')->json('inventory')
@@ -201,7 +201,7 @@ class InventoryTest extends TestCase
 
     public function test_days_remaining_matches_the_documented_formula(): void
     {
-        $caps = $this->item('Non-Spill Caps');
+        $caps = $this->item('Clear Cover');
         $caps->update(['stock_on_hand' => 260]);
 
         $cover = app(InventoryEngine::class)->daysRemaining($caps->refresh());
@@ -218,7 +218,7 @@ class InventoryTest extends TestCase
     public function test_u_s45_items_at_or_below_the_reorder_point_are_flagged_reorder_now(): void
     {
         $engine = app(InventoryEngine::class);
-        $caps = $this->item('Non-Spill Caps');
+        $caps = $this->item('Clear Cover');
         $this->actingAs($this->owner)->postJson('/api/inventory/recalculate')->assertOk();
         $caps->refresh();
 
@@ -241,14 +241,14 @@ class InventoryTest extends TestCase
         $this->assertSame('2 pcs', $engine->quantityLabel(2, 'pcs'));
         $this->assertSame('0 pcs', $engine->quantityLabel(0, 'pcs'));
         $this->assertSame('1 unit', $engine->quantityLabel(1, 'units'));
-        $this->assertSame('5 btls', $engine->quantityLabel(5, 'btls'));
+        $this->assertSame('5 bottles', $engine->quantityLabel(5, 'bottles'));
     }
 
     public function test_safety_stock_is_derived_from_forecast_variance(): void
     {
         $this->actingAs($this->owner)->postJson('/api/inventory/recalculate')->assertOk();
 
-        $caps = $this->item('Non-Spill Caps');
+        $caps = $this->item('Clear Cover');
 
         // Forecast error variance accumulates across lead time: sigma=40, L=2.
         $this->assertSame((int) ceil(1.65 * 40 * sqrt(2) * 1.25), $caps->safety_stock);
@@ -278,8 +278,8 @@ class InventoryTest extends TestCase
 
     public function test_u_s43_cumulative_forecast_error_variance_sets_the_buffer(): void
     {
-        DemandForecast::latestFor('Non-Spill Caps')->update(['model_diagnostics' => ['forecast_error_variances' => [100, 400]]]);
-        $item = $this->item('Non-Spill Caps');
+        DemandForecast::latestFor('Clear Cover')->update(['model_diagnostics' => ['forecast_error_variances' => [100, 400]]]);
+        $item = $this->item('Clear Cover');
         app(InventoryEngine::class)->recalculateItem($item);
         $this->assertSame((int) ceil(1.65 * sqrt(500) * 1.25), $item->fresh()->safety_stock);
     }

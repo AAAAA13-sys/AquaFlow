@@ -17,6 +17,7 @@ async function adminAction(action) {
 }
 function finishAdmin(result) {
   setSession(result.user);
+  if (firstRun) field('setupStep').textContent = 'Setup complete. Your station and owner account are ready.';
   ['adminForm', 'setupForm'].forEach(id => field(id)?.classList.add('hidden'));
   ['p', 'setupPassword', 'setupConfirm', 'otp', 'setupOtp'].forEach(id => { if (field(id)) field(id).value = ''; });
   field('loginDescription').classList.add('hidden');
@@ -40,17 +41,19 @@ function submitAdminLogin() {
       await API.post('auth/setup-login', {...adminCredentials(), code:field('otp').value});
       field('adminForm').classList.add('hidden');
       field('setupForm').classList.remove('hidden');
+      field('setupStep').textContent = 'Step 2 of 3: Enter station and owner details';
       field('p').value = ''; field('otp').value = '';
-      field('setupName').focus();
+      field('setupStation').focus();
     } else finishAdmin(await API.post('auth/verify-email', {code:field('otp').value}));
   });
 }
 function sendSetupOtp() {
-  if (!validFields(['setupName', 'setupEmail', 'setupPassword', 'setupConfirm'])) return;
+  if (!validFields(['setupStation', 'setupName', 'setupEmail', 'setupPassword', 'setupConfirm'])) return;
   return adminAction(async () => {
-    const result = await API.post('auth/setup-owner', {name:field('setupName').value.trim(), email:field('setupEmail').value.trim(), password:field('setupPassword').value, password_confirmation:field('setupConfirm').value});
+    const result = await API.post('auth/setup-owner', {station_name:field('setupStation').value.trim(), name:field('setupName').value.trim(), email:field('setupEmail').value.trim(), password:field('setupPassword').value, password_confirmation:field('setupConfirm').value});
     field('loginStatus').textContent = result.message + ' Wait 60 seconds before resending.';
-    ['setupName', 'setupEmail', 'setupPassword', 'setupConfirm'].forEach(id => field(id).readOnly = true);
+    ['setupStation', 'setupName', 'setupEmail', 'setupPassword', 'setupConfirm'].forEach(id => field(id).readOnly = true);
+    field('setupStep').textContent = 'Step 3 of 3: Verify your email to activate your store';
     field('setupOtp').focus();
   });
 }

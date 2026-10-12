@@ -38,9 +38,9 @@ class AdminSetupService
         });
     }
 
-    public function complete(int $id, string $challenge, string $session, string $code): ?User
+    public function complete(int $id, string $challenge, string $session, string $code, ?string $stationName = null): ?User
     {
-        return DB::transaction(function () use ($id, $challenge, $session, $code) {
+        return DB::transaction(function () use ($id, $challenge, $session, $code, $stationName) {
             $bootstrap = User::whereKey($id)->where('is_bootstrap', true)->lockForUpdate()->first();
             if (! $bootstrap || User::where('role', 'admin')->where('is_bootstrap', false)->exists()) {
                 return null;
@@ -52,6 +52,9 @@ class AdminSetupService
             $details = ['name' => $bootstrap->name, 'email' => $bootstrap->email, 'password' => $bootstrap->password,
                 'username' => 'owner_'.Str::lower(Str::random(16)), 'role' => 'admin', 'is_active' => true];
             $bootstrap->delete();
+            if ($stationName !== null) {
+                \App\Models\SystemSetting::put('station_name', $stationName);
+            }
 
             return User::create($details);
         });

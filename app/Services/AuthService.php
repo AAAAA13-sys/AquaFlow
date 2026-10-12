@@ -30,8 +30,7 @@ class AuthService
         $user = User::query()
             ->where(function ($query) use ($identifier, $rawIdentifier, $owner) {
                 if ($owner) {
-                    $query->whereRaw('LOWER(email) = ?', [$identifier])
-                          ->orWhere('username', $rawIdentifier);
+                    $query->whereRaw('LOWER(email) = ?', [$identifier]);
                 } else {
                     $query->where('username', $rawIdentifier)
                           ->orWhereRaw('LOWER(email) = ?', [$identifier]);
@@ -49,6 +48,10 @@ class AuthService
 
         if ($owner && ! $user->isAdmin()) {
             return LoginResult::failed('Use Employee Login for this account.', 403);
+        }
+
+        if (! $owner && $user->isAdmin()) {
+            return LoginResult::failed('Use Admin Login for this account.', 403);
         }
 
         if ($owner && ! $user->email) {

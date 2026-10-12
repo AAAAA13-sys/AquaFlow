@@ -7,6 +7,7 @@
 
 // ---------- Step switching (one stage on screen at a time) ----------
 let posCur = 1;
+function getPosCur() { return posCur; }
 
 /**
  * What each stage needs before the cashier may move past it.
@@ -142,8 +143,23 @@ function posStep(n, force) {
   renderStage(target);
 }
 
-function posPrev() {
-  if (posCur > 1) posStep(posCur - 1);
+async function posPrev() {
+  if (posCur <= 1) return;
+
+  let message = 'Return to the previous step?';
+  if (posCur === 2) {
+    message = (typeof POS !== 'undefined' && POS.cart && POS.cart.length > 0)
+      ? 'Return to customer selection? Your current cart items will be kept.'
+      : 'Return to customer selection?';
+  } else if (posCur === 3) {
+    message = 'Return to order items to make changes?';
+  }
+
+  if (typeof appConfirm === 'function') {
+    if (!await appConfirm(message, 'Go Back')) return;
+  }
+
+  posStep(posCur - 1);
 }
 
 function posNext() {
@@ -333,7 +349,13 @@ async function confirmCashierLogout() {
   if (confirmCashierLogout.busy) return;
   confirmCashierLogout.busy = true;
   try {
-    if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
+    if (typeof interceptLogoutWithAttendance === 'function') {
+      await interceptLogoutWithAttendance(async () => {
+        if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
+      });
+    } else {
+      if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
+    }
   } finally { confirmCashierLogout.busy = false; }
 }
 

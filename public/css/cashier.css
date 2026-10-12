@@ -122,3 +122,4 @@
 .cashier-orders-page .queue-live-details summary { cursor:pointer; font-weight:600; color:#475569; padding:12px 0; }
 @media(max-width:900px) { .cashier-orders-page #queue { grid-template-columns:1fr; } }
 @media(max-width:600px) { .cashier-orders-page .queue-workspace { padding:16px; } .cashier-orders-page .queue-search { flex:1 1 100%; min-width:0; } .cashier-orders-page .queue-card { padding:16px; } }
+

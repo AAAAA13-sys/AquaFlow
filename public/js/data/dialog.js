@@ -28,3 +28,29 @@ function appNotice(message) {
   const close = document.createElement('button'); close.className = 'btn'; close.textContent = 'Dismiss'; close.onclick = () => notice.remove();
   notice.append(text, close);
 }
+
+function appPrompt(message, placeholder = '', accept = 'Confirm') {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = 'position:fixed;inset:0;margin:auto;width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;box-sizing:border-box;border:0;border-radius:16px;padding:24px;font-size:16px;box-shadow:0 8px 30px rgba(0,0,0,0.2)';
+    const text = document.createElement('p'); text.textContent = message;
+    text.style.cssText = 'margin:0 0 14px;line-height:1.5;font-weight:600;color:#1E293B';
+    const input = document.createElement('textarea');
+    input.placeholder = placeholder;
+    input.rows = 3;
+    input.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px;font-family:inherit;font-size:14px;margin-bottom:18px;resize:vertical';
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap';
+    const cancel = document.createElement('button'); cancel.textContent = 'Cancel'; cancel.className = 'btn';
+    const ok = document.createElement('button'); ok.textContent = accept; ok.className = 'btn btn-primary';
+    const finish = value => { dialog.close(); dialog.remove(); resolve(value); };
+    cancel.onclick = () => finish(null);
+    ok.onclick = () => finish(input.value.trim());
+    dialog.addEventListener('cancel', event => { event.preventDefault(); finish(null); });
+    actions.append(cancel, ok);
+    dialog.append(text, input, actions);
+    document.body.append(dialog);
+    dialog.showModal();
+    input.focus();
+  });
+}

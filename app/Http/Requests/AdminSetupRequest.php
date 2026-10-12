@@ -21,6 +21,7 @@ class AdminSetupRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'station_name' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email:rfc', 'max:255', Rule::notIn([AdminSetupService::EMAIL]), Rule::unique('users', 'email')->ignore($this->session()->get('setup_user'))],
             'password' => ['required', 'confirmed', ...CredentialRules::password()],

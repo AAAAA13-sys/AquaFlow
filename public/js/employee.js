@@ -472,3 +472,11 @@ function submitCustomRiderIssue() {
   closeRiderIssueDialog();
   if (job) changeJob(job, 'issue', custom);
 }
+
+function confirmEmployeeLogout() {
+  if (typeof interceptLogoutWithAttendance === 'function') {
+    interceptLogoutWithAttendance(() => logout());
+  } else {
+    logout();
+  }
+}

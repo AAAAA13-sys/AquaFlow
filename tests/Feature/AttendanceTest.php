@@ -21,12 +21,12 @@ class AttendanceTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 8)->setTime(9, 0));
         $this->seed();
         $this->employee = Employee::create(['name' => 'Ana Santos', 'job_title' => 'Refill operator', 'is_active' => true]);
-        $this->actingAs(User::firstOrCreate(['username' => 'refiller'], ['name' => 'Refiller', 'password' => 'Refill123', 'role' => 'refiller', 'employee_id' => $this->employee->id, 'is_active' => true]));
+        $this->actingAs(User::where('username', 'cashier')->firstOrFail());
     }
 
     private function punch(string $action)
     {
-        return $this->postJson('/api/employee/attendance/'.$action, ['reason' => 'Employee reported a schedule exception']);
+        return $this->postJson('/api/attendance/employees/'.$this->employee->id.'/'.$action, ['reason' => 'Employee reported a schedule exception']);
     }
 
     private function correction(array $data = [])
@@ -36,7 +36,7 @@ class AttendanceTest extends TestCase
 
     public function test_daily_punches_are_idempotent_and_audited(): void
     {
-        $this->getJson('/api/employee/attendance')->assertOk()->assertJsonPath('row.status', 'not_recorded');
+        $this->getJson('/api/attendance')->assertOk()->assertJsonPath('rows.0.status', 'not_recorded');
         $this->punch('time-in')->assertOk()->assertJsonPath('row.status', 'late')->assertJsonPath('row.progress', 'checked_in');
         $first = DB::table('employee_attendances')->first();
         $this->travel(10)->minutes();
@@ -55,20 +55,20 @@ class AttendanceTest extends TestCase
         $this->getJson('/api/attendance?history=1')->assertForbidden();
         $this->getJson('/api/attendance?date=2026-10-07')->assertForbidden();
         $this->getJson('/api/attendance/employees/'.$this->employee->id.'/changes')->assertForbidden();
-        $this->get('/admin/attendance')->assertForbidden();
-        $this->get('/cashier/attendance')->assertForbidden();
+        $this->get('/admin/attendance')->assertRedirect('/cashier');
+        $this->get('/cashier/attendance')->assertOk()->assertSee('Staff Attendance');
         auth()->logout();
         $this->getJson('/api/attendance')->assertUnauthorized();
     }
 
-    public function test_missing_departure_is_not_invented_and_inactive_employee_access_is_revoked(): void
+    public function test_missing_departure_is_not_invented_and_inactive_employee_can_finish(): void
     {
         $this->punch('time-out')->assertUnprocessable();
         $this->punch('time-in')->assertOk();
         $this->employee->update(['is_active' => false]);
-        $this->punch('time-out')->assertForbidden();
+        $this->punch('time-out')->assertOk();
         $this->travel(1)->days();
-        $this->punch('time-in')->assertForbidden();
+        $this->punch('time-in')->assertUnprocessable();
         $this->employee->update(['is_active' => true]);
         $this->punch('time-in')->assertOk();
         $this->travel(1)->days();
@@ -88,12 +88,12 @@ class AttendanceTest extends TestCase
         $this->assertDatabaseCount('employee_attendance_changes', 1);
     }
 
-    public function test_soft_deleted_employee_history_survives_and_access_is_revoked(): void
+    public function test_soft_deleted_employee_history_survives_and_open_entry_can_finish(): void
     {
         $this->punch('time-in')->assertOk();
         $this->employee->delete();
-        $this->getJson('/api/employee/attendance')->assertForbidden();
-        $this->punch('time-out')->assertForbidden();
+        $this->getJson('/api/attendance?search=Ana')->assertOk()->assertJsonCount(1, 'rows');
+        $this->punch('time-out')->assertOk();
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $this->getJson('/api/attendance?history=1&search=Ana')->assertOk()->assertJsonPath('rows.0.employee_name', 'Ana Santos');
         $this->get('/admin/attendance')->assertOk()->assertSee('Attendance');
@@ -101,7 +101,7 @@ class AttendanceTest extends TestCase
 
     public function test_cashier_cannot_supply_a_punch_timestamp_and_date_uses_station_timezone(): void
     {
-        $this->postJson('/api/employee/attendance/time-in', ['time_in' => '2026-10-07T08:00'])->assertUnprocessable();
+        $this->postJson('/api/attendance/employees/'.$this->employee->id.'/time-in', ['time_in' => '2026-10-07T08:00'])->assertUnprocessable();
         $this->travelTo(now()->setDate(2026, 10, 8)->setTime(23, 59));
         $this->punch('time-in')->assertOk();
         $this->travel(2)->minutes();
@@ -118,26 +118,25 @@ class AttendanceTest extends TestCase
         $this->getJson('/api/attendance?status=absent&search=Ana')->assertOk()->assertJsonCount(1, 'rows');
         $this->getJson('/api/attendance?status=completed')->assertOk()->assertJsonCount(0, 'rows');
         $this->getJson('/api/attendance?history=1&order=oldest')->assertOk()->assertJsonCount(1, 'rows');
-        $this->actingAs(User::firstOrCreate(['username' => 'refiller'], ['name' => 'Refiller', 'password' => 'Refill123', 'role' => 'refiller', 'employee_id' => $this->employee->id, 'is_active' => true]));
-        $this->getJson('/api/attendance')->assertForbidden()->assertDontSee('Private owner note');
+        $this->actingAs(User::where('username', 'cashier')->firstOrFail());
+        $this->getJson('/api/attendance')->assertOk()->assertDontSee('Private owner note')->assertDontSee('contact_number');
         $this->punch('time-in')->assertUnprocessable();
         $this->punch('time-out')->assertUnprocessable();
     }
 
     public function test_attendance_list_is_paginated_and_unknown_employee_is_not_found(): void
     {
-        $this->actingAs(User::where('username', 'admin')->firstOrFail());
         for ($i = 0; $i < 26; $i++) {
             Employee::create(['name' => 'Worker '.$i, 'job_title' => 'Operator', 'is_active' => true]);
         }
         $this->getJson('/api/attendance')->assertOk()->assertJsonCount(25, 'rows')->assertJsonPath('meta.total', Employee::count());
         $this->getJson('/api/attendance?page=2')->assertOk()->assertJsonCount(Employee::count() - 25, 'rows');
-        $this->postJson('/api/attendance/employees/999999/time-in')->assertForbidden();
+        $this->postJson('/api/attendance/employees/999999/time-in')->assertNotFound();
     }
 
     public function test_schedule_exceptions_require_reasons_and_retry_preserves_the_original_audit(): void
     {
-        $url = '/api/employee/attendance';
+        $url = '/api/attendance/employees/'.$this->employee->id;
         $this->travelTo(now()->setTime(7, 30));
         $this->postJson($url.'/time-in')->assertOk();
         $this->travelTo(now()->setTime(7, 0));
@@ -150,12 +149,12 @@ class AttendanceTest extends TestCase
         $this->assertDatabaseCount('employee_attendance_changes', 2);
         $this->assertDatabaseHas('employee_attendance_changes', ['action' => 'time-out', 'reason' => 'Medical appointment']);
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
-        $this->getJson('/api/attendance/employees/'.$this->employee->id.'/changes')->assertOk()->assertJsonPath('data.0.reason', 'Medical appointment');
+        $this->getJson($url.'/changes')->assertOk()->assertJsonPath('data.0.reason', 'Medical appointment');
     }
 
     public function test_on_schedule_punches_need_no_reason_but_late_arrivals_do(): void
     {
-        $url = '/api/employee/attendance';
+        $url = '/api/attendance/employees/'.$this->employee->id;
         $this->travelTo(now()->setTime(8, 0));
         $this->postJson($url.'/time-in')->assertOk();
         $this->travelTo(now()->setTime(17, 0));

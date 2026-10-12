@@ -147,21 +147,43 @@ DB.transactions.forEach((t, i) => {
 
 saveDB();
 
-// Shared search and chronological ordering for portal tables and directories.
+// Shared search and ordering for portal tables and directories.
 function filterTableRows(rows, target) {
   const search = document.getElementById(target + 'Search');
   const order = document.getElementById(target + 'Order');
-  if (!search && !order) return rows;
+  if (!search && !order && !target) return rows;
   const query = (search?.value || '').trim().toLowerCase();
   const stamp = row => {
     const date = row.created_at || row.sold_at || (row.date ? row.date + 'T' + (row.t || '00:00:00') : '');
     const parsed = Date.parse(date);
     return Number.isFinite(parsed) ? parsed : Number(row.id) || 0;
   };
-  const direction = order?.value === 'oldest' ? 1 : -1;
-  return rows.filter(row => Object.values(row).some(value =>
+  const filtered = rows.filter(row => Object.values(row).some(value =>
     value != null && typeof value !== 'object' && String(value).toLowerCase().includes(query)
-  )).sort((a, b) => direction * (stamp(a) - stamp(b) || (Number(a.id) || 0) - (Number(b.id) || 0)));
+  ));
+  if (order) {
+    if (order.value === 'lowest' || order.value === 'least') {
+      if (target === 'topLiaBody' || target === 'custBody') {
+        return filtered.sort((a, b) => (Number(a.debt) || 0) - (Number(b.debt) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+      }
+      return filtered.sort((a, b) => (Number(a.on) || 0) - (Number(b.on) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+    }
+    if (order.value === 'highest') {
+      if (target === 'topLiaBody' || target === 'custBody') {
+        return filtered.sort((a, b) => (Number(b.debt) || 0) - (Number(a.debt) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+      }
+      return filtered.sort((a, b) => (Number(b.on) || 0) - (Number(a.on) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+    }
+    const direction = order.value === 'oldest' ? 1 : -1;
+    return filtered.sort((a, b) => direction * (stamp(a) - stamp(b) || (Number(a.id) || 0) - (Number(b.id) || 0)));
+  }
+  if (target === 'invBody' || target === 'invBodyDash') {
+    return filtered.sort((a, b) => (Number(b.on) || 0) - (Number(a.on) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+  }
+  if (target === 'topLiaBody' || target === 'custBody') {
+    return filtered.sort((a, b) => (Number(b.debt) || 0) - (Number(a.debt) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+  }
+  return filtered.sort((a, b) => -1 * (stamp(a) - stamp(b) || (Number(a.id) || 0) - (Number(b.id) || 0)));
 }
 
 function toggleAddForm(button) {
@@ -178,7 +200,17 @@ function showTableEmpty(body, columns) {
 }
 
 function startPageRefresh(refresh) {
-  return setInterval(() => { if (!document.hidden) Promise.resolve(refresh()).catch(error => console.warn(error.message)); }, 30000);
+  let pending = false;
+  const run = async () => {
+    if (document.hidden || pending) return;
+    pending = true;
+    try { await refresh(); }
+    catch (error) { console.warn(error.message); }
+    finally { pending = false; }
+  };
+  window.addEventListener?.('focus', run);
+  window.addEventListener?.('online', run);
+  return setInterval(run, 30000);
 }
 
 // ---- Stock status helpers ---------------------------------------------------
@@ -274,6 +306,7 @@ onWindow('resize', () => {
 // returns to the trigger that opened it so keyboard users are not stranded.
 let tipLayer = null;
 let openTipBtn = null;
+let tipCloseTimer = null;
 
 function tipLayerEl() {
   if (tipLayer && tipLayer.isConnected) return tipLayer;
@@ -282,12 +315,35 @@ function tipLayerEl() {
     tipLayer.className = 'af-tip-pop af-tip-layer';
     tipLayer.setAttribute('role', 'tooltip');
     tipLayer.hidden = true;
+
+    tipLayer.addEventListener('mouseenter', () => {
+      cancelCloseTip();
+    });
+    tipLayer.addEventListener('mouseleave', () => {
+      scheduleCloseTip();
+    });
   }
   document.body.appendChild(tipLayer);
   return tipLayer;
 }
 
+function scheduleCloseTip(delay = 120) {
+  if (tipCloseTimer) clearTimeout(tipCloseTimer);
+  tipCloseTimer = setTimeout(() => {
+    closeTip();
+    tipCloseTimer = null;
+  }, delay);
+}
+
+function cancelCloseTip() {
+  if (tipCloseTimer) {
+    clearTimeout(tipCloseTimer);
+    tipCloseTimer = null;
+  }
+}
+
 function closeTip() {
+  cancelCloseTip();
   if (tipLayer) tipLayer.hidden = true;
   if (!openTipBtn) return;
   openTipBtn.setAttribute('aria-expanded', 'false');
@@ -295,10 +351,12 @@ function closeTip() {
 }
 
 function openTip(btn) {
-  const text = btn.parentElement.getAttribute('data-tip');
+  if (!btn) return;
+  const wrapper = btn.closest('.af-tip');
+  const text = (wrapper && wrapper.getAttribute('data-tip')) || btn.getAttribute('data-tip');
   if (!text) return;
 
-  closeTip();
+  cancelCloseTip();
 
   const pop = tipLayerEl();
   pop.textContent = text;
@@ -316,7 +374,8 @@ function openTip(btn) {
   const height = pop.offsetHeight;
   const margin = 8;
 
-  let left = trigger.left;
+  // Center horizontally over the trigger button
+  let left = trigger.left + (trigger.width / 2) - (width / 2);
   if (left + width + margin > window.innerWidth) left = window.innerWidth - width - margin;
   if (left < margin) left = margin;
 
@@ -336,6 +395,27 @@ function toggleTip(btn) {
 }
 
 if (typeof document !== 'undefined') {
+  // HOVER SUPPORT: Instant display on hover without clicking
+  document.addEventListener('mouseover', event => {
+    const tipEl = event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
+    if (tipEl) {
+      const btn = tipEl.classList.contains('af-tip-btn') ? tipEl : (tipEl.querySelector('.af-tip-btn') || tipEl);
+      cancelCloseTip();
+      openTip(btn);
+    }
+  });
+
+  document.addEventListener('mouseout', event => {
+    const tipEl = event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
+    if (tipEl) {
+      const related = event.relatedTarget;
+      if (related && (tipEl.contains(related) || (tipLayer && tipLayer.contains(related)))) {
+        return;
+      }
+      scheduleCloseTip();
+    }
+  });
+
   document.addEventListener('click', event => {
     const btn = event.target.closest('.af-tip-btn');
     if (btn) {
@@ -344,7 +424,25 @@ if (typeof document !== 'undefined') {
       toggleTip(btn);
       return;
     }
+    if (tipLayer && tipLayer.contains(event.target)) {
+      return;
+    }
     if (openTipBtn) closeTip();
+  });
+
+  document.addEventListener('focusin', event => {
+    const btn = event.target.closest('.af-tip-btn');
+    if (btn) {
+      cancelCloseTip();
+      openTip(btn);
+    }
+  });
+
+  document.addEventListener('focusout', event => {
+    const btn = event.target.closest('.af-tip-btn');
+    if (btn) {
+      scheduleCloseTip();
+    }
   });
 
   document.addEventListener('keydown', event => {
@@ -363,7 +461,7 @@ if (typeof document !== 'undefined') {
 // `label` is the accessible name for the trigger, e.g. 'What does ROP mean?'.
 function tipHtml(text, label) {
   return '<span class="af-tip" data-tip="' + esc(text) + '">' +
-    '<button type="button" class="af-tip-btn" aria-expanded="false" aria-label="' + esc(label || 'Show explanation') + '">?</button>' +
+    '<button type="button" class="af-tip-btn" aria-expanded="false" aria-label="' + esc(label || 'Show explanation') + '" title="' + esc(text) + '">?</button>' +
     '</span>';
 }
 
@@ -373,30 +471,5 @@ function tipHtml(text, label) {
 // numbers are live, so every portal stamp carries the snapshot's own timestamp.
 function renderStamp() {
   const el = document.getElementById('dataStamp');
-  if (!el) return;
-
-  const raw = DB.meta && DB.meta.generated_at;
-  if (!raw) {
-    el.textContent = 'Offline copy';
-    el.classList.add('af-stamp--stale');
-    return;
-  }
-
-  const parsed = Date.parse(raw);
-  if (!Number.isFinite(parsed)) {
-    el.textContent = '';
-    return;
-  }
-
-  const mins = Math.floor((Date.now() - parsed) / 60000);
-  const fresh = mins < 5;
-
-  el.classList.toggle('af-stamp--stale', !fresh);
-  el.textContent = mins <= 0
-    ? 'Updated just now'
-    : mins === 1
-      ? 'Updated 1 min ago'
-      : fresh
-        ? 'Updated ' + mins + ' min ago'
-        : 'Last synced ' + new Date(parsed).toLocaleString();
+  if (el) el.textContent = '';
 }

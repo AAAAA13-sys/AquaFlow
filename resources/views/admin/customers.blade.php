@@ -41,4 +41,5 @@
 
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Customer Balances'])
 renderCustTable('', '');
+startPageRefresh(async () => { await loadFromServer(); const filters = currentCustFilters(); renderCustTable(filters.q, filters.f); renderSidebarBadges(); renderStamp(); });
 @endcomponent
