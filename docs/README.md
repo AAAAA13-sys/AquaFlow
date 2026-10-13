@@ -25,4 +25,4 @@ The original [stakeholder PDF](../PROBLEM.pdf) and [story catalogue](../user%20s
 - Removed unused Vite configuration and resources/css/app.css, resources/js/app.js and resources/js/bootstrap.js after checking source, view, launcher and CI references. Removed their five unused npm dependencies; retained concurrently because composer dev calls it.
 - Removed unused broadcast/Pulse/Telescope/Nightwatch PHPUnit environment toggles. Database isolation, mail/queue fakes and actual application configuration remain.
 - Updated frontend CI paths and targeted auth-test commands. Retained unique checkout, inventory, fulfillment, attendance, OTP, retry, analytics and frontend behavior tests.
-- Application/database behavior and historical migrations/data are unchanged. CI results for this increment must be inspected separately.
+- Application/database behavior and historical migrations/data are unchanged. [CI run 38341930580](https://github.com/AAAAA13-sys/AquaFlow/actions/runs/38341930580) passed for cleanup commit cbc33345407632ed35bc23727c10d839a396569b: Laravel/MySQL, analytics, frontend, Windows launchers, Compose validation and Docker image builds.
