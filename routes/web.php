@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
+use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeePortalController;
@@ -56,7 +57,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings', 'cash'])
             ->name('admin.tab');
     });
 });
@@ -161,6 +162,14 @@ Route::prefix('api')->group(function (): void {
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');
         Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->middleware('owner')->name('api.queue.advance');
+
+        // End-of-day cash reconciliation (own drawer).
+        Route::get('cash-shift', [CashShiftController::class, 'current'])->name('api.cash-shift.current');
+        Route::post('cash-shift/open', [CashShiftController::class, 'open'])->name('api.cash-shift.open');
+        Route::post('cash-shift/close', [CashShiftController::class, 'close'])->name('api.cash-shift.close');
+        Route::get('cash-shift/overview', [CashShiftController::class, 'overview'])
+            ->middleware('owner')
+            ->name('api.cash-shift.overview');
 
         // Settings
         Route::get('settings', [SettingsController::class, 'index'])->name('api.settings.index');

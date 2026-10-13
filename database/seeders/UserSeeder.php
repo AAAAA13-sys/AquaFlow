@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Hash;
  *   cashier  / 1234
  *   admin    / 1234   (owner sign-in is email + password + emailed code)
  *
+ * The owner address and display name are the station's existing demo account.
+ * Do not change them: the demo accounts are the expected way into the app.
+ *
  * These are development fixtures only. A distributed store is created through
  * Setup, which installs no sample accounts and generates its own one-time setup
  * code - this seeder must never run against store data.

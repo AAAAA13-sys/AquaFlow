@@ -1,0 +1,335 @@
+/* ============================================================================
+   AquaFlow design system
+   ----------------------------------------------------------------------------
+   Loaded last, so it wins the cascade without needing !important everywhere.
+
+   The existing sheets accumulated ~430 hard-coded hex values and ~42 distinct
+   font sizes over time. Rewriting all of that at once is a large, risky diff,
+   so this file acts as the enforcement layer instead: it defines a real type
+   scale, sets a readability floor, and normalises the things that were
+   inconsistent. It is scoped to the owner portal (.admin-layout) so the
+   cashier till - built for speed on a counter - is left exactly as it is.
+   ========================================================================== */
+
+.admin-layout {
+  /* --- Type scale -------------------------------------------------------
+     Seven deliberate steps. Anything not on this ramp is an accident.
+     The floor is 13px: below that, text is uncomfortable at counter distance
+     and fails WCAG 1.4.4 for anyone who needs magnification. */
+  --fs-2xs: 13px;
+  --fs-xs: 14px;
+  --fs-sm: 15px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+  --fs-3xl: 34px;
+
+  /* --- Spacing rhythm ---------------------------------------------------
+     4px base. Cards and panels snap to this so vertical rhythm is even. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --focus-ring: 0 0 0 3px rgba(29, 78, 216, .38);
+}
+
+/* ---------------------------------------------------------------------------
+   1. Readability floor
+   Small helper text was inherited at 0.62-0.78rem (about 10-12.5px). These are
+   the selectors that carry secondary information, lifted to the 13px floor.
+   ------------------------------------------------------------------------ */
+.admin-layout .cell-sub,
+.overlay-modal .cell-sub,
+.overlay-modal p,
+.overlay-modal .form-label,
+.modal-backdrop .form-label,
+.af-drawer-panel p,
+.admin-layout .kpi-subtext,
+.admin-layout .settings-help,
+.admin-layout .overview-note,
+.admin-layout .insight-note,
+.admin-layout .table-sub,
+.admin-layout .drawer-hint,
+.admin-layout .auth-footer-text,
+.admin-layout .sidebar-link-hint,
+.admin-layout .sidebar-user-label,
+.admin-layout .sales-eyebrow,
+.admin-layout .overview-eyebrow,
+.admin-layout .onboarding-step-sub,
+.admin-layout .overview-action-label,
+.admin-layout .af-drawer-label,
+.admin-layout .af-drawer-hint,
+.admin-layout .num-unit,
+.admin-layout .filter-group .form-label,
+.admin-layout .form-label,
+.admin-layout .data-table-wrapper caption,
+.admin-layout th,
+.admin-layout td,
+.admin-layout small {
+  font-size: var(--fs-2xs);
+  line-height: 1.55;
+}
+
+/* --- Hierarchy -----------------------------------------------------------
+   The four steps below the page title used to sit within a few pixels of each
+   other, so nothing looked like a heading. Restore the jumps. */
+.admin-layout h1,
+.admin-layout .admin-page > h2 { font-size: var(--fs-2xl); line-height: 1.25; }
+
+.admin-layout h3,
+.admin-layout .panel-heading {
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.admin-layout h4 { font-size: var(--fs-md); line-height: 1.35; }
+
+.admin-layout p { font-size: var(--fs-sm); line-height: 1.6; }
+
+/* Body copy should not be smaller than the labels around it. */
+.admin-layout td,
+.admin-layout .overview-empty p,
+.admin-layout .settings-help { font-size: var(--fs-xs); }
+
+/* ---------------------------------------------------------------------------
+   2. Numbers
+   Money and quantities in tables must line up, or the eye cannot scan a
+   column. Tabular figures give every digit the same width.
+   ------------------------------------------------------------------------ */
+.admin-layout td.num,
+.admin-layout th.num,
+.admin-layout .kpi-value,
+.admin-layout .insight-row b,
+.admin-layout .ledger-balance,
+.admin-layout .balance-amount,
+.admin-layout .drawer-stat b {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* The headline figure is the thing being looked at - let it be large. */
+.admin-layout .kpi-value {
+  font-size: var(--fs-2xl);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Focus
+   Previously each component drew its own. One ring, everywhere, so keyboard
+   users can see where they are.
+   ------------------------------------------------------------------------ */
+.admin-layout :focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.admin-layout :focus:not(:focus-visible) { outline: none; }
+
+/* ---------------------------------------------------------------------------
+   4. Touch targets
+   44px is the accepted minimum. Small pills and links were well under it,
+   which is fine for a mouse and painful for a finger or a rushed cashier.
+   ------------------------------------------------------------------------ */
+.admin-layout .btn,
+.admin-layout .btn-sm,
+.admin-layout input[type="text"],
+.admin-layout input[type="email"],
+.admin-layout input[type="password"],
+.admin-layout input[type="number"],
+.admin-layout input[type="search"],
+.admin-layout select,
+.admin-layout textarea {
+  min-height: 44px;
+}
+
+/* Purely text links inside prose stay compact - they are not the tap target. */
+.admin-layout p a,
+.admin-layout .settings-help a,
+.admin-layout .cell-sub a { min-height: 0; }
+
+/* ---------------------------------------------------------------------------
+   5. Cards
+   One radius, one border colour. Consistency here is most of what makes an
+   interface feel designed rather than assembled.
+   ------------------------------------------------------------------------ */
+.admin-layout .card,
+.admin-layout .admin-page > section,
+.admin-layout .data-table-wrapper {
+  border-radius: var(--radius);
+}
+
+.admin-layout .btn { border-radius: var(--radius-sm); }
+
+/* ---------------------------------------------------------------------------
+   6. Tables
+   Dense grids of numbers are hard to follow without zebra striping and a
+   little more vertical room.
+   ------------------------------------------------------------------------ */
+.admin-layout .data-table-wrapper tbody tr:nth-child(even) {
+  background: var(--surface-subtle);
+}
+
+.admin-layout .data-table-wrapper tbody tr:hover {
+  background: var(--brand-tint);
+}
+
+.admin-layout .data-table-wrapper th {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: var(--fs-2xs);
+}
+
+/* ---------------------------------------------------------------------------
+   7. Motion
+   Short, few, and only where it explains a change. Honours the OS setting.
+   ------------------------------------------------------------------------ */
+.admin-layout .btn,
+.admin-layout .card,
+.admin-layout .sidebar-link,
+.admin-layout a {
+  transition: background-color .14s ease, border-color .14s ease, color .14s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout *,
+  .admin-layout *::before,
+  .admin-layout *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   9. Scroll affordance
+   Dense tables are capped at ~370px and scroll. A row sliced off mid-height
+   reads as a rendering fault rather than "there is more below", so a sticky
+   inset shadow marks the cut edge. The technique uses a background layer with
+   local-attachment, so the shadow stays pinned while the content scrolls.
+   ------------------------------------------------------------------------ */
+.admin-layout #s-dash .data-table-wrapper,
+.admin-layout .data-table-wrapper.scroll-y {
+  background:
+    linear-gradient(var(--surface-card) 30%, rgba(255, 255, 255, 0)) top / 100% 28px no-repeat local,
+    linear-gradient(rgba(255, 255, 255, 0), var(--surface-card) 70%) bottom / 100% 28px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0))
+      top / 100% 12px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0))
+      bottom / 100% 12px no-repeat scroll;
+}
+
+/* ---------------------------------------------------------------------------
+   10. Overflow
+   The stock filter chips sat in a nowrap scroller 307px wide holding 597px of
+   tabs, so "Assets" was clipped mid-word with no scrollbar to reveal it. Let
+   the row wrap onto a second line instead: every chip stays visible and
+   tappable, which is the point of them.
+   ------------------------------------------------------------------------ */
+.admin-layout .filter-tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.admin-layout .filter-tabs > * {
+  flex: 0 0 auto;
+}
+
+/* If a toolbar really cannot fit, wrap it rather than clipping its contents. */
+.admin-layout .stock-check-toolbar,
+.admin-layout .table-filters {
+  flex-wrap: wrap;
+  row-gap: var(--sp-2);
+}
+
+/* ---------------------------------------------------------------------------
+   11. Magnitude bars and trend lines
+
+   A column of figures asks the reader to compare them by eye. Drawn as bars on
+   a shared scale, the largest and the smallest become obvious without reading.
+   Deliberately plain: no gauges, no 3D, no animation - this is a tool for
+   counting money, and decoration costs clarity here.
+   ------------------------------------------------------------------------ */
+.admin-layout .magbar {
+  display: block;
+  width: 100%;
+  min-width: 54px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+
+.admin-layout .magbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand-primary);
+}
+
+.admin-layout .magbar--ok .magbar-fill { background: #10B981; }
+.admin-layout .magbar--watch .magbar-fill,
+.admin-layout .magbar--warn .magbar-fill { background: #D97706; }
+.admin-layout .magbar--bad .magbar-fill,
+.admin-layout .magbar--critical .magbar-fill { background: #DC2626; }
+.admin-layout .magbar--debt .magbar-fill { background: #B45309; }
+
+/* Stock cover: the figure and its unit sit above a bar, so the eye reads
+   "3.4 days, this bar" as one thing rather than scanning a number column. */
+.admin-layout .cover-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.admin-layout .cover-days {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.admin-layout .cover-unit {
+  font-size: var(--fs-2xs);
+  color: var(--text-muted);
+  margin-right: 1px;
+}
+
+.admin-layout .debt-cell,
+.admin-layout .debt-inline { display: block; }
+.admin-layout .debt-inline .magbar { margin-top: 4px; }
+
+/* KPI trend line: sits under the figure, deliberately quiet. */
+.admin-layout .kpi-trend {
+  display: block;
+  height: 22px;
+  margin-top: 2px;
+}
+
+.admin-layout .spark { display: block; }
+.admin-layout .spark--up { color: #10B981; }
+.admin-layout .spark--down { color: #DC2626; }
+.admin-layout .spark--flat { color: var(--text-dim); }
+
+/* ---------------------------------------------------------------------------
+   12. Print
+   An owner reconciling a drawer prints the page. Chrome should not appear.
+   ------------------------------------------------------------------------ */
+@media print {
+  .admin-layout .sidebar-link,
+  .admin-layout .no-print,
+  .admin-layout .table-filters { display: none !important; }
+}

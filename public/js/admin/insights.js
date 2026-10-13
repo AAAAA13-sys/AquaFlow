@@ -20,6 +20,84 @@ function dailyUse(inv) {
   return isNaN(daily) || daily <= 0 ? 1 : daily;
 }
 
+/* ---------------------------------------------------------------------------
+   Bar + sparkline helpers.
+
+   These exist so a column of figures can be *seen* instead of read and
+   compared by eye. "3.4 / 3.4 / 3.4 / 3.4 days" in a list forces the reader
+   to find the shortest; as bars on a shared scale the shortest one is simply
+   the shortest one.
+
+   Bars are plain styled spans rather than SVG: they inherit the theme tokens,
+   need no extra assets, and cost nothing to render in a long table.
+   ------------------------------------------------------------------------ */
+
+/**
+ * A horizontal magnitude bar, scaled against the largest value in the set.
+ * @param {number} value  the figure being shown
+ * @param {number} max    the largest figure in its group, for scaling
+ * @param {string} tone   modifier class: 'low' | 'watch' | 'ok'
+ */
+function magBar(value, max, tone) {
+  const pct = max > 0 ? Math.max(2, Math.min(100, (value / max) * 100)) : 0;
+  return '<span class="magbar magbar--' + tone + '"><span class="magbar-fill" style="width:' +
+    pct.toFixed(1) + '%"></span></span>';
+}
+
+/**
+ * Direction of a series: compare the recent half against the earlier half, so
+ * a single odd day at the end cannot flip the colour.
+ */
+function trendTone(series) {
+  const v = (series || []).filter(n => typeof n === 'number' && isFinite(n));
+  if (v.length < 4) return 'flat';
+  const half = Math.floor(v.length / 2);
+  const earlier = v.slice(0, half).reduce((a, b) => a + b, 0) / half;
+  const recent = v.slice(half).reduce((a, b) => a + b, 0) / (v.length - half);
+  if (!earlier) return recent > 0 ? 'up' : 'flat';
+  const change = (recent - earlier) / earlier;
+  if (change > 0.05) return 'up';
+  if (change < -0.05) return 'down';
+  return 'flat';
+}
+
+/**
+ * A tiny inline trend line for a KPI value.
+ *
+ * Answers "is this up or down?" without adding another figure to read. Built
+ * from the last N daily values; returns nothing when there is no history, so
+ * a KPI without history simply shows no trend rather than a misleading flat.
+ *
+ * @param {number[]} series oldest-to-newest
+ */
+function sparkline(series, tone) {
+  const values = (series || []).filter(v => typeof v === 'number' && isFinite(v));
+  if (values.length < 3) return '';
+
+  const w = 72, h = 22, pad = 2;
+  const max = Math.max(...values), min = Math.min(...values);
+  const span = max - min || 1;
+  const step = (w - pad * 2) / (values.length - 1);
+
+  const points = values.map((v, i) => {
+    const x = (pad + i * step).toFixed(1);
+    const y = (h - pad - ((v - min) / span) * (h - pad * 2)).toFixed(1);
+    return x + ',' + y;
+  });
+
+  const first = values[0], last = values[values.length - 1];
+  const rising = last >= first;
+  const colour = tone || (rising ? 'up' : 'down');
+
+  return '<svg class="spark spark--' + colour + '" width="' + w + '" height="' + h +
+    '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true" focusable="false">' +
+    '<polyline points="' + points.join(' ') + '" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="' + (w - pad) + '" cy="' + points[points.length - 1].split(',')[1] +
+    '" r="2" fill="currentColor"/>' +
+    '</svg>';
+}
+
 function orderByDate(inv) {
   const d = new Date();
   d.setDate(d.getDate() + Math.floor(daysCover(inv) - inv.lead));
@@ -145,20 +223,46 @@ function renderInsights() {
 
   const today = (DB.meta?.generated_at || new Date().toISOString()).slice(0, 10);
   const sales = (DB.transactions || []).filter(t => t.date === today && t.type !== 'Debt Payment');
+
+  // Direction for the revenue KPI: today's figure against the recorded run.
+  // Appended after the KPI text is set, because setting textContent on the
+  // value element would otherwise discard anything placed inside it.
+  const revenueTrend = (DB.meta?.daily_revenue || []).length >= 3
+    ? sparkline(DB.meta.daily_revenue.slice(-14), trendTone(DB.meta.daily_revenue))
+    : '';
+  if (revenueTrend) {
+    const slot = document.getElementById('kRevTrend');
+    if (slot) slot.innerHTML = revenueTrend;
+  }
   setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
   setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
-  setText('kGal', Math.round(I.fTotal).toLocaleString() + ' gallons');
-  setText('kGalSub', '7-day forecast ' + I.band(I.fAvg) + ' gallons/day');
+  // An absent forecast is not zero demand. Saying "0 gallons" next to a live
+  // revenue figure reads as "you sold nothing", so name the missing forecast
+  // instead of reporting a number that was never calculated.
+  const hasForecast = (DB.forecast7 || []).length > 0;
+  setText('kGal', hasForecast ? Math.round(I.fTotal).toLocaleString() + ' gallons' : 'Not forecast yet');
+  setText('kGalSub', hasForecast
+    ? '7-day forecast ' + I.band(I.fAvg) + ' gallons/day'
+    : 'Run the demand forecast to see next week');
   // Counts only genuinely actionable items. Unconfigured items are surfaced as
 // a separate "set a threshold" prompt so they never read as emergencies.
 const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
   const unset = I.runway.filter(r => r.unconfigured).length;
   setText('invHealth', String(crit));
+
+  // The attention card was hardcoded red in the blade, so a station with
+  // nothing wrong was shown a red "0". Let the number pick the tone.
+  const attentionCard = document.getElementById('invHealth')?.closest('.kpi-card-body');
+  if (attentionCard) {
+    attentionCard.classList.remove('kpi-red', 'kpi-green', 'kpi-yellow');
+    attentionCard.classList.add(crit > 0 ? 'kpi-red' : unset > 0 ? 'kpi-yellow' : 'kpi-green');
+  }
+
   setText('kStockSub', crit
-    ? 'items at or below their reorder point'
+    ? crit + (crit === 1 ? ' item needs' : ' items need') + ' buying'
     : unset
       ? unset + (unset === 1 ? ' item needs' : ' items need') + ' a reorder point set'
-      : 'Stock is above reorder thresholds');
+      : 'Nothing to buy right now');
   setText('kLia', money(I.totalDebt));
   setText('kLiaSub', I.custs.filter(c => c.debt > 0).length + ' customers with outstanding balances');
 
@@ -190,8 +294,14 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
 
   const insCollect = document.getElementById('insCollect');
   if (insCollect) {
-    const customers = I.custs.filter(c => c.debt > 0).slice(0, 3);
-    insCollect.innerHTML = customers.map((c, i) => '<div class="insight-row"><span>' + (i + 1) + '. ' + esc(c.name) + '</span><b>' + money(c.debt) + '</b></div>').join('') || '<p class="insight-note">No outstanding customer balances.</p>';
+    const owing = I.custs.filter(c => c.debt > 0);
+    const customers = owing.slice(0, 3);
+    const topDebt = owing.reduce((n, c) => Math.max(n, Number(c.debt)), 0);
+    insCollect.innerHTML = customers.map((c, i) =>
+      '<div class="insight-row"><span>' + (i + 1) + '. ' + esc(c.name) + '</span>' +
+      '<b class="debt-inline">' + money(c.debt) +
+      magBar(Number(c.debt), topDebt, 'debt') + '</b></div>'
+    ).join('') || '<p class="insight-note">No outstanding customer balances.</p>';
   }
 
   const insActions = document.getElementById('insActions');
@@ -202,13 +312,13 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
     const action = (tone, label, title, detail, href, button) =>
       '<article class="overview-action overview-action--' + tone + '"><span class="overview-action-label">' + label + '</span><h4>' + esc(title) + '</h4><p>' + esc(detail) + '</p><a class="btn btn-secondary btn-sm" href="' + href + '">' + button + ' &rarr;</a></article>';
     insActions.innerHTML = action(urgent ? 'danger' : unset ? 'watch' : 'ok', 'STOCK',
-      urgent ? 'Review low stock' : unset ? 'Set reorder points' : 'No stock alerts',
+      urgent ? 'Review low stock' : unset ? 'Set reorder points' : 'Nothing to buy',
       urgent
         ? urgent.item + ' has ' + urgent.on.toLocaleString() + ' ' + urgent.unit + ' remaining.'
         : unset
           ? unset.item + ' has no reorder point, so its stock cannot be tracked.'
-          : 'Review stock quantities and reorder thresholds in Stock & Supplies.',
-      '/admin/inventory', urgent ? 'View stock' : 'Set thresholds') +
+          : 'Every item is above its buying level. Nothing is low right now.',
+      '/admin/inventory', urgent || unset ? (unset ? 'Set thresholds' : 'View stock') : 'View stock') +
       action(debtor ? 'watch' : 'ok', 'COLLECTIONS', debtor ? debtor.name : 'No outstanding balances',
       debtor ? money(debtor.debt) + ' outstanding. Review the customer ledger before collection.' : 'Customer balances are clear.', '/admin/customers', 'View balances') +
       action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gallons forecast' : 'Forecast not available',
@@ -254,11 +364,23 @@ function renderAdvisories() {
         '<p class="overview-advisory-supplier">Until a threshold is set, these items cannot be tracked for stockouts.</p></article>'
       : '';
 
-    el.innerHTML = cards + prompt;
+    // Only three cards fit this panel. Without saying so, the panel reads as if
+    // three items are low while the KPI above it counts every item needing a
+    // reorder, which looks like missing data.
+    const overflow = real.length > 3
+      ? '<article class="advisory-card advisory-info"><div class="overview-advisory-head"><b>' +
+        (real.length - 3) + ' more ' + (real.length - 3 === 1 ? 'item' : 'items') +
+        ' need reordering</b><span>Not shown</span></div>' +
+        '<p>' + esc(real.slice(3).map(a => a.item).join(', ')) + '</p>' +
+        '<p class="overview-advisory-supplier"><a href="/admin/inventory">View stock &amp; reordering</a> to see all ' +
+        real.length + ' items.</p></article>'
+      : '';
+
+    el.innerHTML = cards + prompt + overflow;
     return;
   }
 
-  el.innerHTML = '<div class="overview-empty"><b>No restock advisories</b><p>Stock alerts will appear here when an item reaches its reorder point.</p></div>';
+  el.innerHTML = '<div class="overview-empty"><b>Nothing to buy right now</b><p>Every item is above the level where you would reorder it. Stock alerts appear here when something runs low.</p></div>';
 }
 
 
@@ -313,12 +435,17 @@ function openRemindDrawer(id) {
 
   const send = drawer.querySelector('[data-action="send"]');
   const link = remindLink(c);
+  // The control is a <button>, so the destination is held in a data attribute
+  // and opened here. (As an anchor with no href it used to be skipped by the
+  // tab order entirely.)
   if (link) {
-    send.href = link;
+    send.dataset.href = link;
+    send.disabled = false;
     send.classList.remove('is-disabled');
     send.removeAttribute('aria-disabled');
   } else {
-    send.removeAttribute('href');
+    send.removeAttribute('data-href');
+    send.disabled = true;
     send.classList.add('is-disabled');
     send.setAttribute('aria-disabled', 'true');
   }
@@ -327,6 +454,19 @@ function openRemindDrawer(id) {
   drawer.setAttribute('aria-hidden', 'false');
   const first = drawer.querySelector('[data-action="copy"]');
   if (first) first.focus();
+}
+
+/**
+ * Open the reminder in the customer's messaging app.
+ *
+ * Open with an explicit click so the popup is not blocked, and never navigate
+ * the admin portal itself away to wa.me.
+ */
+function sendWhatsApp() {
+  const send = document.querySelector('[data-action="send"]');
+  const link = send?.dataset.href;
+  if (!link) return;
+  window.open(link, '_blank', 'noopener');
 }
 
 function closeRemindDrawer() {
@@ -365,9 +505,12 @@ function flashDrawer(message) {
 
 
 // Custody Ledger
+// Match on the singular "Jug": the seeded rows are "5 Gallon Slim Jug" /
+// "5 Gallon Round Jug". Looking for a plural "Jugs" never matched, so these
+// two figures sat on "Loading" forever.
 function renderLedger() {
-  const slim = DB.inventory.find(v => v.item.includes('Slim Jugs'));
-  const round = DB.inventory.find(v => v.item.includes('Round Jugs'));
+  const slim = DB.inventory.find(v => v.item.includes('Slim Jug'));
+  const round = DB.inventory.find(v => v.item.includes('Round Jug'));
   const I = computeInsights();
   const elS = document.getElementById('ledgerSlim'), elR = document.getElementById('ledgerRound'), elP = document.getElementById('ledgerPend');
   if (elS && slim) elS.textContent = slim.on + ' in station';
@@ -375,14 +518,19 @@ function renderLedger() {
   if (elP) elP.textContent = money(I.totalDebt);
   const tb = document.getElementById('topLiaBody');
   if (tb) {
-    tb.innerHTML = filterTableRows(I.custs, 'topLiaBody').map(c => {
+    const ledgerRows = filterTableRows(I.custs, 'topLiaBody');
+    // Bars share one scale across the whole table, so the largest debtor is
+    // the longest bar regardless of sort order or search.
+    const ledgerMax = ledgerRows.reduce((n, c) => Math.max(n, Number(c.debt) || 0), 0);
+    tb.innerHTML = ledgerRows.map(c => {
       const hasContact = !!dialNumber(c.contact);
       const isZero = !c.debt || Number(c.debt) <= 0;
 
       return '<tr>' +
         '<td><span class="ledger-name">' + esc(c.name) + '</span>' +
           '<span class="cell-sub">' + (c.contact ? dialNumber(c.contact) : 'No contact on file') + '</span></td>' +
-        '<td class="num ledger-balance"><span class="' + (isZero ? 'balance-zero' : 'debt') + '">' + money(c.debt) + '</span>' +
+        '<td class="num ledger-balance"><span class="' + (isZero ? 'balance-zero' : 'debt') + '">' + money(c.debt) +
+          (isZero ? '' : magBar(Number(c.debt), ledgerMax, 'debt')) + '</span>' +
           '</td>' +
         '<td><div class="ledger-actions">' +
           (isZero

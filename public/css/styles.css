@@ -520,7 +520,7 @@ button {
    ONE RULE FOR BOTH "LEAVE THE TERMINAL" CONTROLS
 
    The owner portal's "POS Terminal" link and the cashier portal's
-   "ÃƒÂ¢Ã¢â‚¬Â Ã‚Â Owner Portal" link are the same control doing opposite jobs, so they must
+   "Ã¢â€ Â Owner Portal" link are the same control doing opposite jobs, so they must
    be pixel-identical. They were two separate rules that drifted: the back link
    picked up the 44px minimum height that .sidebar-logout-btn inherits, while
    the POS link did not, so going one way looked bigger than coming back.
@@ -1493,7 +1493,7 @@ body.pos-lock .pos-layout {
 
 /* OR tag + tender box */
 .order-receipt-tag {
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   background-color: var(--brand-light);
   color: #0C4A6E;

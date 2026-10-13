@@ -116,12 +116,26 @@ Four tiers: `web` (nginx) → `app` (Laravel) + `worker` (scheduler) + `test`
 
 ### Demo credentials
 
-| Role | Username | Password | Extra |
+| Role | Sign-in | Password | Extra |
 |---|---|---|---|
-| Cashier | `cashier` | `1234` | — |
-| Owner | `admin` | `1234` | Owner PIN `2468` |
+| Cashier | `cashier` at `/` | `1234` | — |
+| Owner | the seeded owner email at `/owner/login` | `1234` | 6-digit code sent by email |
 
-Passwords and the PIN are bcrypt hashes in MySQL; the browser never receives them.
+The owner does **not** sign in with the username `admin`, and there is **no
+owner PIN** — the PIN was removed. Owner sign-in is email + password + a
+one-time code emailed to that address. Because the code must be delivered,
+`MAIL_MAILER=smtp` has to be configured first or the login page will explain
+what is missing instead of silently failing.
+
+The seeded owner address is `owner@aquaflow.test` — a placeholder. Set
+`OWNER_EMAIL` (and optionally `OWNER_PASSWORD`) in `.env` before seeding so a
+real station receives its codes at the right inbox. To check mail works, run:
+
+```bash
+php artisan aquaflow:mail-test
+```
+
+Passwords are bcrypt hashes in MySQL; the browser never receives them.
 
 ### Running the tests
 
@@ -204,7 +218,8 @@ Session authenticated (same origin), CSRF protected, JSON in/out.
 |---|---|---|---|
 | GET | `/api/health` | public | Liveness + DB check |
 | POST | `/api/auth/login` | public (throttled) | Cashier login |
-| POST | `/api/auth/login-owner` | public (throttled) | Owner login + PIN |
+| POST | `/api/auth/login-owner` | public (throttled) | Owner login, emails a one-time code |
+| POST | `/api/auth/verify-email` | public (throttled) | Owner sign-in with the emailed code |
 | POST | `/api/auth/logout` | any | End the session |
 | GET | `/api/auth/session` | any | Current user |
 | GET | `/api/bootstrap` | any | Everything a page needs in one call |

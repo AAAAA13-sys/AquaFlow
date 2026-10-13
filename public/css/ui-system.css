@@ -1,5 +1,5 @@
 /* =============================================================================
-   AquaFlow — UI System Layer
+   AquaFlow ? UI System Layer
    -----------------------------------------------------------------------------
    Standardises button hierarchy, dashboard grid alignment and KPI anatomy.
    Plain CSS on purpose: the app has no asset build step, so nothing here may
@@ -51,9 +51,9 @@
 /* =============================================================================
    1. BUTTON HIERARCHY
    Three tiers, each visually distinct at a glance:
-     .btn-primary    solid fill      — commit an action
-     .btn-secondary  outlined        — navigate or view
-     .btn-tertiary   text + icon     — deep analytics jump
+     .btn-primary    solid fill      ? commit an action
+     .btn-secondary  outlined        ? navigate or view
+     .btn-tertiary   text + icon     ? deep analytics jump
    ========================================================================== */
 
 .btn {
@@ -296,7 +296,7 @@
 }
 
 /* =============================================================================
-   4. ADVISORY CARD — action hierarchy inside a panel
+   4. ADVISORY CARD ? action hierarchy inside a panel
    ========================================================================== */
 
 .advisory-card {
@@ -334,7 +334,7 @@
 }
 
 /* =============================================================================
-   5. INSIGHT CALLOUTS — progressive disclosure
+   5. INSIGHT CALLOUTS ? progressive disclosure
    The old `.insight-note` was one grey box holding a 3-part paragraph, which
    read as a wall of text under every panel. Now exactly ONE line is visible
    (the action); meaning and risk live inside a disclosure.
@@ -343,11 +343,11 @@
      <details class="insight">
        <summary class="insight-summary">
          <span class="insight-k insight-k--do">To do</span>
-         <span class="insight-v">…one line…</span>
+         <span class="insight-v">?one line?</span>
        </summary>
        <div class="insight-detail">
-         <p class="insight-line"><span class="insight-k">Means</span> …</p>
-         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> …</p>
+         <p class="insight-line"><span class="insight-k">Means</span> ?</p>
+         <p class="insight-line insight-line--risk"><span class="insight-k insight-k--risk">Risk</span> ?</p>
        </div>
      </details>
    ========================================================================== */
@@ -408,7 +408,7 @@
   font-weight: 500;
 }
 
-/* Small uppercase key chip — replaces inline <b> runs. */
+/* Small uppercase key chip ? replaces inline <b> runs. */
 .insight-k {
   flex: 0 0 auto;
   font-size: 0.75rem;
@@ -507,7 +507,7 @@
 /* Unit suffixes inside a numeric cell are context, not the figure. */
 .num-unit {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.01em;
@@ -562,7 +562,7 @@
 /* =============================================================================
    7. LEDGER ACTION COMPONENTS
    The ledger's "Remind" button had no stylesheet at all, so it rendered as a
-   default grey browser button repeated on every row — visually meaningless and
+   default grey browser button repeated on every row ? visually meaningless and
    inconsistent with the rest of the portal. It is now an action group: one real
    outbound action plus one navigation step.
    ========================================================================== */
@@ -836,7 +836,7 @@
 
 .af-drawer-label {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -903,7 +903,7 @@
 }
 
 /* =============================================================================
-   11. ACCESSIBILITY — never rely on colour alone
+   11. ACCESSIBILITY ? never rely on colour alone
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {

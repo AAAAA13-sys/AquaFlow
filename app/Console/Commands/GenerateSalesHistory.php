@@ -36,6 +36,15 @@ class GenerateSalesHistory extends Command
     /** Inclusive VAT, matching CheckoutService. */
     private const VAT_RATE = 0.12;
 
+    /**
+     * A tab above this is cleared in full rather than partly.
+     *
+     * A big account owing more than a fortnight of station revenue is not a
+     * realistic demo figure, so the generator pays it down instead of letting it
+     * drift for the rest of the window.
+     */
+    private const SETTLEMENT_CEILING = 6000.0;
+
     private int $receipt = 0;
 
     public function handle(): int
@@ -265,7 +274,7 @@ class GenerateSalesHistory extends Command
         $debtor = DB::table('customers')
             ->where('debt_balance', '>', 0)
             ->where('name', '<>', 'Walk-in Guest')
-            ->inRandomOrder()
+            ->orderByDesc('debt_balance')
             ->first(['id', 'debt_balance']);
 
         if ($debtor === null) {
@@ -274,8 +283,12 @@ class GenerateSalesHistory extends Command
 
         $balance = (float) $debtor->debt_balance;
 
-        // Customers clear most of the tab when they pay, rounded to a real note.
-        $share = mt_rand(45, 100) / 100;
+        // Work the largest tab down first. Picking a debtor at random let one
+        // account drift for weeks and end up owing more than the whole station
+        // takes in a fortnight, which no real credit customer looks like.
+        // Clearing the biggest balance first is also what a station owner
+        // actually does, and it keeps the generated figures self-balancing.
+        $share = $balance > self::SETTLEMENT_CEILING ? 1.0 : mt_rand(45, 100) / 100;
         $paid = round(min($balance, max(50.0, $balance * $share)) / 50) * 50;
 
         if ($paid <= 0) {

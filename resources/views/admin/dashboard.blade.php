@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('title', 'Dashboard | ' . ($stationName ?? 'AquaFlow'))
+@section('meta-description', 'Sales, stock and demand forecast for ' . ($stationName ?? 'AquaFlow') . ' water refilling station.')
 @section('topbar-title', 'Overview')
 
 @push('styles')
@@ -18,7 +19,7 @@
     <section class="card onboarding-checklist-card" id="onboardingChecklist">
       <div class="onboarding-card-head">
         <div>
-          <h3 class="onboarding-card-title">Getting Started Checklist</h3>
+          <h3 class="onboarding-card-title">Getting Started</h3>
           <p class="onboarding-card-desc">Essential setup steps for launching your water station operations.</p>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -74,6 +75,9 @@
         <p class="kpi-label">Sales Revenue Today</p>
         <p class="kpi-value" id="kRev"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
         <p class="kpi-subtext" id="kRevSub"><span class="af-skeleton" style="width:12ch"></span></p>
+        {{-- Trend direction lives outside #kRev because that element is replaced
+             by textContent when the figure arrives. --}}
+        <span class="kpi-trend" id="kRevTrend" aria-hidden="true"></span>
       </div>
       <div class="kpi-card-body kpi-green">
         <p class="kpi-label">Expected Sales Next 7 Days</p>
@@ -94,13 +98,13 @@
     </div>
 
     <section class="card overview-priorities" aria-labelledby="overviewPrioritiesTitle">
-      <div class="overview-panel-head"><div><p class="overview-eyebrow">NEXT STEPS</p><h3 id="overviewPrioritiesTitle">Today's priorities</h3></div><span class="overview-hint">Stock · Collections · Planning</span></div>
+      <div class="overview-panel-head"><div><p class="overview-eyebrow">NEXT STEPS</p><h3 id="overviewPrioritiesTitle">Today's priorities</h3></div><span class="overview-hint">Stock &middot; Collections &middot; Planning</span></div>
       <div id="insActions" class="overview-actions"></div>
     </section>
 
     <div class="dash-row-chart">
       <div class="card">
-        <h3 class="panel-heading">Demand outlook <span class="term-hint">next 7 days</span></h3>
+        <h3 class="panel-heading">Expected Sales Next Week</h3>
         <p class="auto-deduct-caption">Compare the last 30 days of refill sales with the upcoming forecast.</p>
         {{-- Canvas is invisible to assistive tech without a name. The figures
              behind it are already rendered as text in #insDemand below, so the
@@ -115,28 +119,26 @@
       {{-- Rail: sizes to its own content instead of stretching to the chart's
            height, which is what produced the empty block. --}}
       <div class="card card--rail">
-        <h3 class="panel-heading">Restock Advisories</h3>
+        <h3 class="panel-heading">Things to Buy</h3>
         <div id="advisory" class="overview-advisories"></div>
         <button type="button" onclick="draftPO()" class="btn btn-secondary btn-sm overview-purchase">Make a Purchase Request</button>
       </div>
     </div>
 
-    {{-- Supporting sales, inventory and collection details. --}}
-    <div class="dashboard-row-3col">
+    {{-- Supporting sales and collection details.
+
+         The old "Days of Stock Left" panel was removed from this row: it listed
+         the four items with the shortest cover, and the "Your Stock" table
+         directly below shows every item with the same days-left figure and a
+         "Needs reorder" filter. Three panels showing one fact was making the
+         owner read stock three times before reaching anything new. --}}
+    <div class="dashboard-row-2col">
       <div class="card">
-        <h3 class="panel-heading">Sales patterns</h3>
+        <h3 class="panel-heading">How Sales Are Going</h3>
         <div id="insDemand"></div>
       </div>
       <div class="card">
-        <h3 class="panel-heading">Stock runway @include('partials.tip', [
-          'text' => 'Days of stock cover: how many days the quantity you hold should last at your recent selling rate. Red means you have less time than your supplier needs to deliver.',
-          'label' => 'What does stock runway mean?',
-        ])</h3>
-        <p class="auto-deduct-caption">The four items with the shortest stock coverage.</p>
-        <div id="insRunway"></div>
-      </div>
-      <div class="card">
-        <h3 class="panel-heading">Collection priorities</h3>
+        <h3 class="panel-heading">Who Owes You Most</h3>
         <div id="insCollect"></div>
       </div>
     </div>
@@ -144,8 +146,8 @@
     {{-- 3. REFERENCE. The tables behind the cards above. --}}
     <div class="dashboard-row-2col overview-reference">
       <div class="card">
-        <h3 class="panel-heading">Stock Check</h3>
-        <p class="auto-deduct-caption">New Slim Jugs: <strong id="ledgerSlim">Loading</strong> � New Round Jugs: <strong id="ledgerRound">Loading</strong></p>
+        <h3 class="panel-heading">Your Stock</h3>
+        <p class="auto-deduct-caption">New Slim Jugs: <strong id="ledgerSlim">Loading</strong> &middot; New Round Jugs: <strong id="ledgerRound">Loading</strong></p>
         <div class="stock-check-toolbar no-print">
           <div class="stock-search-group">
             <input id="invBodyDashSearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()" aria-label="Search stock">
@@ -166,15 +168,15 @@
               <tr>
                 <th>Item</th>
                 <th class="num">In Stock</th>
-                <th class="num">Reorder Below @include('partials.tip', [
+                <th class="num">Buy More When Below @include('partials.tip', [
                   'text' => 'Reorder point: the quantity at which you should buy more. Once stock falls to this number or lower the item is flagged, so you can reorder before you run out.',
                   'label' => 'What is the reorder point?',
                 ])</th>
-                <th class="num">Lasts @include('partials.tip', [
+                <th class="num">Days Left @include('partials.tip', [
                   'text' => 'Days of stock cover: how many days the quantity you hold should last at your recent selling rate. "n/a" means no reorder point is set for this item yet, so no estimate can be made.',
                   'label' => 'What does the Lasts column mean?',
                 ])</th>
-                <th class="text-center">Status</th>
+                <th class="text-center">Stock</th>
               </tr>
             </thead>
             <tbody id="invBodyDash"></tbody>
@@ -239,7 +241,9 @@
 
     <footer class="af-drawer-foot">
       <button type="button" class="btn btn-secondary" data-action="copy" onclick="copyReminder()">Copy</button>
-      <a class="btn btn-primary" data-action="send" target="_blank" rel="noopener">Send via WhatsApp</a>
+      {{-- A <button> rather than a bare <a>: without an href an anchor is skipped
+           by the tab order and exposes no role, so this was mouse-only. --}}
+      <button type="button" class="btn btn-primary" data-action="send" onclick="sendWhatsApp()">Send via WhatsApp</button>
     </footer>
   </div>
 </div>

@@ -91,14 +91,27 @@ function renderInvTable() {
     if (!rows.length) {
       dash.innerHTML = '<tr><td colspan="5" class="empty-cell">Nothing matches this filter.</td></tr>';
     } else {
+      // Absolute scale: a fixed two-week planning horizon, not "the largest value
+      // in this table". A relative scale makes every bar 100% whenever the
+      // figures happen to be equal, so the bar carries no information - and
+      // its length would mean something different as soon as one item moved.
+      // Against a fixed 14-day horizon, 3.4 days is always a visibly short bar,
+      // which is the honest reading of "about a third of a delivery cycle left".
+      const coverScale = 14;
+
       dash.innerHTML = rows.map(v => {
         const unconfigured = isUnconfigured(v);
         const st = statusOf(v);
+        const cover = unconfigured ? null : daysCover(v);
         const days = unconfigured
           ? '<span class="pill-neutral">n/a</span>'
           : (v.days_left === null || v.days_left === undefined
             ? '&mdash;'
-            : Number(v.days_left).toFixed(1) + ' days');
+            : '<span class="cover-cell">' +
+              '<span class="cover-days">' + Number(v.days_left).toFixed(1) + '</span>' +
+              '<span class="cover-unit">days</span>' +
+              magBar(Math.min(cover, coverScale), coverScale, st[1].replace('pill-', '')) +
+              '</span>');
         const sub = v.supplier ? esc(v.cat) + ' | ' + esc(v.supplier) : esc(v.cat);
         const ropVal = unconfigured
           ? '<span class="pill-neutral">Not set</span>'

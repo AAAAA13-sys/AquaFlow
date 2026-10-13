@@ -16,38 +16,38 @@
     let completed = 0;
     const total = 5;
 
-    // Check localStorage or snapshot indicators
-    try {
-      if (typeof API !== 'undefined' && typeof API.get === 'function') {
-        const overview = await API.get('overview');
-        if (overview) {
-          // 1. Inventory items check
-          if (overview.stock_items_count > 0 || overview.low_stock !== undefined) {
-            markStepDone('stepInventory');
-            completed++;
-          }
-          // 2. Suppliers check
-          if (overview.suppliers_count > 0) {
-            markStepDone('stepSuppliers');
-            completed++;
-          }
-          // 3. Staff check
-          if (overview.staff_count > 1) {
-            markStepDone('stepStaff');
-            completed++;
-          }
-          // 4. Settings check (always configurable)
-          markStepDone('stepSettings');
-          completed++;
-          // 5. POS Sales check
-          if (overview.sales_today > 0 || (overview.recent_transactions && overview.recent_transactions.length > 0)) {
-            markStepDone('stepPos');
-            completed++;
-          }
-        }
-      }
-    } catch (_) {
-      // Fallback
+    // Every flag below is derived from the bootstrap snapshot the page already
+    // loaded. This used to call /api/overview, which does not exist, so the
+    // request 404'd and the checklist stayed at "0 of 5" for good.
+    const snapshot = (typeof DB !== 'undefined' && DB) ? DB : null;
+    if (!snapshot) return;
+
+    // 1. Stock & Supplies - catalogue and consumables are stocked.
+    if ((snapshot.inventory || []).length > 0 || (snapshot.products || []).length > 0) {
+      markStepDone('stepInventory');
+      completed++;
+    }
+
+    // 2. Suppliers - at least one purchasing contact on file.
+    if ((snapshot.suppliers || []).length > 0) {
+      markStepDone('stepSuppliers');
+      completed++;
+    }
+
+    // 3. Staff & Access - more than one account exists, not just the owner.
+    if ((snapshot.users || []).filter(u => u.active !== false).length > 1) {
+      markStepDone('stepStaff');
+      completed++;
+    }
+
+    // 4. Station Settings - always reachable, so it is never a blocker.
+    markStepDone('stepSettings');
+    completed++;
+
+    // 5. POS Terminal - a recorded sale proves the till works end to end.
+    if ((snapshot.meta?.sales_today_count ?? 0) > 0 || (snapshot.transactions || []).length > 0) {
+      markStepDone('stepPos');
+      completed++;
     }
 
     const badge = document.getElementById('onboardingProgressBadge');

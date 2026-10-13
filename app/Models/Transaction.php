@@ -79,6 +79,29 @@ class Transaction extends Model
         return $query->orderByDesc('transaction_date')->orderByDesc('transaction_time')->orderByDesc('id');
     }
 
+    /**
+     * Count the refill containers recorded in a volume label.
+     *
+     * Labels are written by CheckoutService::volumeLabel() and look like
+     * "17S+2R", "3S" or "0 gal". A refill container counts as one gallon, so
+     * the total is the sum of every count in the label. Anything that does not
+     * follow that shape (including debt payments, stored as "0 gal") is zero.
+     */
+    public static function gallonsFromLabel(?string $label): float
+    {
+        if ($label === null || $label === '') {
+            return 0.0;
+        }
+
+        preg_match_all('/(\d+(?:\.\d+)?)\s*[SR]/i', $label, $matches);
+
+        if ($matches[1] === []) {
+            return 0.0;
+        }
+
+        return (float) array_sum(array_map('floatval', $matches[1]));
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
