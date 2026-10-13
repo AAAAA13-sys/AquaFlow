@@ -66,23 +66,17 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_u_s02_legacy_owner_pin_cannot_bypass_email(): void
+    public function test_legacy_owner_pin_cannot_bypass_email(): void
     {
-        $this->postJson('/api/auth/login-owner', [
-            'username' => 'admin',
-            'password' => '1234',
-            'pin' => '2468',
-        ])->assertUnprocessable();
-        $this->assertGuest();
-    }
-
-    public function test_wrong_owner_pin_is_rejected(): void
-    {
-        $this->postJson('/api/auth/login-owner', [
-            'username' => 'admin',
-            'password' => '1234',
-            'pin' => '0000',
-        ])->assertUnprocessable();
+        foreach (['2468', '0000'] as $pin) {
+            $this->postJson('/api/auth/login-owner', [
+                'username' => 'admin',
+                'password' => '1234',
+                'pin' => $pin,
+            ])->assertUnprocessable();
+            $this->assertGuest();
+        }
+        $this->getJson('/api/bootstrap')->assertUnauthorized();
     }
 
     public function test_protected_endpoints_require_a_session(): void

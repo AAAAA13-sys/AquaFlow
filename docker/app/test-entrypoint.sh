@@ -8,7 +8,7 @@
 # created here, before PHPUnit boots.
 #
 # The container idles (CMD sleep infinity) so repeated runs are cheap:
-#   docker compose exec test php artisan test --filter=US03
+#   docker compose exec test php artisan test --filter=AuthTest
 
 set -e
 

@@ -1,5 +1,7 @@
 # AquaFlow - System Evaluation Plan and Results
 
+The test inventories and results below are historical measurements. Use current CI for executed suite results and the [documentation map](README.md) for current scope. The evaluation instruments remain applicable planning material; these dated counts do not describe the current test suite.
+
 This document covers Phase 5 of the roadmap: functional testing, forecast
 accuracy validation, and the two evaluation instruments required by the thesis
 (System Usability Scale and ISO/IEC 25010 quality characteristics).

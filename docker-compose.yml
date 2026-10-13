@@ -18,7 +18,7 @@
 # Run the tests:
 #   docker compose --profile test up -d test
 #   docker compose exec test php artisan test
-#   docker compose exec test php artisan test --filter=US03
+#   docker compose exec test php artisan test --filter=AuthTest
 
 services:
   db:

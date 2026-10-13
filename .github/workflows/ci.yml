@@ -119,7 +119,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check JavaScript syntax
-        run: find public/js resources/js -name '*.js' -print0 | xargs -0 -n 1 node --check
+        run: find public/js -name '*.js' -print0 | xargs -0 -n 1 node --check
       - name: Run shared frontend contracts
         run: node tests/frontend-shared.cjs
 

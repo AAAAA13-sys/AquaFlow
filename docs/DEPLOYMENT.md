@@ -15,7 +15,7 @@ Two ways to run it:
 | 1 | Presentation | Laravel Blade (+ nginx) | Pages, layouts, security headers |
 | 2 | Application | Laravel 12 / PHP 8.2 | REST API, auth, validation, business rules |
 | 3 | Analytics | Python 3.12 + statsmodels | ARIMA forecasting service |
-| 4 | Database | MySQL 8 / MariaDB | System of record (13 tables) |
+| 4 | Database | MySQL 8 / MariaDB | System of record |
 
 ---
 
@@ -264,7 +264,7 @@ docker compose --profile setup run --rm migrate
 ```bash
 docker compose --profile test up -d test
 docker compose exec test php artisan test
-docker compose exec test php artisan test --filter=US03
+docker compose exec test php artisan test --filter=AuthTest
 ```
 
 The `test` service is a separate build target of `docker/app/Dockerfile` with dev

@@ -4,6 +4,10 @@
 
 ---
 
+Read the [documentation map](docs/README.md) for current implementation references and dated evidence.
+
+The interface serves CSS and JavaScript directly from public/. No Vite/Tailwind build is required. Node runs frontend tests; package.json retains concurrently for the existing composer dev server/log workflow. Run npm test for frontend contracts, or node tests/frontend-shared.cjs without installing packages.
+
 ## What this is
 
 A **Laravel 12 application** for running a water refilling station, with a
@@ -18,8 +22,9 @@ A **Laravel 12 application** for running a water refilling station, with a
   number the dashboard shows is read from the database.
 
 The cashier terminal is a **single-screen POS that shows one step at a time**:
-customer ledger and live queue, then one-touch product tiles and container
-returns, then cart and payment. The step tabs and Back/Next bar are always
+customer selection, then one-touch product tiles, then cart and payment.
+Customers own their refill jugs; new jugs are retail merchandise. Container
+custody is historical data, not an active lending/return workflow. The step tabs and Back/Next bar are always
 available, and the whole sale happens without a page reload (thesis Figure 7
 flow, presented one panel at a time for clarity on any screen size).
 
@@ -36,7 +41,7 @@ flow, presented one panel at a time for clarity on any screen size).
 | 1 | Presentation | Laravel Blade (+ nginx in production) | Pages, shared layouts, security headers |
 | 2 | Application | Laravel 12 on PHP 8.2 | REST API, auth, validation, business rules |
 | 3 | Analytics | Python 3.12 + statsmodels | ARIMA forecasting service |
-| 4 | Database | MySQL 8 / MariaDB | System of record (13 tables) |
+| 4 | Database | MySQL 8 / MariaDB | System of record |
 
 ```
 Blade pages + vanilla JS  ──fetch /api/…──►  Laravel (controllers/services)
@@ -123,7 +128,7 @@ Passwords and the PIN are bcrypt hashes in MySQL; the browser never receives the
 ```bash
 docker compose --profile test up -d test
 docker compose exec test php artisan test
-docker compose exec test php artisan test --filter=US03
+docker compose exec test php artisan test --filter=AuthTest
 ```
 
 The test service uses its own `aquaflow_test` database, so a run can never touch
@@ -302,8 +307,8 @@ of the day's log rather than the top.
 ## Testing
 
 ```bash
-php artisan test                              # 110 tests, 450 assertions
-python -m pytest analytics/tests -q           # 22 tests
+php artisan test
+python -m pytest analytics/tests -q
 
 # Custom validation failures (analytics service offline, etc.)
 php artisan aquaflow:forecast --skip-analytics

@@ -1,5 +1,7 @@
 # AquaFlow user-story verification
 
+Dated story evidence below is not a current test-count or release claim. Use the [documentation map](README.md), current implementation record and actual CI results; PIN-era descriptions are superseded by owner email verification.
+
 All 65 CSV stories were implemented or retained and checked in the approved MSME scope. Shared services implement related stories together; this ledger does not imply 65 separate commits.
 
 Scope decisions: customers own refill jugs; new jugs are retail merchandise; POS contains four products; physical water level and IoT are excluded. Historical custody data and compatibility endpoints are preserved, while current screens and checkout do not use custody.
@@ -13,8 +15,8 @@ PDF exports use the browser Print / Save PDF dialog. Daily/weekly/monthly are ag
 | Story | Accepted deliverable | Source | Verification |
 |---|---|---|---|
 | US-01 | Session issued with role=cashier; redirect to /cashier/terminal; failed attempts return validation error. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
-| US-02 | /admin/dashboard accessible only after all three factors pass; session carries role=owner. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
-| US-03 | Inline error banner "Invalid Owner PIN"; no session created; attempt logged. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=US03Test` |
+| US-02 | Admin permissions require password plus emailed OTP (or approved single-use recovery); pending challenges have no admin session. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
+| US-03 | Legacy PIN requests are rejected; neither old nor incorrect PIN creates a session. Admin login uses the email-code screen. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
 | US-04 | HTTP 403 or redirect to POS; EnsureUserIsOwner middleware on every admin route. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
 | US-05 | Session flushed, cookies invalidated, redirect to login. | [app/Services/AuthService.php](../app/Services/AuthService.php) | `docker compose exec -T test php artisan test --filter=AuthTest` |
 | US-06 | User CRUD table in admin portal; bcrypt-hashed passwords; deactivated users fail login. | [app/Services/UserService.php](../app/Services/UserService.php) | `docker compose exec -T test php artisan test --filter=SecurityStoriesTest` |
