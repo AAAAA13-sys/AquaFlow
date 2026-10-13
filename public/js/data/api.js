@@ -128,6 +128,11 @@ const API = {
   settleDebt(customerId, amount) { return Submissions.send('customers/' + customerId + '/settle', { amount: amount }); },
   logReturn(customerId, kind) { return this.post('customers/' + customerId + '/returns', { kind: kind }); },
 
+  // Cash reconciliation (end-of-day drawer)
+  cashShift() { return this.get('cash-shift'); },
+  openCashShift(openingFloat) { return this.post('cash-shift/open', { opening_float: openingFloat }); },
+  closeCashShift(countedCash, note) { return this.post('cash-shift/close', { counted_cash: countedCash, note: note || null }); },
+
   // Inventory
   inventory() { return this.get('inventory'); },
   createInventory(item) { return this.post('inventory', item); },

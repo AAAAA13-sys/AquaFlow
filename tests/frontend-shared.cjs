@@ -109,9 +109,12 @@ assert.equal(elements.kGal.textContent,'30 gallons');
 elements.insActions={innerHTML:''};elements.advisory={innerHTML:''};elements.insRunway={innerHTML:''};
 ctx.DB.advisories=[];
 ctx.renderInsights();
-assert.ok(elements.insActions.innerHTML.includes('No stock alerts'));
+// The empty states are worded for an owner, not for engineers: the old copy
+// read "No stock alerts" in a card whose button said "Set thresholds", which
+// contradicted itself. What matters here is that they stay reassuring.
+assert.ok(elements.insActions.innerHTML.includes('Nothing to buy'));
 assert.ok(elements.insActions.innerHTML.includes('No outstanding balances'));
-assert.ok(elements.advisory.innerHTML.includes('No restock advisories'));
+assert.ok(elements.advisory.innerHTML.includes('Nothing to buy right now'));
 assert.ok(elements.insRunway.innerHTML.includes('No inventory items'));
 delete elements.insActions;delete elements.advisory;delete elements.insRunway;
 delete elements.chDemand;delete elements.fHorizon;

@@ -11,9 +11,13 @@ function page(firstRun) {
 }
 (async()=>{
   const normal=page(false);
-  normal.element('adminEmail').value='owner@example.com'; normal.element('p').value='MyPassword123'; normal.element('otp').value='123456';
+  normal.element('adminEmail').value='owner@example.com'; normal.element('p').value='MyPassword123';
   await normal.ctx.sendAdminOtp();
   assert.equal(normal.calls[0].path,'auth/login-owner'); assert.equal(normal.calls[0].body.email,'owner@example.com'); assert.equal(normal.calls[0].body.username,undefined);
+  // The code is entered after the code has been requested: moving to the code
+  // step clears the box, so a stale value cannot be submitted, and a real owner
+  // has no code to type until the request has been made.
+  normal.element('otp').value='123456';
   await normal.ctx.submitAdminLogin(); assert.equal(normal.calls[1].path,'auth/verify-email'); assert.equal(normal.element('recoveryCodes').textContent,'saved-code'); assert.equal(normal.element('p').value,'');
   const setup=page(true);
   setup.element('setupStation').value='My Water Station';

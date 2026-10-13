@@ -9,3 +9,4 @@
 
 <script src="{{ asset('js/admin/employees.js') }}?v={{ asset_version('js/admin/employees.js') }}"></script>
 <script src="{{ asset('js/admin/till.js') }}?v={{ asset_version('js/admin/till.js') }}"></script>
+<script src="{{ asset('js/admin/cash.js') }}?v={{ asset_version('js/admin/cash.js') }}"></script>

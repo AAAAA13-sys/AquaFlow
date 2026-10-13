@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DemandForecast;
 use App\Models\InventoryItem;
 use App\Models\StockMovement;
+use App\Models\Transaction;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,12 @@ class InventoryEngine
 
     public const DEFAULT_REVIEW_PERIOD_DAYS = 7;
 
-    public const FALLBACK_DAILY_DEMAND = 285.0;
+    // Last-resort rate, in PIECES per day, for an item that has neither a
+    // forecast, a known consumption ratio, nor any recorded sales. It must stay
+    // on a piece scale: refill volume is measured in containers (hundreds per
+    // day here), so a volume-sized default would suggest ordering thousands of
+    // seals for a station that uses a few dozen.
+    public const FALLBACK_DAILY_DEMAND = 2.0;
 
     public const ASSUMED_DEMAND_CV = 0.3;
 
@@ -28,6 +34,25 @@ class InventoryEngine
         'Slim Jug' => 1.8,
         'Round Jug' => 1.4,
     ];
+
+    /**
+     * Consumable pieces used per refill container sold.
+     *
+     * Consumables travel with the container, so recorded refill volume is the
+     * honest basis for estimating them. One seal or cap per container sold;
+     * filters last far longer, so they are a small fraction.
+     */
+    private const CONSUMPTION_RATIOS = [
+        'Seal' => 1.0,
+        'Cover' => 1.0,
+        'Cap' => 1.0,
+        'Filter' => 0.05,
+        'Soap' => 0.2,
+        'Sponge' => 0.2,
+    ];
+
+    /** @var array<string, float|null> Per-request memo for demand lookups. */
+    private array $recentContainersCache = [];
 
     // Demand Mapping & Profiles
     public function demandSeries(string $item): ?string
@@ -82,11 +107,66 @@ class InventoryEngine
             }
         }
 
+        // No forecast for this item yet. Estimate it from recorded refill
+        // volume instead of dropping to a blanket default: a seal is consumed
+        // per container sold, so the sales ledger already holds the answer.
+        $ratio = $this->consumptionRatio($item);
+        $dailyContainers = $this->recentDailyContainers();
+        if ($ratio !== null && $dailyContainers !== null && $dailyContainers > 0) {
+            $daily = $dailyContainers * $ratio;
+
+            return [
+                'daily' => $daily,
+                'stddev' => $daily * self::ASSUMED_DEMAND_CV,
+                'source' => 'recorded sales',
+            ];
+        }
+
         return [
             'daily' => self::FALLBACK_DAILY_DEMAND,
             'stddev' => self::FALLBACK_DAILY_DEMAND * self::ASSUMED_DEMAND_CV,
             'source' => 'default',
         ];
+    }
+
+    /** Consumable pieces per refill container sold, or null if unknown. */
+    private function consumptionRatio(string $item): ?float
+    {
+        foreach (self::CONSUMPTION_RATIOS as $needle => $ratio) {
+            if (str_contains($item, $needle)) {
+                return (float) $ratio;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Average refill containers sold per day over the recent window.
+     *
+     * Cached per request because demandProfile() is called once per item by the
+     * advisory and recalculation paths. Returns null before the station has
+     * recorded any sales, so callers can tell "no data yet" from "no demand".
+     */
+    private function recentDailyContainers(int $days = 14): ?float
+    {
+        if (array_key_exists('recentDailyContainers', $this->recentContainersCache)) {
+            return $this->recentContainersCache['recentDailyContainers'];
+        }
+
+        $transactions = Transaction::query()
+            ->where('order_type', '!=', 'Debt Payment')
+            ->whereDate('transaction_date', '>=', today()->subDays($days - 1))
+            ->get(['gallons_volume']);
+
+        $total = 0.0;
+        foreach ($transactions as $transaction) {
+            $total += Transaction::gallonsFromLabel($transaction->gallons_volume);
+        }
+
+        return $this->recentContainersCache['recentDailyContainers'] = $transactions->isEmpty()
+            ? null
+            : $total / $days;
     }
 
     public function priorityFactor(string $category): float

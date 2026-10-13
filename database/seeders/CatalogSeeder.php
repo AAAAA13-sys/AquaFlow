@@ -6,6 +6,7 @@ use App\Models\InventoryItem;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\SystemSetting;
+use App\Services\InventoryEngine;
 use App\Services\RecipeService;
 use Illuminate\Database\Seeder;
 
@@ -38,15 +39,22 @@ class CatalogSeeder extends Seeder
         // zero and the entire till greys out. Owning them here (like every other
         // inventory row) means a re-seed repairs that state instead of
         // preserving it. Thresholds are left to InventoryEngine.
-        $initialStock = app()->environment('testing') ? 50 : 5;
+        // Opening stock is per item, not one number for everything. A uniform figure
+        // makes every row look machine-made, and for consumables it has to sit
+        // clear of the engine's own reorder point or a fresh store opens in
+        // stockout alarm.
+        $stock = app()->environment('testing')
+            ? ['default' => 50]
+            : ['default' => 900, 'filter' => 60];
+
         $inventory = [
-            ['item_name' => 'Clear Cover', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'Shrink Seal (Circle Top Slim)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'Shrink Seal (Circle Back)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'Shrink Seal (Circle Nozzle)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => 'Shrink Seal (Circle Top Round)', 'category' => 'Consumable', 'stock_on_hand' => $initialStock, 'unit' => 'pcs', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 2, 'supplier_id' => 2],
-            ['item_name' => '5 Gallon Slim Jug', 'category' => 'Asset', 'stock_on_hand' => $initialStock, 'unit' => 'units', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 4, 'supplier_id' => 2],
-            ['item_name' => '5 Gallon Round Jug', 'category' => 'Asset', 'stock_on_hand' => $initialStock, 'unit' => 'units', 'safety_stock' => 2, 'reorder_point' => 5, 'lead_time_days' => 4, 'supplier_id' => 2],
+            ['item_name' => 'Clear Cover', 'category' => 'Consumable', 'stock_on_hand' => $stock['default'], 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Top Slim)', 'category' => 'Consumable', 'stock_on_hand' => $stock['default'], 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Back)', 'category' => 'Consumable', 'stock_on_hand' => $stock['default'], 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Nozzle)', 'category' => 'Consumable', 'stock_on_hand' => $stock['default'], 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => 'Shrink Seal (Circle Top Round)', 'category' => 'Consumable', 'stock_on_hand' => $stock['default'], 'unit' => 'pcs', 'lead_time_days' => 2, 'supplier_id' => 2],
+            ['item_name' => '5 Gallon Slim Jug', 'category' => 'Asset', 'stock_on_hand' => 40, 'unit' => 'units', 'lead_time_days' => 4, 'supplier_id' => 2],
+            ['item_name' => '5 Gallon Round Jug', 'category' => 'Asset', 'stock_on_hand' => 30, 'unit' => 'units', 'lead_time_days' => 4, 'supplier_id' => 2],
         ];
 
         $canonicalNames = array_column($inventory, 'item_name');
@@ -63,11 +71,21 @@ class CatalogSeeder extends Seeder
                 $item['stock_on_hand'] = 0;
                 $item['supplier_id'] = null;
             }
+            // safety_stock / reorder_point / target_stock are deliberately left
+            // out: InventoryEngine::recalculateAll() below derives them. Seeding
+            // a placeholder reorder point equal to the opening stock left every
+            // item permanently sitting exactly on its own threshold, so all of
+            // them read "REORDER NOW" forever.
             InventoryItem::query()->updateOrCreate(
                 ['item_name' => $item['item_name']],
-                $item + ['target_stock' => 0]
+                $item
             );
         }
+
+        // Give the seeded items real thresholds straight away, so a fresh demo
+        // store does not sit in permanent stockout alarm until someone thinks
+        // to run the forecast refresh by hand.
+        app(InventoryEngine::class)->recalculateAll();
 
         // Zero Station-Owned Jugs: a refill consumes no container (the jug is the
         // customer's own); a brand-new jug is ordinary merchandise that depletes
@@ -108,7 +126,7 @@ class CatalogSeeder extends Seeder
             );
         }
 
-        app(RecipeService::class)->installDefaults($demo ? $initialStock : 0);
+        app(RecipeService::class)->installDefaults($demo ? $stock['default'] : 0);
 
         SystemSetting::put(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station', 'Displayed name of the water station');
         SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, '3', 'Default days until new supplies arrive');

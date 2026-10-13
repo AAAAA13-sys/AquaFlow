@@ -1,6 +1,18 @@
 @echo off
 REM ===================================================================
-REM  AquaFlow - one-click launcher (self-contained)
+REM  AquaFlow - LEGACY launcher (kept for reference only)
+REM
+REM  NOT SUPPORTED. The Docker launcher START-AQUAFLOW.bat is the
+REM  supported path.
+REM
+REM  This script predates the .env format: it reads DB_HOST, DB_PORT,
+REM  DB_USERNAME and DB_PASSWORD out of .env, but the shipped
+REM  .env.example does not define them (it is Docker-oriented and uses
+REM  MYSQL_ROOT_PASSWORD / AQUAFLOW_DB_PORT). On a fresh clone this
+REM  script therefore falls back to its defaults and will NOT pick up
+REM  your database settings.
+REM
+REM  Use START-AQUAFLOW.bat instead.
 REM
 REM  Starts MySQL, the Python ARIMA service and the Laravel web app,
 REM  then opens the cashier login. Re-running is safe: anything already

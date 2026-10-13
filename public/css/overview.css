@@ -15,7 +15,7 @@
 /* Colour for the masthead lives in the override block at the end of this file. */
 #s-dash .overview-header p:not(.overview-eyebrow), #s-dash .overview-hint { font-size: 14.5px; line-height: 1.6; }
 /* Was #1D4ED8 at 3.91:1 on white. #1D4ED8 is the same hue at 5.9:1. */
-#s-dash .overview-eyebrow { color: #1D4ED8; font-size: 11.5px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
+#s-dash .overview-eyebrow { color: #1D4ED8; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; margin: 0; }
 #s-dash .overview-shortcuts { display: flex; gap: 10px; flex-shrink: 0; }
 #s-dash .kpi-cards-grid { gap: 14px; }
 /* ---------------------------------------------------------------------
@@ -61,7 +61,7 @@
   background-color: #F5F8FF;
 }
 #s-dash .kpi-label { font-size: 14px; color: #475569; min-height: 28px; }
-#s-dash .kpi-value { font-size: clamp(20px, 2vw, 28px); letter-spacing: -.6px; color: #0f172a; line-height: 1.2; margin: 10px 0; overflow-wrap: anywhere; }
+#s-dash .kpi-value { font-size: clamp(24px, 2.2vw, 30px); letter-spacing: -.6px; color: #0f172a; line-height: 1.2; margin: 10px 0; overflow-wrap: anywhere; }
 #s-dash .kpi-subtext { font-size: 13.5px; line-height: 1.5; color: #475569; }
 /* Was display: none, which suppressed the largest-debtor line that
    insights.js already computes and dashboard.blade.php already renders.
@@ -130,10 +130,14 @@
 #s-dash .stock-check-toolbar .filter-tabs {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  /* Wrap rather than scroll: at narrow widths this row held 597px of chips in
+     a 307px scroller, which clipped "Assets" mid-word with no visible
+     scrollbar. Wrapping keeps every chip readable and tappable. */
+  flex-wrap: wrap;
   gap: 6px;
   margin: 0;
-  overflow-x: auto;
+  overflow: visible;
+  row-gap: 6px;
   scrollbar-width: none;
 }
 #s-dash .stock-check-toolbar .filter-tabs::-webkit-scrollbar {
@@ -276,7 +280,7 @@
 }
 
 /* =============================================================================
-   AquaFlow â€” Owner Getting Started Onboarding Checklist
+   AquaFlow — Owner Getting Started Onboarding Checklist
    ========================================================================== */
 .onboarding-checklist-card {
   margin: 1.25rem 0 0;
@@ -377,6 +381,8 @@
 .onboarding-step-sub {
   display: block;
   font-size: 0.75rem;
-  color: #64748B;
+  /* #64748B on the #f0f6ff card measured 4.38:1, just under the 4.5:1 that
+     WCAG requires for 12px text. #5A6B85 clears it on the same background. */
+  color: #5A6B85;
   line-height: 1.4;
 }
