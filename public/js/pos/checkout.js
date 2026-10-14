@@ -349,13 +349,7 @@ async function confirmCashierLogout() {
   if (confirmCashierLogout.busy) return;
   confirmCashierLogout.busy = true;
   try {
-    if (typeof interceptLogoutWithAttendance === 'function') {
-      await interceptLogoutWithAttendance(async () => {
-        if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
-      });
-    } else {
-      if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
-    }
+    if (await appConfirm('Log out of the cashier portal?', 'Log out')) logout();
   } finally { confirmCashierLogout.busy = false; }
 }
 

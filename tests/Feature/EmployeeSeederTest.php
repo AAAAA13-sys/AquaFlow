@@ -17,7 +17,6 @@ class EmployeeSeederTest extends TestCase
         $this->assertDatabaseCount('employees', 3);
         $this->assertSame(3, Employee::where('is_active', true)->count());
         $this->assertDatabaseCount('users', 0);
-        $this->assertDatabaseCount('employee_attendances', 0);
 
         $employee = Employee::where('name', 'Marco Reyes')->firstOrFail();
         $employee->update(['job_title' => 'Senior refill operator', 'is_active' => false]);

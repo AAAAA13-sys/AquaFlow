@@ -1,14 +1,12 @@
 <?php
 
 use App\Http\Controllers\AdvisoryController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
 use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\HealthController;
@@ -36,8 +34,6 @@ Route::view('/employee', 'employee.home')->middleware('auth');
 Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
     Route::get('orders', [FulfillmentController::class, 'index']);
     Route::post('orders/{id}', [FulfillmentController::class, 'update'])->whereNumber('id');
-    Route::get('attendance', [EmployeePortalController::class, 'attendance']);
-    Route::post('attendance/{action}', [EmployeePortalController::class, 'punch'])->whereIn('action', ['time-in', 'time-out']);
     Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show']);
     Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update']);
 });
@@ -45,7 +41,6 @@ Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(funct
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
-    Route::view('/cashier/attendance', 'cashier.attendance')->name('cashier.attendance');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
 
     // Legacy wizard URLs still resolve to the terminal.
@@ -57,7 +52,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings', 'cash'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'users', 'settings', 'cash'])
             ->name('admin.tab');
     });
 });
@@ -86,10 +81,6 @@ Route::prefix('api')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
-
-        Route::get('attendance', [AttendanceController::class, 'index']);
-        Route::post('attendance/employees/{employeeId}/{action}', [AttendanceController::class, 'punch'])->whereNumber('employeeId')->whereIn('action', ['time-in', 'time-out']);
-        Route::get('attendance/employees/{employeeId}/changes', [AttendanceController::class, 'changes'])->whereNumber('employeeId')->middleware('owner');
 
         // Personal profile and settings
         Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('api.profile.show');

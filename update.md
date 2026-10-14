@@ -1,5 +1,15 @@
 # AquaFlow update — October 8, 2026
 
+## Later change — attendance removed (October 14, 2026)
+
+Employee attendance tracking has been **removed from the product** as out of scope. This supersedes every attendance item in this file and in the October 8 release notes.
+
+Removed: the owner attendance page `/admin/attendance`, the cashier clock-in page `/cashier/attendance`, the employee mobile clock-in/out screen, the staff clock-in popup, the clock-out prompt on logout, six API routes, and the `employee_attendances` / `employee_attendance_changes` tables.
+
+**Not changed:** the employee roster, Owner/Cashier/Rider/Refiller accounts, the rider and refiller work-order workflow, deliveries, fulfillment, POS, inventory and forecasting. Rider and refiller accounts still require an active employee record, exactly as before.
+
+Schema change is additive and reversible: `2026_10_14_000001_drop_employee_attendance_tables` drops both tables in `up()` and recreates them in `down()`. The original additive migration is untouched.
+
 ## Changes
 
 - Insights remain rule-based. No hosted AI integration, API key or local language model is required.

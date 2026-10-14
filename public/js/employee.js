@@ -1,38 +1,9 @@
 let employeeBusy = false;
 let employeeRefresh = 0;
-let currentAttendance = null;
 
 function getEmployeeRole() {
   const container = document.querySelector('.emp-container');
   return container?.dataset.role || getSession()?.role || '';
-}
-
-function formatClockTime(isoStr) {
-  if (!isoStr || isoStr === '--') return '--:--';
-  try {
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return isoStr;
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-  } catch {
-    return isoStr;
-  }
-}
-
-function getAttendanceBadge(status) {
-  const map = {
-    late: { text: 'Late', cls: 'emp-badge-late' },
-    present: { text: 'On Time', cls: 'emp-badge-present' },
-    checked_in: { text: 'Checked In', cls: 'emp-badge-checked_in' },
-    completed: { text: 'Shift Done', cls: 'emp-badge-completed' },
-    absent: { text: 'Absent', cls: 'emp-badge-absent' },
-    leave: { text: 'On Leave', cls: 'emp-badge-neutral' },
-    not_recorded: { text: 'Not Clocked In', cls: 'emp-badge-neutral' },
-    needs_review: { text: 'Needs Review', cls: 'emp-badge-late' }
-  };
-  return map[status] || {
-    text: (status || 'Unknown').charAt(0).toUpperCase() + (status || '').slice(1).replaceAll('_', ' '),
-    cls: 'emp-badge-neutral'
-  };
 }
 
 function getOrderBadge(status) {
@@ -51,86 +22,14 @@ function getOrderBadge(status) {
 async function refreshEmployee() {
   const sequence = ++employeeRefresh;
   try {
-    const data = await API.request('employee/attendance');
-    if (sequence !== employeeRefresh) return;
-    currentAttendance = data.row;
-
-    // Update Attendance Badges & Displays
-    const badgeInfo = getAttendanceBadge(data.row.status);
-    const badgeEl = document.getElementById('attendanceBadge');
-    if (badgeEl) {
-      badgeEl.textContent = badgeInfo.text;
-      badgeEl.className = 'emp-badge ' + badgeInfo.cls;
-    }
-
-    const timeInEl = document.getElementById('timeInDisplay');
-    const timeOutEl = document.getElementById('timeOutDisplay');
-    if (timeInEl) timeInEl.textContent = formatClockTime(data.row.time_in);
-    if (timeOutEl) timeOutEl.textContent = formatClockTime(data.row.time_out);
-
-    // Button states & labels
-    const btnIn = document.getElementById('btnTimeIn');
-    const btnOut = document.getElementById('btnTimeOut');
-    const btnInText = document.getElementById('btnTimeInText');
-    const btnOutText = document.getElementById('btnTimeOutText');
-    const shiftNotice = document.getElementById('shiftNotice');
-
-    if (data.row.time_out) {
-      // Employee has timed out
-      if (btnIn) {
-        btnIn.disabled = false;
-        btnIn.style.opacity = '1';
-        if (btnInText) btnInText.textContent = 'Resume shift';
-      }
-      if (btnOut) {
-        btnOut.disabled = true;
-        btnOut.style.opacity = '0.5';
-        if (btnOutText) btnOutText.textContent = 'Timed out';
-      }
-      if (shiftNotice) {
-        shiftNotice.textContent = 'Shift completed today at ' + formatClockTime(data.row.time_out) + '. You can still process orders or resume your shift.';
-        shiftNotice.classList.remove('hidden');
-      }
-    } else if (data.row.time_in) {
-      // Active shift
-      if (btnIn) {
-        btnIn.disabled = true;
-        btnIn.style.opacity = '0.5';
-        if (btnInText) btnInText.textContent = 'Timed in';
-      }
-      if (btnOut) {
-        btnOut.disabled = false;
-        btnOut.style.opacity = '1';
-        if (btnOutText) btnOutText.textContent = 'Time out';
-      }
-      if (shiftNotice) {
-        shiftNotice.classList.add('hidden');
-      }
-    } else {
-      // Not timed in yet
-      if (btnIn) {
-        btnIn.disabled = false;
-        btnIn.style.opacity = '1';
-        if (btnInText) btnInText.textContent = 'Time in';
-      }
-      if (btnOut) {
-        btnOut.disabled = true;
-        btnOut.style.opacity = '0.5';
-        if (btnOutText) btnOutText.textContent = 'Time out';
-      }
-      if (shiftNotice) {
-        shiftNotice.classList.add('hidden');
-      }
-    }
-
-    await refreshJobs(sequence);
+    const data = await refreshJobs(sequence);
 
     // Update status dot
     const pulseDot = document.getElementById('pulseDot');
     if (pulseDot) pulseDot.classList.remove('offline');
     const conn = document.getElementById('connection');
     if (conn) {
-      const timeStr = new Date(data.server_time || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+      const timeStr = new Date(data?.updated_at || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
       conn.textContent = 'Updated ' + timeStr;
     }
   } catch (error) {
@@ -142,56 +41,10 @@ async function refreshEmployee() {
   }
 }
 
-// Cashier-style Attendance Validation Checks
-async function punchWithValidation(action) {
-  if (employeeBusy) return;
-
-  if (action === 'time-in') {
-    const isResuming = currentAttendance?.time_out;
-    const confirmMessage = isResuming
-      ? 'Resume your shift for today?'
-      : 'Confirm Time In for today?';
-    const acceptLabel = isResuming ? 'Resume Shift' : 'Time In';
-    if (!await appConfirm(confirmMessage, acceptLabel)) return;
-  } else if (action === 'time-out') {
-    if (!currentAttendance?.time_in) {
-      appNotice('You must Time In first before timing out.');
-      return;
-    }
-    if (!await appConfirm('Are you sure you want to Time Out? This will complete your shift for today.', 'Time Out')) return;
-  }
-
-  await executePunch(action);
-}
-
-async function executePunch(action) {
-  if (employeeBusy) return;
-  employeeBusy = true;
-  const errEl = document.getElementById('error');
-  try {
-    await API.request('employee/attendance/' + action, {
-      method: 'POST',
-      body: { reason: null }
-    });
-    if (errEl) {
-      errEl.textContent = '';
-      errEl.classList.add('hidden');
-    }
-    await refreshEmployee();
-  } catch (error) {
-    if (errEl) {
-      errEl.textContent = error.message || 'Could not record time. Please try again.';
-      errEl.classList.remove('hidden');
-    }
-  } finally {
-    employeeBusy = false;
-  }
-}
-
 let employeeJobs = [];
 async function refreshJobs(sequence) {
   const data = await API.request('employee/orders');
-  if (sequence !== employeeRefresh) return;
+  if (sequence !== employeeRefresh) return data;
   employeeJobs = data.orders || [];
 
   const countPill = document.getElementById('orderCount');
@@ -346,21 +199,7 @@ async function changeJob(job, action, reason = null) {
     return;
   }
 
-  // 1. Shift check: if not timed in, ask employee
-  if (!currentAttendance?.time_in) {
-    if (!await appConfirm('You have not timed in yet today. Do you want to Time In now and proceed with ' + job.receipt + '?', 'Time In & Proceed')) {
-      return;
-    }
-    await executePunch('time-in');
-  } else if (currentAttendance?.time_out) {
-    // 2. Shift check: if timed out, ask employee to resume
-    if (!await appConfirm('You are currently timed out. Do you want to resume your shift and proceed with ' + job.receipt + '?', 'Resume & Proceed')) {
-      return;
-    }
-    await executePunch('time-in');
-  }
-
-  // 3. Action confirmation check (Cashier terminal style)
+  // Action confirmation check (Cashier terminal style)
   const actionLabels = {
     assign: 'Claim Delivery',
     ready: 'Mark as Ready',
@@ -474,9 +313,5 @@ function submitCustomRiderIssue() {
 }
 
 function confirmEmployeeLogout() {
-  if (typeof interceptLogoutWithAttendance === 'function') {
-    interceptLogoutWithAttendance(() => logout());
-  } else {
-    logout();
-  }
+  logout();
 }

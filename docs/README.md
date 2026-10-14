@@ -1,4 +1,6 @@
 # AquaFlow documentation map
+> **Superseded in part - attendance removed 2026-10-14.** The attendance capability described below was withdrawn from scope. The employee roster, rider/refiller accounts and the delivery work-order workflow remain unchanged.
+
 
 ## Current application and operations
 

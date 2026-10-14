@@ -7,4 +7,3 @@
 <script src="{{ asset('js/data/submissions.js') }}?v={{ asset_version('js/data/submissions.js') }}"></script>
 <script src="{{ asset('js/data/dialog.js') }}?v={{ asset_version('js/data/dialog.js') }}"></script>
 <script src="{{ asset('js/data/profile.js') }}?v={{ asset_version('js/data/profile.js') }}"></script>
-<script src="{{ asset('js/data/shift-flow.js') }}?v={{ asset_version('js/data/shift-flow.js') }}"></script>

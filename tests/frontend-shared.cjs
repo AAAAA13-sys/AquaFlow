@@ -151,7 +151,6 @@ const rows=[{no:'OR-1',date:'2026-01-01',t:'12:00',cust:'Ada',type:'Walk-in',gal
 ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
 (async()=>{
   await require('./frontend-history.cjs')(root);
-  await require('./frontend-attendance.cjs')(root);
   await require('./frontend-submissions.cjs')(root);
   await require('./frontend-stock.cjs')(root);
   await require('./frontend-dates.cjs')(root);

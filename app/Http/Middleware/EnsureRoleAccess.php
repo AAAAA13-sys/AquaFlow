@@ -16,7 +16,7 @@ class EnsureRoleAccess
             abort_unless($request->is('employee', 'api/employee/*', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/'), 403);
         }
         if ($user && $request->is('employee', 'api/employee/*')) {
-            if (! $request->is('api/employee/attendance*', 'api/employee/profile*')) {
+            if (! $request->is('api/employee/profile*')) {
                 abort_unless($user->isEmployee(), 403);
             }
         }

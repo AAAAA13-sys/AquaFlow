@@ -17,8 +17,8 @@ class BladeIntegrityTest extends TestCase
         $owner = User::where('role', 'admin')->firstOrFail();
         $cashier = User::where('role', 'cashier')->firstOrFail();
         $employee = User::create(['username' => 'blade_rider', 'name' => 'Rider', 'password' => 'Rider123', 'role' => 'rider', 'employee_id' => Employee::where('name', 'Carla Mendoza')->firstOrFail()->id, 'is_active' => true]);
-        $pages = array_map(fn ($page) => ['/admin/'.$page, $owner], ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'attendance', 'users', 'settings']);
-        $pages = [...$pages, ['/cashier', $cashier], ['/cashier/queue', $cashier], ['/cashier/attendance', $cashier], ['/cashier/history', $cashier], ['/employee', $employee]];
+        $pages = array_map(fn ($page) => ['/admin/'.$page, $owner], ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'employees', 'users', 'settings']);
+        $pages = [...$pages, ['/cashier', $cashier], ['/cashier/queue', $cashier], ['/cashier/history', $cashier], ['/employee', $employee]];
         foreach ($pages as [$url, $user]) {
             $html = $this->actingAs($user)->get($url)->assertOk()->getContent();
             $this->assertStringContainsString('css/theme.css?v=', $html, $url.' must use the shared palette');

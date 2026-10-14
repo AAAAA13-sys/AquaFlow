@@ -1,4 +1,6 @@
 # Development record — 9 October 2026
+> **Superseded in part - attendance removed 2026-10-14.** The attendance capability described below was withdrawn from scope. The employee roster, rider/refiller accounts and the delivery work-order workflow remain unchanged.
+
 
 ## Approved scope delivered in code
 

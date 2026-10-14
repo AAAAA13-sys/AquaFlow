@@ -1,5 +1,7 @@
 # AquaFlow: scope-aligned development plan
 
+> **Superseded in part - attendance removed 2026-10-14.** The manual employee attendance milestone described below was built and then **removed from scope**. The pages, routes, tables and rules it describes no longer exist; the additive migration that created the tables is reversed by `2026_10_14_000001_drop_employee_attendance_tables`. The employee roster, rider/refiller accounts and the delivery work-order workflow remain and are unaffected. Everything below is kept as the historical record of what was planned and then withdrawn.
+
 > The execution order below is historical. Use [the 9 October 2026 master plan](MASTERPLAN.md) for the current backlog, PDF feedback, implementation findings and pending scope decisions. Previously recorded scope boundaries remain reference material.
 
 Revised 2026-10-08 after reviewing Section 1.4, Scope and Limitations of the Study, PDF pages 17–22 of `Software-Engineering-to-print.pdf`, and the research questions on PDF page 16.
