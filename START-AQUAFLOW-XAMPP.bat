@@ -77,13 +77,22 @@ set "AQUAFLOW_DB_NAME=%AQ_DB_DATABASE%"
 set "AQUAFLOW_DB_USER=%AQ_DB_USERNAME%"
 set "AQUAFLOW_DB_PASSWORD=%AQ_DB_PASSWORD%"
 
+REM --- locate XAMPP (supports C: or D:) ---------------------------
+if not defined XAMPP_DIR (
+    if exist "C:\xampp\mysql\bin\mysqld.exe" set "XAMPP_DIR=C:\xampp"
+    if exist "D:\Xampp\mysql\bin\mysqld.exe" set "XAMPP_DIR=D:\Xampp"
+)
 REM --- helper: is a port listening? -------------------------------
 call :port 3306 && (
     echo   [ok]  MySQL already running
     goto :mysql_done
 )
 echo   [..] Starting MySQL
-start "" /min "C:\xampp\mysql\bin\mysqld.exe" --defaults-file="C:\xampp\mysql\bin\my.ini"
+if defined XAMPP_DIR (
+    start "" /min "%XAMPP_DIR%\mysql\bin\mysqld.exe" --defaults-file="%XAMPP_DIR%\mysql\bin\my.ini"
+) else (
+    echo   [!!] mysqld.exe not found under C:\xampp or D:\Xampp - start MySQL from the XAMPP control panel
+)
 call :wait 3306 40
 call :port 3306 && echo   [ok]  MySQL up || echo   [!!] MySQL failed - start it from the XAMPP control panel
 :mysql_done

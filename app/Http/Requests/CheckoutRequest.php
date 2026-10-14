@@ -25,7 +25,7 @@ class CheckoutRequest extends FormRequest
 
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'string', 'max:30'],
-            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
         ];
     }
 }

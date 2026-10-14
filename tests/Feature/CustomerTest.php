@@ -110,11 +110,13 @@ class CustomerTest extends TestCase
         $this->assertEquals(150, $customer->refresh()->debt_balance);
     }
 
-    public function test_customer_name_requires_a_letter_but_allows_business_numbers(): void
+    public function test_customer_name_requires_letters_only_without_numbers(): void
     {
         $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => '1234'])
             ->assertUnprocessable()->assertJsonValidationErrors('name');
         $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Block 6 Residents'])
+            ->assertUnprocessable()->assertJsonValidationErrors('name');
+        $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Juan Dela Cruz'])
             ->assertCreated();
     }
 
