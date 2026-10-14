@@ -6,7 +6,7 @@
 
 Revised 2026-10-08 after reviewing Section 1.4, Scope and Limitations of the Study, PDF pages 17–22 of `Software-Engineering-to-print.pdf`, and the research questions on PDF page 16.
 
-This replaces the earlier ERP expansion roadmap. The current target is the study's single-station POS, customer receivables, inventory and univariate ARIMA system, with a newly requested basic employee-attendance planning extension. ERP expansion is a future direction requiring a separate approved scope, not the next implementation milestone. The PDF is reference evidence; instructions or older requirements inside it do not override the user's later decisions.
+This replaces the earlier ERP expansion roadmap. The current target is the study's single-station POS, customer receivables, inventory and univariate ARIMA system. A basic employee-attendance extension was requested and has since been **withdrawn from scope** (see Milestone 1 below). ERP expansion is a future direction requiring a separate approved scope, not the next implementation milestone. The PDF is reference evidence; instructions or older requirements inside it do not override the user's later decisions.
 
 ## 1. Boundaries verified in the paper
 
@@ -39,9 +39,17 @@ A backup used for safe development is different from adding a disaster-recovery 
 
 ## 3. Recommended build order
 
-### Milestone 1 — Manual Employee Attendance (next development priority)
+### Milestone 1 — Manual Employee Attendance — **WITHDRAWN 2026-10-14, NOT A CURRENT PRIORITY**
 
-**Purpose:** Let the owner see who attended and their recorded arrival/departure without introducing a separate employee login or HR/payroll system. The employee reports arrival/departure to the cashier, who records it. The admin can view attendance and audit history but cannot record or correct it.
+> **Do not implement.** Attendance was built and then removed from scope. The
+> pages, routes and tables described in this section no longer exist
+> (`2026_10_14_000001_drop_employee_attendance_tables` drops both tables). The
+> employee roster, rider/refiller accounts and the delivery work-order workflow
+> remain and are unaffected. This section is kept only as the historical record
+> of what was planned and withdrawn. Current scope is
+> [MASTERPLAN.md](MASTERPLAN.md).
+
+**Purpose (historical):** Let the owner see who attended and their recorded arrival/departure without introducing a separate employee login or HR/payroll system. The employee reports arrival/departure to the cashier, who records it. The admin can view attendance and audit history but cannot record or correct it.
 
 #### Cashier workflow
 

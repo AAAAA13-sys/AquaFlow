@@ -1,5 +1,9 @@
 root = true
 
+# UTF-8 without a byte-order mark. `charset = utf-8` alone is ambiguous between
+# "utf-8" and "utf-8-bom" in some editors, and a BOM shipped once already
+# (1676aa6): it rendered ahead of the DOCTYPE on /employee and broke the page
+# prologue. CI enforces this with scripts/check-encoding.php.
 [*]
 charset = utf-8
 end_of_line = lf

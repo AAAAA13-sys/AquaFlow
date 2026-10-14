@@ -1,4 +1,4 @@
-﻿@extends('layouts.base')
+@extends('layouts.base')
 @section('body-class', 'employee-page')
 @section('title', 'My Work | AquaFlow')
 

@@ -149,32 +149,6 @@ body.employee-page {
   background: #DC2626;
 }
 
-/* Cards */
-.emp-card {
-  background: var(--emp-surface);
-  border-radius: 14px;
-  border: 1px solid var(--emp-border);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.02);
-  padding: 18px;
-  margin-bottom: 18px;
-}
-
-.emp-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--emp-border);
-}
-
-.emp-card-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--emp-text);
-}
-
 /* Status Badges */
 .emp-badge {
   display: inline-flex;
@@ -184,32 +158,6 @@ body.employee-page {
   padding: 3px 9px;
   border-radius: 6px;
   letter-spacing: 0.2px;
-}
-
-.emp-badge-late {
-  background: #FEF3C7;
-  color: #B45309;
-  border: 1px solid #FDE68A;
-}
-
-.emp-badge-ontime,
-.emp-badge-checked_in,
-.emp-badge-present {
-  background: var(--emp-brand-tint);
-  color: var(--emp-brand);
-  border: 1px solid #BFDBFE;
-}
-
-.emp-badge-completed {
-  background: #F1F5F9;
-  color: #334155;
-  border: 1px solid #CBD5E1;
-}
-
-.emp-badge-absent {
-  background: #FEE2E2;
-  color: #B91C1C;
-  border: 1px solid #FECACA;
 }
 
 .emp-badge-neutral {
@@ -240,85 +188,6 @@ body.employee-page {
   background: #DCFCE7;
   color: #15803D;
   border: 1px solid #BBF7D0;
-}
-
-/* Stat Grid */
-.emp-stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.emp-stat-box {
-  background: #F8FAFC;
-  border: 1px solid var(--emp-border);
-  border-radius: 10px;
-  padding: 10px 14px;
-}
-
-.emp-stat-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--emp-muted);
-  margin-bottom: 3px;
-  letter-spacing: 0.5px;
-}
-
-.emp-stat-value {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--emp-text);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Action Buttons */
-.emp-btn-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.emp-punch-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.emp-punch-in {
-  background: var(--emp-brand);
-  color: #ffffff;
-  border: 1px solid var(--emp-brand);
-}
-
-.emp-punch-in:hover,
-.emp-punch-in:active {
-  background: var(--emp-brand-hover);
-}
-
-.emp-punch-out {
-  background: #ffffff;
-  color: var(--emp-text);
-  border: 1.5px solid var(--emp-border);
-}
-
-.emp-punch-out:hover,
-.emp-punch-out:active {
-  background: #F1F5F9;
-}
-
-.emp-punch-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 
