@@ -32,7 +32,7 @@
       </div>
 
       <div class="card stage-card customer-search-panel">
-        <h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Showing up to 8 matches.</p>
+        <h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Showing up to 50 matches.</p>
         <label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select><div id="custList" class="customer-list-container scroll-region"></div>
       </div>
     </section>
@@ -140,7 +140,7 @@
                 'text' => 'The cash the customer hands over. If it is less than the order total the sale cannot be completed yet; the Change figure below shows what to give back.',
                 'label' => 'What is Amount Tendered?',
               ])</label>
-            <input id="tender" type="number" step="0.01" value="0" min="0" oninput="renderPOS()" class="form-input tender-input">
+            <input id="tender" type="number" step="0.01" value="0" min="0" max="1000000" oninput="clampTender()" class="form-input tender-input">
 
             <div class="quick-cash-row">
               <button type="button" class="exact" onclick="applyQuickCash('exact')">Exact</button>
@@ -190,7 +190,7 @@
               </div>
               <div class="breakdown-row" style="margin-top:0.5rem;">
                 <span>Payment Amount</span>
-                <input id="debtPay" aria-label="Debt payment amount" type="number" step="0.01" value="0" min="0" oninput="renderPOS()" class="text-right">
+                <input id="debtPay" aria-label="Debt payment amount" type="number" step="0.01" value="0" min="0" oninput="clampDebtPay()" class="text-right">
               </div>
               <div class="breakdown-row">
                 <span>Remaining Balance</span>
@@ -222,7 +222,9 @@
     <div class="auth-card" style="max-width:400px;">
       <h3 id="registerTitle" class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
       <label class="form-label" for="regName">Full Name</label>
-      <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz">
+      <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz" autocomplete="off"
+             inputmode="text" pattern="^[^0-9]+$" title="Letters only — numbers are not allowed"
+             oninput="this.value = this.value.replace(/[0-9]/g, '')">
       <label class="form-label" for="regAddr">Address</label>
       <input id="regAddr" maxlength="255" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">

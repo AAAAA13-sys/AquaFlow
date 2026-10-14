@@ -15,8 +15,8 @@ class CartAvailabilityService
         foreach ($items as $item) {
             $id = $item['product_id'];
             $quantities[$id] = ($quantities[$id] ?? 0) + $item['quantity'];
-            if ($quantities[$id] > 999 || $quantities[$id] < 1) {
-                throw ValidationException::withMessages(['items' => 'Each product must have between 1 and 999 units.']);
+            if ($quantities[$id] > 20 || $quantities[$id] < 1) {
+                throw ValidationException::withMessages(['items' => 'Each product must have between 1 and 20 units.']);
             }
         }
 
@@ -58,18 +58,24 @@ class CartAvailabilityService
             }
         }
         $additional = [];
+        $stockAvailable = [];
         foreach ($products as $product) {
-            $limit = 999 - ($quantities[$product->id] ?? 0);
+            $limit = 20 - ($quantities[$product->id] ?? 0);
+            $available = null;
             try {
                 foreach ($this->requirements([$product->id => 1]) as $id => $perUnit) {
                     $limit = min($limit, (int) floor((($stock[$id]->stock_on_hand ?? 0) - ($required[$id] ?? 0)) / $perUnit));
+                    $total = (int) floor(($stock[$id]->stock_on_hand ?? 0) / $perUnit);
+                    $available = $available === null ? $total : min($available, $total);
                 }
             } catch (ValidationException) {
                 $limit = 0;
+                $available = 0;
             }
             $additional[$product->id] = max(0, $limit);
+            $stockAvailable[$product->id] = max(0, $available ?? 0);
         }
 
-        return ['valid' => $shortages === [], 'additional' => $additional, 'shortages' => $shortages, 'checked_at' => now()->toISOString()];
+        return ['valid' => $shortages === [], 'additional' => $additional, 'stock' => $stockAvailable, 'shortages' => $shortages, 'checked_at' => now()->toISOString()];
     }
 }

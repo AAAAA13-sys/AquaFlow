@@ -240,6 +240,8 @@ async function bootCashierPortal() {
 }
 
 /** Quick denominations: Exact fills the total, the rest accumulate cash. */
+const MAX_TENDER = 1000000;
+
 function applyQuickCash(value) {
   const tender = document.getElementById('tender');
   if (!tender) return;
@@ -250,6 +252,18 @@ function applyQuickCash(value) {
     tender.value = (+tender.value || 0) + Number(value);
   }
 
+  clampTender();
+}
+
+/** Input handler for the tender box: clamps to [0, 1,000,000] then re-renders. */
+function clampTender() {
+  const tender = document.getElementById('tender');
+  if (tender) {
+    let current = Number(tender.value) || 0;
+    if (current > MAX_TENDER) current = MAX_TENDER;
+    if (current < 0) current = 0;
+    tender.value = String(Math.round(current * 100) / 100);
+  }
   renderPOS();
 }
 
@@ -283,9 +297,30 @@ function updateDebtPanel() {
   const after = document.getElementById('debtAfter');
   const debt = c === null ? 0 : Number(c.debt);
 
-  if (pay) pay.max = String(debt);
+  if (pay) {
+    pay.max = String(Math.max(0, debt));
+    // Clamp typed values so the payment can never exceed the remaining balance.
+    const current = Number(pay.value) || 0;
+    if (current > debt) pay.value = String(Math.max(0, debt));
+    if (current < 0) pay.value = '0';
+  }
   if (view) view.textContent = peso(debt);
   if (after) after.textContent = peso(Math.max(0, debt - (+((pay && pay.value) || 0))));
+}
+
+/** Input handler for the debt payment box: clamps to [0, balance] then re-renders. */
+function clampDebtPay() {
+  const c = posCust();
+  const pay = document.getElementById('debtPay');
+  if (pay) {
+    const debt = c === null ? 0 : Number(c.debt);
+    let current = Number(pay.value) || 0;
+    if (current > debt) current = debt;
+    if (current < 0) current = 0;
+    // Round to 2 decimals to match money handling.
+    pay.value = String(Math.round(current * 100) / 100);
+  }
+  renderPOS();
 }
 
 async function settleDebt() {
@@ -361,8 +396,8 @@ async function saveNewCustomer() {
 
   const registrationError = document.getElementById('registrationError');
   if (registrationError) registrationError.textContent = '';
-  if (!/[\p{L}]/u.test(name) || name.length > 150) {
-    if (registrationError) registrationError.textContent = 'Enter a customer name containing letters (maximum 150 characters).';
+  if (/\d/.test(name) || !/^(?=.*\p{L})[\p{L}\s.'-]+$/u.test(name) || name.length > 150) {
+    if (registrationError) registrationError.textContent = 'Enter a customer name using letters only — numbers are not allowed (maximum 150 characters).';
     nameEl?.focus(); return;
   }
   saveNewCustomer.busy = true;
@@ -450,6 +485,12 @@ async function completeSale(sessionName) {
     // If payment is collected now (Walk-in or Delivery paying cashier)
     if (!payToRider && ten < t.total) {
       showStageError('Cash tendered is less than the total due by ' + money(t.total - ten) + '.');
+      if (tenderEl) tenderEl.focus();
+      return;
+    }
+
+    if (!payToRider && ten > MAX_TENDER) {
+      showStageError('Amount tendered cannot exceed ₱1,000,000.');
       if (tenderEl) tenderEl.focus();
       return;
     }

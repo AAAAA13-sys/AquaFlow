@@ -23,7 +23,7 @@ ctx.renderPOS=()=>{};
   };
   await ctx.searchCustomers();
   assert.equal(lastParams.exclude_guest, 1, 'the guest must be excluded server-side');
-  assert.equal(lastParams.limit, 8, 'the terminal asks for a short page');
+  assert.equal(lastParams.limit, 50, 'the terminal lists every customer available');
   assert.equal(lastParams.order, 'oldest', 'default ordering is oldest first');
   assert.equal(lastParams.q, '', 'empty search browses the first page');
   assert.ok(elements.custList.innerHTML.includes('Regular Customer'));

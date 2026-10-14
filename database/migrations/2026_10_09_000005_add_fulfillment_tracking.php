@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('request_hash', 64);
             $table->string('action', 30);
             $table->json('details');
-            $table->timestamp('created_at');
+            $table->timestamp('created_at')->useCurrent();
             $table->unique(['user_id', 'submission_key']);
         });
     }

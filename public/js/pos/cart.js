@@ -19,6 +19,9 @@ var POS = { type: 'Walk-in', cart: [], custId: null, orderN: 1018 };
 
 const VAT_RATE = 0.12;
 
+// Maximum units allowed per order line.
+const MAX_QTY_PER_ITEM = 20;
+
 // icon() / SPRITE_URL now live in js/data/store.js so the owner portal can use
 // them too — they used to be defined here and the admin pages threw
 // "icon is not defined" when rendering the ledger.
@@ -130,10 +133,11 @@ function pickWalkIn() {
 //
 // Stage 1 used to filter the entire customer snapshot in the browser, which grew
 // with the store and dumped up to 40 rows on screen. It is now a debounced server
-// query returning a short page. Results are merged back into the snapshot so the
+// query. The page matches the server maximum so both orderings list every
+// customer available. Results are merged back into the snapshot so the
 // existing id-based lookups (posCust/pickCust) keep working untouched.
 
-const CUST_PAGE_SIZE = 8;
+const CUST_PAGE_SIZE = 50;
 let custResults = null;   // null = nothing searched yet
 let custSeq = 0;          // stale-response guard
 let custTimer = null;
@@ -292,7 +296,9 @@ function renderProducts() {
       maximumFractionDigits: 2
     });
 
-    const stockLine = '<span class="product-info-stock">' + (stockPreview ? 'Available to add: ' + Number(stockPreview.additional[product.id] || 0) : 'Checking availability') + '</span>';
+    const stockLine = '<span class="product-info-stock">' + (stockPreview
+      ? 'Available stock: ' + Number((stockPreview.stock && stockPreview.stock[product.id] !== undefined ? stockPreview.stock[product.id] : stockPreview.additional[product.id]) || 0)
+      : 'Checking availability') + '</span>';
 
     const walkInBadge = product.walk_in_only
       ? '<span class="product-info-badge">Walk-in only</span>'
@@ -304,7 +310,7 @@ function renderProducts() {
     return '<button type="button" class="product-item ' + productTheme(product) +
       (disabled || outOfStock ? ' is-disabled' : '') + '"' +
       (disabled || outOfStock ? ' disabled' : '') +
-      ' onclick="confirmCartAction(\'Add this product to the order?\', () => addProduct(\'' + product.id + '\'))">' +
+      ' onclick="addProduct(\'' + product.id + '\')">' +
       '<span>' +
       '<span class="product-info-name">' + esc(product.name) + '</span>' +
       '<span class="product-info-sub">' + productSubtitle(product) + '</span>' +
@@ -317,6 +323,11 @@ function renderProducts() {
 }
 
 async function addProduct(pid) {
+  const existing = POS.cart.find(i => i.id === pid);
+  if (existing && existing.q >= MAX_QTY_PER_ITEM) {
+    appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
+    return;
+  }
   if (!await allowStockIncrement(pid, 1)) return;
   const p = DB.products.find(x => x.id === pid);
   if (!p) return;
@@ -328,7 +339,7 @@ async function addProduct(pid) {
 
   const f = POS.cart.find(i => i.id === pid);
   if (f) {
-    f.q++;
+    f.q = Math.min(MAX_QTY_PER_ITEM, f.q + 1);
   } else {
     POS.cart.push({ id: p.id, name: p.name, price: p.price, q: 1, kind: p.kind, cat: p.cat, walkInOnly: !!p.walk_in_only });
   }
@@ -338,9 +349,13 @@ async function addProduct(pid) {
 }
 
 async function chgQty(i, d) {
-  if (d > 0 && POS.cart[i] && !await allowStockIncrement(POS.cart[i].id, d)) return;
   if (!POS.cart[i]) return;
-  POS.cart[i].q += d;
+  if (d > 0 && POS.cart[i].q >= MAX_QTY_PER_ITEM) {
+    appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
+    return;
+  }
+  if (d > 0 && !await allowStockIncrement(POS.cart[i].id, d)) return;
+  POS.cart[i].q = Math.min(MAX_QTY_PER_ITEM, POS.cart[i].q + d);
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
   savePOSState();
   renderPOS();
@@ -348,9 +363,23 @@ async function chgQty(i, d) {
 
 /** Bulk quantity step for commercial orders: +1 / +5 / +10 in one click. */
 async function addQty(i, step) {
-  if (step > 0 && POS.cart[i] && !await allowStockIncrement(POS.cart[i].id, Number(step))) return;
   if (!POS.cart[i]) return;
-  POS.cart[i].q += Number(step) || 0;
+  const amount = Number(step) || 0;
+  if (amount > 0 && POS.cart[i].q >= MAX_QTY_PER_ITEM) {
+    appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
+    return;
+  }
+  if (amount > 0) {
+    const allowed = Math.min(amount, MAX_QTY_PER_ITEM - POS.cart[i].q);
+    if (allowed <= 0) {
+      appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
+      return;
+    }
+    if (!await allowStockIncrement(POS.cart[i].id, allowed)) return;
+    POS.cart[i].q += allowed;
+  } else {
+    POS.cart[i].q += amount;
+  }
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
   savePOSState();
   renderPOS();
@@ -386,9 +415,9 @@ function cartRowsHtml() {
     '<div class="order-row">' +
     '<span>' + esc(it.name) + '</span><span class="text-right">' + money(it.price) + '</span>' +
     '<span class="qty-ctrl">' +
-      '<button type="button" onclick="confirmCartAction(\'Remove one unit from this order?\', () => chgQty(' + x + ',-1))">-</button>' +
+      '<button type="button" onclick="chgQty(' + x + ',-1)">-</button>' +
       '<b>x' + it.q + '</b>' +
-      '<button type="button" onclick="confirmCartAction(\'Add one unit to this order?\', () => chgQty(' + x + ',1))">+</button>' +
+      '<button type="button" onclick="chgQty(' + x + ',1)">+</button>' +
     '</span>' +
     '<span class="text-right"><b>' + peso(it.price * it.q) + '</b></span></div>'
   ).join('');

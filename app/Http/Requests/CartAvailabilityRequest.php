@@ -13,6 +13,6 @@ class CartAvailabilityRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['items' => ['present', 'array', 'max:50'], 'items.*.product_id' => ['required', 'string', 'max:30'], 'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999']];
+        return ['items' => ['present', 'array', 'max:50'], 'items.*.product_id' => ['required', 'string', 'max:30'], 'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20']];
     }
 }
