@@ -15,6 +15,35 @@ permissions:
   contents: read
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Tier 0: source encoding.
+  #
+  # Commit 1676aa6 saved resources/views/employee/home.blade.php with a UTF-8
+  # BOM, so /employee served "\xEF\xBB\xBF\n\n\n\n<!DOCTYPE html>". `pint --test`
+  # reports it through its `encoding` fixer, but Pint is not gated here, and no
+  # test looked at the first bytes of a response - so it reached main unnoticed.
+  #
+  # This is deliberately a narrow encoding check rather than a full `pint --test`
+  # run: Pint currently reports style drift across ~29 existing files (including
+  # two shipped migrations that must not be edited), so gating on it would fail
+  # the build for unrelated reasons. Running the full formatter is a separate
+  # cleanup task.
+  # ---------------------------------------------------------------------------
+  encoding:
+    name: Source encoding (no BOM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Check for byte-order marks
+        run: php scripts/check-encoding.php
+
   windows-launchers:
     runs-on: windows-latest
     steps:

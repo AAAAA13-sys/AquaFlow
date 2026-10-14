@@ -18,28 +18,14 @@ class ProfileTest extends TestCase
         $this->seed();
     }
 
-    public function test_cashier_can_access_attendance_page_and_api(): void
+    public function test_cashier_attendance_page_and_api_are_gone(): void
     {
         $cashier = User::where('role', 'cashier')->firstOrFail();
         $this->actingAs($cashier);
 
-        // Cashier page view
-        $this->get('/cashier/attendance')
-            ->assertOk()
-            ->assertSee('Daily Attendance')
-            ->assertSee('btnTimeIn', false)
-            ->assertSee('btnTimeOut', false);
-
-        // Cashier can read own attendance
-        $this->getJson('/api/employee/attendance')
-            ->assertOk()
-            ->assertJsonStructure(['row', 'server_time']);
-
-        // Cashier can punch own attendance
-        $this->travelTo(now()->setTime(8, 0));
-        $this->postJson('/api/employee/attendance/time-in', ['reason' => null])
-            ->assertOk()
-            ->assertJsonPath('row.employee_id', fn ($id) => !empty($id));
+        $this->get('/cashier/attendance')->assertNotFound();
+        $this->getJson('/api/employee/attendance')->assertNotFound();
+        $this->postJson('/api/employee/attendance/time-in', ['reason' => null])->assertNotFound();
     }
 
     public function test_authenticated_user_can_retrieve_profile(): void

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,19 +10,6 @@ use Tests\TestCase;
 class OctoberUpdatesTest extends TestCase
 {
     use RefreshDatabase;
-
-    public function test_early_arrival_needs_no_reason_and_departure_uses_nine_elapsed_hours(): void
-    {
-        $this->seed();
-        $this->actingAs(User::firstOrCreate(['username' => 'refiller'], ['name' => 'Refiller', 'password' => 'Refill123', 'role' => 'refiller', 'employee_id' => Employee::firstOrFail()->id, 'is_active' => true]));
-        $url = '/api/employee/attendance';
-        $this->travelTo(now()->setTime(7, 0, 0));
-        $this->postJson($url.'/time-in')->assertOk()->assertJsonPath('row.expected_time_out', now()->setTime(16, 0)->format('Y-m-d\TH:i'));
-        $this->travelTo(now()->setTime(15, 59, 59));
-        $this->postJson($url.'/time-out')->assertUnprocessable()->assertJsonValidationErrors('reason');
-        $this->travelTo(now()->setTime(16, 0, 0));
-        $this->postJson($url.'/time-out')->assertOk();
-    }
 
     public function test_transaction_range_includes_selected_minutes_and_rejects_reversed_dates(): void
     {

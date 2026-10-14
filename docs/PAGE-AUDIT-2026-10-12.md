@@ -1,4 +1,6 @@
 # AquaFlow page and connection audit — 12 October 2026
+> **Superseded in part - attendance removed 2026-10-14.** The attendance pages no longer exist. Findings below that describe them are kept as history and no longer describe the running application.
+
 
 Status: in progress. Review only; no application code changed for this audit.
 

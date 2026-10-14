@@ -25,7 +25,6 @@
 @yield('content')
 @auth
 @include('partials.profile-modal')
-@include('partials.attendance-clock-modal')
 @endauth
 @stack('scripts')
 </body>

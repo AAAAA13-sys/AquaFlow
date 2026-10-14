@@ -1,5 +1,7 @@
 # AquaFlow development master plan
 
+> **Attendance is out of scope as of 2026-10-14.** The two approved attendance rules that were listed here (self-recorded mobile attendance, server-recorded punches with reasons) have been withdrawn from the product and removed from code, routes and schema. The employee roster, Owner/Cashier/Rider/Refiller accounts and the rider/refiller work-order workflow are unchanged. Sections below that describe attendance are kept as history only.
+
 Historical planning details below are superseded by the current implementation record. Implementation update: see [development record](IMPLEMENTATION-2026-10-09.md). Gmail sender/recipient, schema additions and retail-jug deliveries are now approved.
 
 Prepared: 9 October 2026. Baseline: `b03ed7c`. Revised after the owner approved separate employee and admin login pages with role-based access, mobile rider/refiller attendance, email OTP and live delivery quantities.
@@ -19,10 +21,8 @@ Keep these approved rules unless the owner explicitly changes them:
 - Walk-in sales are cash; deliveries charge the customer ledger. The server derives the payment method. Preserve inclusive VAT calculation and stored receipt totals.
 - Active order and Delivered remain the high-level cashier summary. Rider/refiller workflow adds preparation, readiness and dispatch detail; cashiers do not perform those employee actions.
 - Unified login derives Owner, Cashier, Rider or Refiller permissions on the server. Owner/Cashier use desktop or mobile web; Rider/Refiller use dedicated mobile web interfaces.
-- Rider/refiller attendance is self-recorded only through the mobile employee interface. Owner monitoring stays read-only; cashier proxy punches are replaced.
 - Owner login will use password plus emailed one-time code instead of the reusable PIN. Proton Free has been confirmed; a supported outbound sender remains to be selected.
 - Confirmed stock rule: deduct inventory once at checkout; rider updates move delivery quantities through Ready -> Out for delivery -> Delivered without deducting sale inventory again.
-- Server-recorded attendance; no admin correction of punches. Early arrival is allowed. A departure before nine hours from actual arrival requires a reason; the nine hours include breaks. Preserve Late/Absent labels and separate punch progress.
 - Password minimum remains eight characters with the existing credential rules.
 - Local Python ARIMA and rule-based insights. No LLM provider, IoT/raw-water tracking, payroll, shift handovers, multi-branch ERP, supplier integrations or financial-accounting expansion.
 - Keep recipe calculations internal; do not restore a consumption-recipe editor to Stocks & Supplies.
@@ -132,6 +132,7 @@ After approval, update product flags for existing stores without reseeding price
 Accept only when jug-only and mixed deliveries deduct the correct recipes, create one ledger charge and an appropriate delivery record, show Active/Delivered, and never create custody balances. No delivery fee or cash-on-delivery feature is implied.
 
 ### MP-09 — Unified login, RBAC and mobile self-attendance
+> Attendance is no longer part of MP-09. Only the unified login and role-based access portions remain; the mobile self-attendance screens were removed on 2026-10-14.
 
 Direction approved by the owner. Replace the cashier-only landing page with one login. Server-side identity determines the destination; users do not grant themselves a role through a login dropdown. Owner login continues through a pending OTP screen before receiving an authenticated owner session. Redirect the old owner login to the same protected flow after migration; never leave a PIN endpoint as a bypass.
 
@@ -140,7 +141,6 @@ Direction approved by the owner. Replace the cashier-only landing page with one 
 | Interface | Desktop/mobile | Desktop/mobile | Dedicated mobile web | Dedicated mobile web |
 | POS, collections and receipts | Existing owner permissions retained | Yes | No | No |
 | Employee/account administration | Yes | No | No | No |
-| Attendance monitoring | All staff, read-only | No coworker punches | Own attendance | Own attendance |
 | Preparation queue | Monitor | Monitor | Ready deliveries only | Preparation tasks |
 | Delivery list | Monitor/assign, proposed | Monitor | Own assigned jobs, FIFO | Readiness handoff only |
 | Delivery status writes | Assignment/exception policy pending | No routine rider updates | Own assigned jobs | Mark prepared/ready only |

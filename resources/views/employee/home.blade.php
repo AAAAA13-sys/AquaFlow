@@ -39,41 +39,6 @@
   <!-- Error alert banner -->
   <div id="error" class="emp-alert hidden" role="alert"></div>
 
-  <!-- Shift Notice Banner -->
-  <div id="shiftNotice" class="emp-alert hidden" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;"></div>
-
-  <!-- Attendance Card -->
-  <section class="emp-card">
-    <div class="emp-card-header">
-      <h2 class="emp-card-title">Daily Attendance</h2>
-      <div id="attendanceBadgeContainer">
-        <span id="attendanceBadge" class="emp-badge emp-badge-neutral">Loading...</span>
-      </div>
-    </div>
-
-    <div class="emp-stat-grid">
-      <div class="emp-stat-box">
-        <div class="emp-stat-label">Time In</div>
-        <div id="timeInDisplay" class="emp-stat-value">--:--</div>
-      </div>
-      <div class="emp-stat-box">
-        <div class="emp-stat-label">Time Out</div>
-        <div id="timeOutDisplay" class="emp-stat-value">--:--</div>
-      </div>
-    </div>
-
-    <div class="emp-btn-row">
-      <button type="button" id="btnTimeIn" class="emp-punch-btn emp-punch-in" onclick="punchWithValidation('time-in')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-        <span id="btnTimeInText">Time in</span>
-      </button>
-      <button type="button" id="btnTimeOut" class="emp-punch-btn emp-punch-out" onclick="punchWithValidation('time-out')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span id="btnTimeOutText">Time out</span>
-      </button>
-    </div>
-  </section>
-
   <!-- Orders Section (Refresh button placed here) -->
   <section>
     <div class="emp-section-head">
