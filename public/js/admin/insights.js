@@ -302,27 +302,22 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
       '<b class="debt-inline">' + money(c.debt) +
       magBar(Number(c.debt), topDebt, 'debt') + '</b></div>'
     ).join('') || '<p class="insight-note">No outstanding customer balances.</p>';
+
+    // The KPI card already reads P0.00 / 0 customers. A ranked list of nothing
+    // beside it repeated the same zero, so the whole card steps aside until
+    // someone actually owes something.
+    const card = document.getElementById('topCollectorsCard');
+    if (card) card.classList.toggle('hidden', owing.length === 0);
   }
 
-  const insActions = document.getElementById('insActions');
-  if (insActions) {
-    const urgent = I.runway.find(item => !item.unconfigured && item.status !== 'OK');
+  // "Today's priorities" used to be rendered here as three cards restating the
+  // KPI row. The KPI cards carry the action links now, so this renders nothing;
+  // only the stock action link still needs to switch its label.
+  const stockAction = document.getElementById('kStockAction');
+  if (stockAction) {
     const unset = I.runway.find(item => item.unconfigured);
-    const debtor = I.custs.find(customer => customer.debt > 0);
-    const action = (tone, label, title, detail, href, button) =>
-      '<article class="overview-action overview-action--' + tone + '"><span class="overview-action-label">' + label + '</span><h4>' + esc(title) + '</h4><p>' + esc(detail) + '</p><a class="btn btn-secondary btn-sm" href="' + href + '">' + button + ' &rarr;</a></article>';
-    insActions.innerHTML = action(urgent ? 'danger' : unset ? 'watch' : 'ok', 'STOCK',
-      urgent ? 'Review low stock' : unset ? 'Set reorder points' : 'Nothing to buy',
-      urgent
-        ? urgent.item + ' has ' + urgent.on.toLocaleString() + ' ' + urgent.unit + ' remaining.'
-        : unset
-          ? unset.item + ' has no reorder point, so its stock cannot be tracked.'
-          : 'Every item is above its buying level. Nothing is low right now.',
-      '/admin/inventory', urgent || unset ? (unset ? 'Set thresholds' : 'View stock') : 'View stock') +
-      action(debtor ? 'watch' : 'ok', 'COLLECTIONS', debtor ? debtor.name : 'No outstanding balances',
-      debtor ? money(debtor.debt) + ' outstanding. Review the customer ledger before collection.' : 'Customer balances are clear.', '/admin/customers', 'View balances') +
-      action('info', 'PLANNING', I.fTotal > 0 ? Math.round(I.fTotal).toLocaleString() + ' gallons forecast' : 'Forecast not available',
-      I.fTotal > 0 ? 'Projected refill demand over the next seven days. Check the forecast before planning.' : 'Record sales and update the forecast to start planning demand.', '/admin/arima', 'View forecast');
+    stockAction.textContent = unset ? 'Set reorder points →' : 'View stock →';
+    stockAction.href = unset ? '/admin/inventory?view=supplies' : '/admin/inventory';
   }
 
   renderAdvisories();
@@ -377,10 +372,26 @@ function renderAdvisories() {
       : '';
 
     el.innerHTML = cards + prompt + overflow;
+    showAdvisoryRail(true);
     return;
   }
 
-  el.innerHTML = '<div class="overview-empty"><b>Nothing to buy right now</b><p>Every item is above the level where you would reorder it. Stock alerts appear here when something runs low.</p></div>';
+  // Nothing to buy. The "Needs Your Attention" KPI already reads zero and says
+  // so, so the rail is removed and the forecast chart takes the full width
+  // rather than sitting beside a panel explaining that there is nothing to do.
+  showAdvisoryRail(false);
+}
+
+/** Show or hide the restock rail, and let the chart claim the freed space. */
+function showAdvisoryRail(show) {
+  const rail = document.getElementById('advisoryRail');
+  const row = document.getElementById('dashChartRow');
+  if (rail) rail.classList.toggle('hidden', !show);
+  if (row) row.classList.toggle('is-wide', !show);
+  if (!show) {
+    const el = document.getElementById('advisory');
+    if (el) el.innerHTML = '';
+  }
 }
 
 
@@ -522,6 +533,13 @@ function renderLedger() {
     // Bars share one scale across the whole table, so the largest debtor is
     // the longest bar regardless of sort order or search.
     const ledgerMax = ledgerRows.reduce((n, c) => Math.max(n, Number(c.debt) || 0), 0);
+    // A table of settled customers is a wall of zero balances. When nothing is
+    // owed, say so once and stop; the KPI card above carries the same total.
+    if (ledgerMax <= 0) {
+      tb.innerHTML = '<tr><td colspan="3" class="table-empty-note">' +
+        'No customer owes money. Every delivery account is settled.</td></tr>';
+      return;
+    }
     tb.innerHTML = ledgerRows.map(c => {
       const hasContact = !!dialNumber(c.contact);
       const isZero = !c.debt || Number(c.debt) <= 0;

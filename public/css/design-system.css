@@ -204,6 +204,44 @@
   transition: background-color .14s ease, border-color .14s ease, color .14s ease;
 }
 
+/* ---------------------------------------------------------------------------
+   Featured navigation item.
+
+   The ARIMA forecast is the analytical centrepiece of this system: everything in
+   Stock & planning is downstream of it. In an evenly-weighted list it trailed
+   last in its group and read as one more screen, so it leads the group and
+   carries a promoted treatment.
+
+   The treatment is a raised surface plus a 3px inset accent edge - a lighter
+   plane and one clear marker, not a second colour. The rail is royal blue, so
+   the accent is a light sky that stays legible on it (~5.4:1) and reads as
+   water rather than as another alert tone. When the link is the current page it
+   drops back to the normal folder-tab so the "you are here" signal is never
+   competing with the "this is the important one" signal.
+   ------------------------------------------------------------------------ */
+.admin-layout .sidebar-link.is-featured {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  box-shadow: inset 3px 0 0 0 #7DD3FC;
+}
+
+.admin-layout .sidebar-link.is-featured:hover {
+  background-color: rgba(255, 255, 255, 0.20);
+  color: #FFFFFF;
+}
+
+.admin-layout .sidebar-link.is-featured .sidebar-link-label { font-weight: 700; }
+.admin-layout .sidebar-link.is-featured .sidebar-link-hint { color: rgba(255, 255, 255, 0.88); }
+
+.admin-layout .sidebar-link.is-featured.active,
+.admin-layout .sidebar-link.is-featured.active:hover {
+  background-color: var(--surface-bg);
+  color: var(--brand-primary);
+  /* Drop the accent edge: the folder tab already says "current page". */
+  box-shadow: -6px 0 14px -4px rgba(9, 20, 56, 0.32);
+}
+.admin-layout .sidebar-link.is-featured.active .sidebar-link-hint { color: rgba(29, 78, 216, 0.85); }
+
 @media (prefers-reduced-motion: reduce) {
   .admin-layout *,
   .admin-layout *::before,

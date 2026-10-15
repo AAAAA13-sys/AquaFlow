@@ -6,7 +6,6 @@ const SECTION_URLS = {
   inv: '/admin/inventory',
   cust: '/admin/customers',
   sup: '/admin/suppliers',
-  employees: '/admin/employees',
   users: '/admin/users',
   settings: '/admin/settings'
 };

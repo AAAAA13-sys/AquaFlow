@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Staff & Access | ' . ($stationName ?? 'AquaFlow'))
-@section('topbar-title', 'Staff & Access')
+@section('title', 'Team & Access | ' . ($stationName ?? 'AquaFlow'))
+@section('topbar-title', 'Team & Access')
 
 @section('admin-content')
   <section id="s-users" class="admin-page">
     <div class="admin-page-titlebar">
-    @include('partials.admin-page-header', ['eyebrow' => 'TEAM MANAGEMENT', 'heading' => 'Staff & Access', 'description' => 'Manage your team and the access each person needs to run the station.'])
-      <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="userFormPanel" onclick="toggleAddForm(this)">Add user</button>
+    @include('partials.admin-page-header', ['eyebrow' => 'TEAM MANAGEMENT', 'heading' => 'Team & Access', 'description' => 'Manage your team and the access each person needs to run the station.'])
+      <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="userFormPanel" onclick="toggleAddForm(this)">Add person</button>
     </div>
 
 
@@ -16,13 +16,14 @@
       <h3 class="panel-heading">Add user</h3>
       <form id="userForm" onsubmit="return createUser(event)" class="admin-entry-form">
         <div class="admin-entry-field"><label class="form-label" for="usrName">Full name</label><input id="usrName" class="form-input field-min-160" placeholder="Full name *" required maxlength="100" aria-label="Full name"></div>
+        <div class="admin-entry-field"><label class="form-label" for="usrJob">Job title</label><input id="usrJob" class="form-input field-min-140" placeholder="e.g. Cashier" maxlength="120" aria-label="Job title"></div>
         <div class="admin-entry-field"><label class="form-label" for="usrUsername">Username</label><input id="usrUsername" class="form-input field-min-140" placeholder="Username *" required maxlength="50" pattern="[A-Za-z0-9_-]+" title="Letters, numbers, dash and underscore only" aria-label="Username"></div>
         <div class="admin-entry-field"><label class="form-label" for="usrPassword">Password</label><div class="credential-control"><input id="usrPassword" type="password" class="form-input field-min-140" placeholder="Password *" required minlength="8" maxlength="64" autocomplete="new-password" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])[\x21-\x7E]{8,64}" aria-label="Password"><button id="usrPasswordToggle" type="button" class="btn btn-ghost btn-sm" aria-controls="usrPassword" aria-pressed="false" onclick="togglePassword('usrPassword', this)">Show</button></div><p class="credential-hint">8–64 characters, with uppercase, lowercase and a number. No spaces.</p><button type="button" class="btn btn-secondary btn-sm" onclick="generateAccountPassword('usrPassword')">Generate password</button></div>
         <div class="admin-entry-field"><label class="form-label" for="usrRole">Access role</label><select id="usrRole" class="form-input"  aria-label="Access role">
           <option value="cashier">Cashier (POS only)</option>
           <option value="admin">Owner / Admin (Full + Analytics)</option>
         </select></div>
-        <div class="admin-entry-field"><label for="usrEmail">Admin email (sign-in and OTP)</label><input id="usrEmail" type="email" class="form-input" maxlength="255"></div>
+        <div class="admin-entry-field"><label for="usrEmail">Email (optional)</label><input id="usrEmail" type="email" class="form-input" maxlength="255"></div>
         <p id="userCreateError" class="auth-error hidden" role="alert"></p>
         <button id="userCreateButton" type="submit" class="btn btn-primary btn-sm">Create account</button>
       </form>
@@ -36,6 +37,7 @@
           <tr>
             <th>Username</th>
             <th>Name</th>
+            <th>Job title</th>
             <th>Role</th>
             <th>Access</th>
             <th>Active</th>
@@ -51,7 +53,7 @@
   @include('partials.editor-drawer', ['drawerId' => 'userEditWrap', 'bodyId' => 'userEditBody', 'title' => 'Edit user', 'closeAction' => 'closeUserEditor()'])
 @endsection
 
-@component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Staff & Access'])
+@component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Team & Access'])
 renderUsers();
 startPageRefresh(async () => { await loadFromServer(); renderUsers(); renderSidebarBadges(); renderStamp(); });
 @endcomponent

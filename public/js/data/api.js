@@ -114,8 +114,8 @@ const API = {
   login(username, password) {
     return this.post('auth/login', { username: username, password: password });
   },
-  loginOwner(email, password) {
-    return this.post('auth/login-owner', { email: email, password: password });
+  loginOwner(username, password) {
+    return this.post('auth/login-owner', { username: username, password: password });
   },
   logout() { return this.post('auth/logout'); },
   session() { return this.get('auth/session'); },

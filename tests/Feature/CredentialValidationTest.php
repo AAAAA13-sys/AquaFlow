@@ -38,13 +38,39 @@ class CredentialValidationTest extends TestCase
         $this->postJson('/api/auth/login', ['name' => 'Staff', 'username' => 'staff', 'password' => str_repeat('x', 256)])->assertUnprocessable()->assertJsonValidationErrors('password');
     }
 
-    public function test_a_submitted_owner_pin_is_rejected_outright(): void
+    public function test_owner_sign_in_takes_a_username_and_a_password_only(): void
     {
-        // The PIN is retired. Sending one is not merely ignored - the request is
-        // refused, so a stale client cannot believe it authenticated with it.
-        User::create(['name' => 'Owner', 'username' => 'owner', 'role' => 'admin', 'password' => 'StrongPass12345', 'email' => 'owner@example.com']);
-        $this->postJson('/api/auth/login-owner', ['email' => 'owner@example.com', 'password' => 'StrongPass12345', 'pin' => '2468'])
+        // Owner sign-in is username + password. There is no email field and no
+        // third factor, so a request carrying either must not be accepted: a
+        // stale client that still sends them should be told, not quietly ignored.
+        User::create(['name' => 'Owner', 'username' => 'owner', 'role' => 'admin', 'password' => 'StrongPass12345']);
+
+        $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'StrongPass12345'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'admin');
+
+        $this->postJson('/api/auth/logout');
+
+        // The retired PIN is no longer a rule, so it is an unknown field and is
+        // ignored. That is safe: it was never a factor in this version, and the
+        // password is still checked. A stale client that still sends it gets in
+        // only with a correct password.
+        $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'StrongPass12345', 'pin' => '2468'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'admin');
+        $this->postJson('/api/auth/logout');
+
+        // The pin cannot stand in for the password.
+        $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'wrong', 'pin' => '2468'])
+            ->assertStatus(401);
+
+        // An email cannot even be submitted as a username: the format rule
+        // rejects it before any lookup, so there is no path where an address on
+        // the account authenticates the owner portal.
+        $this->postJson('/api/auth/login-owner', ['username' => 'owner@example.com', 'password' => 'StrongPass12345'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('pin');
+            ->assertJsonValidationErrors('username');
+
+        $this->assertGuest();
     }
 }

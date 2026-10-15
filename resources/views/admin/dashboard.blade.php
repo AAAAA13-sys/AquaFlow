@@ -78,31 +78,36 @@
         {{-- Trend direction lives outside #kRev because that element is replaced
              by textContent when the figure arrives. --}}
         <span class="kpi-trend" id="kRevTrend" aria-hidden="true"></span>
+        <a class="kpi-action" href="{{ url('/admin/sales') }}">View sales &rarr;</a>
       </div>
       <div class="kpi-card-body kpi-green">
         <p class="kpi-label">Expected Sales Next 7 Days</p>
         <p class="kpi-value" id="kGal"><span class="af-skeleton" style="width:7ch;height:1.2em"></span></p>
         <p class="kpi-subtext" id="kGalSub"><span class="af-skeleton" style="width:22ch"></span></p>
+        <a class="kpi-action" href="{{ url('/admin/arima') }}">View forecast &rarr;</a>
       </div>
       <div class="kpi-card-body kpi-red">
         <p class="kpi-label">Needs Your Attention</p>
         <p class="kpi-value" id="invHealth"><span class="af-skeleton" style="width:3ch;height:1.2em"></span></p>
         <p class="kpi-subtext" id="kStockSub">Stock levels are loading</p>
+        <a class="kpi-action" id="kStockAction" href="{{ url('/admin/inventory') }}">View stock &rarr;</a>
       </div>
       <div class="kpi-card-body kpi-yellow">
         <p class="kpi-label">Customers Who Owe Money</p>
         <p class="kpi-value" id="kLia"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
         <p class="kpi-subtext" id="kLiaSub"><span class="af-skeleton" style="width:16ch"></span></p>
         <p class="kpi-micro" id="kLiaTop"></p>
+        <a class="kpi-action" href="{{ url('/admin/customers') }}">View balances &rarr;</a>
       </div>
     </div>
 
-    <section class="card overview-priorities" aria-labelledby="overviewPrioritiesTitle">
-      <div class="overview-panel-head"><div><p class="overview-eyebrow">NEXT STEPS</p><h3 id="overviewPrioritiesTitle">Today's priorities</h3></div><span class="overview-hint">Stock &middot; Collections &middot; Planning</span></div>
-      <div id="insActions" class="overview-actions"></div>
-    </section>
+    {{-- The "Today's priorities" strip used to sit here. It restated the four KPI
+         cards directly above it - the same stock state, the same customer debt,
+         the same forecast total, each with a sentence of explanation - so the
+         owner read every figure twice before reaching anything new. The KPI cards
+         now carry the matching action link and this band is gone. --}}
 
-    <div class="dash-row-chart">
+    <div class="dash-row-chart" id="dashChartRow">
       <div class="card">
         <h3 class="panel-heading">Expected Sales Next Week</h3>
         <p class="auto-deduct-caption">Compare the last 30 days of refill sales with the upcoming forecast.</p>
@@ -117,8 +122,10 @@
         <button onclick="showSection('arima')" class="btn btn-tertiary btn-sm order-type-selector">Open Demand Forecast</button>
       </div>
       {{-- Rail: sizes to its own content instead of stretching to the chart's
-           height, which is what produced the empty block. --}}
-      <div class="card card--rail">
+           height, which is what produced the empty block. Hidden when there is
+           nothing to buy - the "Needs Your Attention" KPI above already says
+           zero, so the rail was a second screen saying nothing to reorder. --}}
+      <div class="card card--rail" id="advisoryRail">
         <h3 class="panel-heading">Things to Buy</h3>
         <div id="advisory" class="overview-advisories"></div>
         <button type="button" onclick="draftPO()" class="btn btn-secondary btn-sm overview-purchase">Make a Purchase Request</button>
@@ -137,7 +144,10 @@
         <h3 class="panel-heading">How Sales Are Going</h3>
         <div id="insDemand"></div>
       </div>
-      <div class="card">
+      {{-- Hidden when nobody owes money. The "Customers Who Owe Money" KPI
+           already carries the total and the count, so an empty ranked list beside
+           it repeated the same zero a second time. --}}
+      <div class="card" id="topCollectorsCard">
         <h3 class="panel-heading">Who Owes You Most</h3>
         <div id="insCollect"></div>
       </div>

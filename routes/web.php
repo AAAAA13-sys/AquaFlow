@@ -5,6 +5,7 @@ use App\Http\Controllers\AdvisoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
+use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ForecastController;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'auth.cashier-login')->name('cashier.login');
 Route::view('/owner/login', 'auth.owner-login')->name('owner.login');
+Route::view('/employee', 'employee.home')->middleware('auth');
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
@@ -44,8 +46,12 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('owner')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
+        // Till & Prices is now a view onto the stock screen, not a tab of its own.
+        Route::get('/admin/till', fn () => redirect('/admin/inventory?view=prices'))
+            ->name('admin.till');
+
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings', 'cash'])
             ->name('admin.tab');
     });
 });
@@ -62,10 +68,7 @@ Route::prefix('api')->group(function (): void {
     // Login is rate limited to slow down credential stuffing.
     Route::middleware('throttle:10,1')->group(function (): void {
         Route::post('auth/setup-login', [AdminSetupController::class, 'login']);
-        Route::post('auth/setup-owner', [AdminSetupController::class, 'prepare']);
-        Route::post('auth/setup-verify', [AdminSetupController::class, 'verify']);
-        Route::post('auth/verify-email', [AuthController::class, 'verifyEmail']);
-        Route::post('auth/recover', [AuthController::class, 'recover']);
+        Route::post('auth/setup-owner', [AdminSetupController::class, 'complete']);
         Route::post('auth/login', [AuthController::class, 'login'])->name('api.login');
         Route::post('auth/login-owner', [AuthController::class, 'loginOwner'])->name('api.login.owner');
     });
@@ -132,6 +135,9 @@ Route::prefix('api')->group(function (): void {
         Route::get('transactions', [TransactionController::class, 'index'])->name('api.transactions.index');
         Route::post('transactions', [TransactionController::class, 'store'])->name('api.transactions.store');
 
+        // Riders and refillers are attached to an employee record, which the
+        // fulfillment history attributes work to. There is no employee screen:
+        // staff are managed on the single Team & Access tab.
         Route::middleware('owner')->group(function (): void {
             Route::get('employees', [EmployeeController::class, 'index']);
             Route::post('employees', [EmployeeController::class, 'store']);
@@ -139,6 +145,32 @@ Route::prefix('api')->group(function (): void {
             Route::delete('employees/{employee}', [EmployeeController::class, 'destroy']);
         });
         Route::post('queue/{queueItem}/deliver', [QueueController::class, 'deliver']);
+
+        // Rider / refiller work surface. A delivery order is staged and then
+        // driven to completion from here rather than by the cashier, so the
+        // fulfilment record captures who handled it.
+        Route::get('fulfillment', [FulfillmentController::class, 'index']);
+
+        // Not owner-gated: handover and the buyer code are the cashier's job, and
+        // FulfillmentService enforces per-action eligibility with canHandleCash().
+        Route::post('fulfillment/{id}', [FulfillmentController::class, 'update'])->whereNumber('id');
+
+        // Delivery evidence and remittance, from the counter side. The rider posts
+        // progress through /api/employee/orders; the cashier reads the evidence
+        // and accepts the cash here, which is what settles the account balance.
+        // canHandleCash() in the controller keeps owners and cashiers off each
+        // other's rows, so these are not owner-gated.
+        Route::get('deliveries/{id}', [FulfillmentController::class, 'show'])->whereNumber('id');
+        Route::get('deliveries/{id}/proof', [FulfillmentController::class, 'proof'])->whereNumber('id');
+        Route::post('deliveries/{id}/remit', [FulfillmentController::class, 'remit'])->whereNumber('id');
+
+        // End-of-day cash reconciliation (own drawer).
+        Route::get('cash-shift', [CashShiftController::class, 'current'])->name('api.cash-shift.current');
+        Route::post('cash-shift/open', [CashShiftController::class, 'open'])->name('api.cash-shift.open');
+        Route::post('cash-shift/close', [CashShiftController::class, 'close'])->name('api.cash-shift.close');
+        Route::get('cash-shift/overview', [CashShiftController::class, 'overview'])
+            ->middleware('owner')
+            ->name('api.cash-shift.overview');
 
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');
@@ -176,4 +208,26 @@ Route::prefix('api')->group(function (): void {
             ->middleware('owner')
             ->name('api.users.destroy');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Employee work surface (riders and refillers)
+|--------------------------------------------------------------------------
+|
+| A delivery order is staged by the cashier and then driven to completion by
+| the rider who handles it, so the fulfilment record captures who was involved.
+| Owner-only endpoints stay behind the `owner` middleware; these are the
+| operator's own orders.
+|
+*/
+Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
+    Route::get('orders', [FulfillmentController::class, 'index']);
+    // Reporting progress carries the buyer code, so this endpoint is throttled
+    // on its own tighter limiter rather than the general API budget.
+    Route::post('orders/{id}', [FulfillmentController::class, 'update'])
+        ->middleware('throttle:delivery')
+        ->whereNumber('id');
+    Route::get('profile', [ProfileController::class, 'show']);
+    Route::put('profile', [ProfileController::class, 'update']);
 });

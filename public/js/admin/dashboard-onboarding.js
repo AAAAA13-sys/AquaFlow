@@ -51,10 +51,16 @@
     }
 
     const badge = document.getElementById('onboardingProgressBadge');
+    const card = document.getElementById('onboardingChecklist');
     if (badge) {
       badge.textContent = `${completed} of ${total} Steps Done`;
       if (completed === total) {
         badge.className = 'pill pill-ok';
+        // A finished checklist carries no information: it is five ticks for work
+        // already done, sitting above the numbers the owner actually opened the
+        // page for. Retire it rather than making them press Dismiss.
+        if (card) card.classList.add('hidden');
+        localStorage.setItem('af_onboarding_dismissed', 'true');
       }
     }
   }

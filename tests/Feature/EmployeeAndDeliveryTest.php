@@ -32,15 +32,23 @@ class EmployeeAndDeliveryTest extends TestCase
         $this->getJson('/api/employees')->assertJsonCount($employees, 'employees');
     }
 
+    public function test_employee_records_have_no_screen_of_their_own(): void
+    {
+        // Staff are managed on the single Team & Access tab; the employee
+        // directory survives only to attribute delivery work in history.
+        $this->actingAs(User::where('username', 'admin')->firstOrFail());
+        $this->get('/admin/employees')->assertNotFound();
+        $this->get('/admin/users')->assertOk()->assertSee('Team & Access')->assertSee('Job title');
+    }
+
     public function test_employee_validation_and_owner_permissions(): void
     {
         $this->actingAs(User::where('username', 'cashier')->firstOrFail());
         $this->getJson('/api/employees')->assertForbidden();
         $this->postJson('/api/employees', ['name' => 'Ana', 'job_title' => 'Worker'])->assertForbidden();
-        $this->get('/admin/employees')->assertRedirect('/cashier');
+        $this->get('/admin/employees')->assertNotFound();
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $this->postJson('/api/employees', ['name' => '', 'job_title' => ''])->assertUnprocessable()->assertJsonValidationErrors(['name', 'job_title']);
-        $this->get('/admin/employees')->assertOk()->assertSee('Add employee')->assertSee('employeeBody', false);
     }
 
     public function test_cashier_can_only_handover_walk_ins_and_retries_are_idempotent(): void

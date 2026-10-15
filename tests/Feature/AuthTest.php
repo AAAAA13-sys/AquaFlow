@@ -30,7 +30,52 @@ class AuthTest extends TestCase
     {
         $this->get('/owner/login')
             ->assertOk()
-            ->assertSee('Admin Login')->assertSee('Admin email')->assertSee('Send OTP')->assertSee('Email verification code')->assertDontSee('Admin username')->assertDontSee('id="otpForm" class="auth-form hidden"', false)->assertDontSee('id="pin"', false);
+            ->assertSee('Admin Login')->assertSee('Admin username')
+            ->assertDontSee('Email verification code')
+            ->assertDontSee('id="pin"', false);
+    }
+
+    public function test_owner_signs_in_with_username_and_password(): void
+    {
+        $response = $this->postJson('/api/auth/login-owner', [
+            'username' => 'admin',
+            'password' => '1234',
+        ]);
+
+        $response->assertOk()->assertJsonPath('user.role', 'admin');
+        // No code step: the session is open the moment the credentials check out.
+        $response->assertJsonMissingPath('recovery_codes');
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_owner_login_still_refuses_the_wrong_password(): void
+    {
+        $this->postJson('/api/auth/login-owner', [
+            'username' => 'admin',
+            'password' => 'wrong',
+        ])->assertStatus(401);
+
+        $this->assertGuest();
+    }
+
+    public function test_cashier_is_rejected_on_the_owner_login(): void
+    {
+        $this->postJson('/api/auth/login-owner', [
+            'username' => 'cashier',
+            'password' => '1234',
+        ])->assertStatus(403);
+
+        $this->assertGuest();
+    }
+
+    public function test_owner_portal_routes_reject_a_cashier_session(): void
+    {
+        $cashier = User::query()->where('username', 'cashier')->firstOrFail();
+
+        // The page you signed in at is not what grants access - the role is.
+        $this->actingAs($cashier)->get('/admin/inventory')->assertRedirect('/cashier');
+        $this->actingAs($cashier)->getJson('/api/users')->assertForbidden();
     }
 
     public function test_u_s01_cashier_can_log_in(): void
@@ -64,19 +109,6 @@ class AuthTest extends TestCase
         ])->assertStatus(403);
 
         $this->assertGuest();
-    }
-
-    public function test_legacy_owner_pin_cannot_bypass_email(): void
-    {
-        foreach (['2468', '0000'] as $pin) {
-            $this->postJson('/api/auth/login-owner', [
-                'username' => 'admin',
-                'password' => '1234',
-                'pin' => $pin,
-            ])->assertUnprocessable();
-            $this->assertGuest();
-        }
-        $this->getJson('/api/bootstrap')->assertUnauthorized();
     }
 
     public function test_protected_endpoints_require_a_session(): void

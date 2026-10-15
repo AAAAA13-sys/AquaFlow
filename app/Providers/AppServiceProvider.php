@@ -30,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         JsonResource::withoutWrapping();
         RateLimiter::for('api', fn ($request) => Limit::perMinute(config('rate_limits.api', 120))->by('user:'.$request->user()->id));
         RateLimiter::for('forecast', fn ($request) => Limit::perMinute(config('rate_limits.forecast', 3))->by('forecast:'.$request->user()->id));
+        RateLimiter::for('delivery', fn ($request) => Limit::perMinute(config('rate_limits.delivery', 10))->by('delivery:'.$request->user()->id));
 
         // Share station branding and settings with the shells that need them.
         View::composer(

@@ -6,19 +6,21 @@
   // `badge` names a <span> that renderSidebarBadges() fills with the count of
   // outstanding items, so an owner can see which pages need attention without
   // opening the overview first.
+  // `featured` promotes one link. The ARIMA forecast is the analytical
+  // centrepiece of the system, so it reads ahead of the operational screens it
+  // feeds rather than trailing behind them as an equal-weight list item.
   $tabs = [
-      'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null],
-      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null],
-      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null],
-      'inventory'  => ['label' => 'Stock & Supplies','hint' => 'Consumables & reorder points', 'badge' => 'badgeStock'],
-      'till'       => ['label' => 'Till & Prices',   'hint' => 'What the cashier sells', 'badge' => null],
-      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances'],
-      'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null],
-      'employees'  => ['label' => 'Employees', 'hint' => 'Store team', 'badge' => null],
-      'users'      => ['label' => 'Staff & Access',  'hint' => 'Users',          'badge' => null],
-      'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null],
+      'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null, 'featured' => false],
+      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null, 'featured' => false],
+      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => true],
+      'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
+      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances', 'featured' => false],
+      'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
+      'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
+      'cash'       => ['label' => 'Cash Reconciliation', 'hint' => 'Drawer & float', 'badge' => null, 'featured' => false],
+      'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
-  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['till', 'inventory', 'suppliers', 'arima'], 'Team' => ['employees'], 'Administration' => ['users', 'settings']];
+  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['arima', 'inventory', 'suppliers'], 'Team & administration' => ['users', 'cash', 'settings']];
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 
@@ -31,7 +33,7 @@
       @foreach ($slugs as $slug)
       @php($label = $tabs[$slug])
       <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
-         class="sidebar-link {{ $active === $slug ? 'active' : '' }}"
+         class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
          @if ($active === $slug) aria-current="page" @endif
          @if ($label['badge']) data-has-badge="1" @endif>
         <span class="sidebar-link-text">

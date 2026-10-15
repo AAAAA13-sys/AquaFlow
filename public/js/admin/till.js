@@ -1,5 +1,9 @@
 // Till & Prices - owner management of what the cashier terminal sells.
 //
+// This is the "Till & Prices" half of the Stock screen. A till item is a price
+// plus a recipe that draws down one of the supply rows in the other half, which
+// is why the two now share a page rather than sitting on separate tabs.
+//
 // The catalog used to be seed-only: nothing could change a price or add an item.
 //
 // Two things worth knowing while reading this. Prices are VAT inclusive - the
@@ -10,6 +14,27 @@
 //
 // Products are never deleted. Transaction history references them, so an item the
 // store stops selling is hidden instead (sold_at_pos = false).
+
+/** Switch the Stock screen between the Supplies and Till & Prices halves. */
+function showStockView(view) {
+  const showPrices = view === 'prices';
+  const suppliesPanel = document.getElementById('stockViewSuppliesPanel');
+  const pricesPanel = document.getElementById('stockViewPricesPanel');
+  if (suppliesPanel) suppliesPanel.classList.toggle('hidden', showPrices);
+  if (pricesPanel) pricesPanel.classList.toggle('hidden', !showPrices);
+  const supplies = document.getElementById('stockViewSupplies');
+  const prices = document.getElementById('stockViewPrices');
+  if (supplies) supplies.className = 'seg-btn' + (showPrices ? '' : ' active');
+  if (prices) prices.className = 'seg-btn' + (showPrices ? ' active' : '');
+  // One add button serves both halves, so it has to point at the right form.
+  const addButton = document.getElementById('stockAddButton');
+  if (addButton) {
+    addButton.textContent = showPrices ? 'Add item for sale' : 'Add consumable';
+    addButton.setAttribute('aria-controls', showPrices ? 'tillFormPanel' : 'invFormPanel');
+  }
+  // The till grid reads the live product list, so draw it the first time it shows.
+  if (showPrices && typeof renderTill === 'function') renderTill();
+}
 
 const TILL_CATEGORY_LABELS = {
   refill: 'Refill',

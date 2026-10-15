@@ -10,7 +10,10 @@ class AdminSetupRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        $this->merge(['email' => strtolower(trim((string) $this->input('email')))]);
+        // Only normalise an address that was actually supplied. Coercing an
+        // absent field to '' would store an empty string as the owner's contact.
+        $email = trim((string) $this->input('email'));
+        $this->merge(['email' => $email === '' ? null : strtolower($email)]);
     }
 
     public function authorize(): bool
@@ -23,7 +26,10 @@ class AdminSetupRequest extends FormRequest
         return [
             'station_name' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email:rfc', 'max:255', Rule::notIn([StoreInstallationService::BOOTSTRAP_EMAIL]), Rule::unique('users', 'email')->ignore($this->session()->get('setup_user'))],
+            'username' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('users', 'username')],
+            // Email is optional now that nothing is sent to it. It is kept on the
+            // account as a contact, and the portal renders it if present.
+            'email' => ['nullable', 'email:rfc', 'max:255', Rule::notIn([StoreInstallationService::BOOTSTRAP_EMAIL]), Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', ...CredentialRules::password()],
         ];
     }
