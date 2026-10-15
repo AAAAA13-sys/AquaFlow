@@ -31,6 +31,16 @@
 /* Page structure, forms, and actionable summaries. */
 .admin-page-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .admin-page-titlebar > .btn { flex-shrink: 0; margin: 0; }
+
+/* Stock screen: the Supplies / Till switcher and the add button share one row,
+   so switching views does not move the button out from under the owner. */
+.stock-viewbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.stock-viewbar > .stage-segment { flex: 0 1 26rem; min-width: 15rem; margin: 0; }
+.stock-viewbar > .btn { flex-shrink: 0; margin: 0; }
+@media (max-width: 720px) {
+  .stock-viewbar { align-items: stretch; flex-direction: column; }
+  .stock-viewbar > .stage-segment { flex: 1 1 auto; }
+}
 .admin-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
 .admin-summary article { padding: 20px 22px; background: #fff; border: 1px solid var(--border-line); border-radius: 14px; }
 .admin-summary span { display: block; color: #475569; font-size: 14px; }

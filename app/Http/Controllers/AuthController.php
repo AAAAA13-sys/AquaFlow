@@ -7,7 +7,6 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\OwnerLoginRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
-use App\Services\OwnerEmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,47 +28,17 @@ class AuthController extends Controller
         return $this->loginResponse($request, $this->auth->attemptCashier($request->validated(), $request->ip()));
     }
 
+    /**
+     * Owner sign-in: username and password, same as any other account.
+     *
+     * This used to issue a one-time code by email and only open a session once it
+     * was returned. The portal is protected by server-side role middleware, not
+     * by the email step, so the code added a delivery dependency without adding
+     * authorisation. Owners are created with a username like every other account.
+     */
     public function loginOwner(OwnerLoginRequest $request): JsonResponse
     {
-        $result = $this->auth->attemptOwner($request->validated(), $request->ip());
-        if (! $result->succeeded()) {
-            return $this->loginResponse($request, $result);
-        }
-        Auth::logout();
-        // Preserve the pending code if a resend is rejected by the cooldown.
-        if (! $request->session()->has('owner_challenge')) {
-            $request->session()->regenerate();
-        }
-        $id = app(OwnerEmailService::class)->issue($result->user, $request->session()->getId());
-        $request->session()->put('owner_challenge', $id);
-
-        return response()->json(['pending' => true, 'message' => 'Sign-in code queued for your registered email. Check your inbox and spam folder.']);
-    }
-
-    public function verifyEmail(Request $request, OwnerEmailService $service): JsonResponse
-    {
-        $data = $request->validate(['code' => ['required', 'string', 'regex:/^[0-9]{6}$/']]);
-        $challengeId = (string) $request->session()->get('owner_challenge');
-        $user = $challengeId ? $service->verify($challengeId, $request->session()->getId(), $data['code']) : null;
-
-        if (! $user || $user->is_bootstrap) {
-            return response()->json(['message' => 'Invalid or expired code.'], 422);
-        }
-        $codes = $service->enroll($user);
-        $request->session()->forget('owner_challenge');
-        Auth::login($user, false);
-        $request->session()->regenerate();
-
-        return response()->json(['user' => new UserResource($user), 'recovery_codes' => $codes]);
-    }
-
-    public function recover(Request $request, OwnerEmailService $service): JsonResponse
-    {
-        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:255'], 'password' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'size:20']]);
-        $result = $this->auth->attemptOwner($data, $request->ip());
-        $user = $result->succeeded() && $result->user->isAdmin() ? $service->recovery($result->user, $data['code']) : null;
-
-        return $this->loginResponse($request, $user ? LoginResult::ok($user) : LoginResult::failed('Invalid credentials or recovery code.'));
+        return $this->loginResponse($request, $this->auth->attemptOwner($request->validated(), $request->ip()));
     }
 
     private function loginResponse(Request $request, LoginResult $result): JsonResponse

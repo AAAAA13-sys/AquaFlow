@@ -22,6 +22,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['nullable', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user')?->id)],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($this->route('user')?->id)],
             'name' => ['sometimes', 'string', 'max:100'],
+            'job_title' => ['sometimes', 'nullable', 'string', 'max:120'],
             'role' => ['sometimes', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN])],
             'password' => ['sometimes', 'nullable', ...CredentialRules::password()],
             'is_active' => ['sometimes', 'boolean'],

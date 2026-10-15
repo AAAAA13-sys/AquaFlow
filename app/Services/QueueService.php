@@ -11,6 +11,11 @@ class QueueService
     {
         DB::transaction(function () use ($item, $userId): void {
             $locked = ProductionQueueItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            // A delivery order is handed over and completed through the fulfilment
+            // workflow, which captures the rider, the photo and the cash. Hitting
+            // this endpoint for one would skip every bit of that evidence.
+            abort_unless($locked->order_type === 'Walk-in', 403, 'Only the assigned rider can deliver this order.');
+            abort_unless($locked->fulfillment_status === 'ready' || $locked->is_completed || ! $locked->transaction_id, 422, 'The refiller must mark this order ready first.');
             if ($locked->is_completed) {
                 return;
             }

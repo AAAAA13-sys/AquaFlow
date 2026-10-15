@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\SendOwnerCode;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\StoreInstallationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class BootstrapOwnerTest extends TestCase
@@ -23,10 +22,8 @@ class BootstrapOwnerTest extends TestCase
         return app(StoreInstallationService::class)->reissueSecret();
     }
 
-    public function test_first_run_is_setup_only_and_bootstrap_is_deleted_after_email_verification(): void
+    public function test_first_run_is_setup_only_and_bootstrap_is_deleted_when_the_owner_is_created(): void
     {
-        Queue::fake();
-        config(['mail.default' => 'smtp']);
         $this->artisan('aquaflow:install-store')->assertSuccessful();
         $bootstrap = User::sole();
         $this->assertTrue($bootstrap->is_bootstrap);
@@ -42,23 +39,31 @@ class BootstrapOwnerTest extends TestCase
         $this->assertGuest();
         $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
         $this->get('/admin')->assertRedirect('/owner/login');
-        $this->postJson('/api/auth/setup-owner', ['station_name' => 'My Water Station', 'name' => 'My Owner', 'email' => 'real@example.com', 'password' => 'MyPassword123', 'password_confirmation' => 'MyPassword123'])->assertOk();
-        $this->assertNotSame('My Water Station', \App\Models\SystemSetting::value('station_name'));
-        $this->assertGuest();
 
-        // Supplying details consumes the secret, so it cannot be replayed to
-        // overwrite the details with a different owner's address.
-        $this->assertNull($bootstrap->fresh()->bootstrap_secret_hash);
+        $this->postJson('/api/auth/setup-owner', [
+            'station_name' => 'My Water Station',
+            'name' => 'My Owner',
+            'username' => 'stationowner',
+            'email' => 'real@example.com',
+            'password' => 'MyPassword123',
+            'password_confirmation' => 'MyPassword123',
+        ])->assertOk();
+
+        // Supplying details consumes the secret with the bootstrap row itself, so
+        // it cannot be replayed to overwrite the account with different credentials.
+        $this->assertNull($bootstrap->fresh());
         $this->postJson('/api/auth/setup-login', ['secret' => $secret])->assertUnauthorized();
 
-        $this->postJson('/api/auth/login-owner', ['email' => 'real@example.com', 'password' => 'MyPassword123'])->assertUnauthorized();
-        $job = Queue::pushed(SendOwnerCode::class)->last();
-        $this->postJson('/api/auth/setup-verify', ['code' => $job->code])->assertOk()->assertJsonCount(8, 'recovery_codes');
-        $this->assertDatabaseMissing('users', ['id' => $bootstrap->id]);
         $this->assertDatabaseCount('users', 1);
         $this->assertAuthenticatedAs(User::sole());
         $this->assertFalse(User::sole()->is_bootstrap);
-        $this->assertSame('My Water Station', \App\Models\SystemSetting::value('station_name'));
+        $this->assertSame('My Water Station', SystemSetting::value('station_name'));
+
+        // The owner now signs in with the username they just chose - no code step.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login-owner', ['username' => 'stationowner', 'password' => 'MyPassword123'])->assertOk();
+        $this->assertAuthenticatedAs(User::sole());
+
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/setup-login', ['secret' => $secret])->assertUnauthorized();
         $this->artisan('aquaflow:install-store')->assertSuccessful();
@@ -67,6 +72,27 @@ class BootstrapOwnerTest extends TestCase
         // Setup is permanently closed once a real owner exists: no code can ever be
         // re-issued for this store again.
         $this->assertNull(app(StoreInstallationService::class)->reissueSecret());
+    }
+
+    public function test_owner_email_is_optional_at_setup(): void
+    {
+        // Nothing is sent to an address any more, so requiring one only stranded
+        // stations whose owner has no mailbox.
+        $this->artisan('aquaflow:install-store')->assertSuccessful();
+        $this->postJson('/api/auth/setup-login', ['secret' => $this->setupSecret()])->assertOk();
+        $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
+
+        $this->postJson('/api/auth/setup-owner', [
+            'station_name' => 'No Mail Station',
+            'name' => 'Owner',
+            'username' => 'ownername',
+            'password' => 'MyPassword123',
+            'password_confirmation' => 'MyPassword123',
+        ])->assertOk();
+
+        $this->assertNull(User::sole()->email);
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login-owner', ['username' => 'ownername', 'password' => 'MyPassword123'])->assertOk();
     }
 
     public function test_the_credentials_published_by_earlier_releases_no_longer_work(): void
@@ -78,7 +104,6 @@ class BootstrapOwnerTest extends TestCase
 
         foreach (['571067', 'Adm1nP4ss!123', 'admin@aquaflow.com'] as $retired) {
             $this->postJson('/api/auth/setup-login', ['secret' => $retired])->assertUnauthorized();
-            $this->postJson('/api/auth/setup-login', ['email' => 'admin@aquaflow.com', 'password' => 'Adm1nP4ss!123', 'code' => $retired])->assertUnprocessable();
         }
 
         $this->assertTrue(User::sole()->is_bootstrap);
@@ -100,7 +125,6 @@ class BootstrapOwnerTest extends TestCase
     public function test_setup_requires_bootstrap_session_and_never_opens_on_existing_stores(): void
     {
         $this->postJson('/api/auth/setup-owner', [])->assertForbidden();
-        $this->postJson('/api/auth/setup-verify', ['code' => '571067'])->assertForbidden();
         $this->seed();
         $this->artisan('aquaflow:install-store')->assertSuccessful();
         $this->assertDatabaseMissing('users', ['is_bootstrap' => true]);
@@ -109,22 +133,20 @@ class BootstrapOwnerTest extends TestCase
 
     public function test_invalid_registration_and_expired_setup_do_not_replace_the_bootstrap_account(): void
     {
-        Queue::fake();
-        config(['mail.default' => 'smtp']);
         $this->artisan('aquaflow:install-store')->assertSuccessful();
         $secret = $this->setupSecret();
         $this->postJson('/api/auth/setup-login', ['secret' => $secret])->assertOk();
         $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
 
-        // The placeholder address the installer stamps on the bootstrap row is not
-        // an acceptable owner address, and the weak password is rejected too.
-        $this->postJson('/api/auth/setup-owner', ['name' => 'Owner', 'email' => 'SETUP@AQUAFLOW.INVALID', 'password' => '1234', 'password_confirmation' => '1234'])->assertUnprocessable();
-        Queue::assertNothingPushed();
+        // The username is required and unique, and the weak password is rejected.
+        $this->postJson('/api/auth/setup-owner', ['station_name' => 'S', 'name' => 'Owner', 'password' => '1234', 'password_confirmation' => '1234'])->assertUnprocessable();
         $this->assertTrue(User::sole()->is_bootstrap);
-        $this->postJson('/api/auth/setup-verify', ['code' => '571067'])->assertUnprocessable();
-        $this->assertGuest();
+
         $this->travel(16)->minutes();
-        $this->postJson('/api/auth/setup-owner', ['name' => 'Owner', 'email' => 'private@example.com', 'password' => 'ValidPassword123', 'password_confirmation' => 'ValidPassword123'])->assertForbidden();
+        $this->postJson('/api/auth/setup-owner', [
+            'station_name' => 'S', 'name' => 'Owner', 'username' => 'ownername',
+            'password' => 'ValidPassword123', 'password_confirmation' => 'ValidPassword123',
+        ])->assertForbidden();
         $this->assertTrue(User::sole()->is_bootstrap);
     }
 }

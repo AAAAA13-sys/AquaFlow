@@ -22,9 +22,10 @@ async function apiLogin(username, password) {
   return result;
 }
 
-// Admin login starts email verification; no authenticated session until OTP succeeds.
-async function apiLoginOwner(email, password) {
-  const result = await API.loginOwner(email, password);
+// Admin sign-in. Same credentials as any other account; the role decides the
+// portal, so a successful result already carries the session.
+async function apiLoginOwner(username, password) {
+  const result = await API.loginOwner(username, password);
   if (result.user) setSession(result.user);
   return result;
 }

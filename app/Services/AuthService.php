@@ -24,26 +24,21 @@ class AuthService
 
     private function attempt(array $credentials, bool $owner, ?string $ip): LoginResult
     {
-        $rawIdentifier = $owner ? trim($credentials['email']) : trim($credentials['username']);
-        $identifier = strtolower($rawIdentifier);
+        $username = trim((string) ($credentials['username'] ?? ''));
 
+        // Both portals authenticate the same way. The page decides only where a
+        // successful sign-in lands; the role decides whether it is allowed at all,
+        // so neither page can be used to reach the other role's workspace.
         $user = User::query()
-            ->where(function ($query) use ($identifier, $rawIdentifier, $owner) {
-                if ($owner) {
-                    $query->whereRaw('LOWER(email) = ?', [$identifier]);
-                } else {
-                    $query->where('username', $rawIdentifier)
-                          ->orWhereRaw('LOWER(email) = ?', [$identifier]);
-                }
-            })
+            ->where('username', $username)
             ->where('is_active', true)
             ->where('is_bootstrap', false)
             ->first();
 
         if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
-            $this->reject('Login failed: bad credentials.', $identifier, $ip);
+            $this->reject('Login failed: bad credentials.', $username, $ip);
 
-            return LoginResult::failed($owner ? 'Invalid email or password.' : self::INVALID_CREDENTIALS);
+            return LoginResult::failed(self::INVALID_CREDENTIALS);
         }
 
         if ($owner && ! $user->isAdmin()) {
@@ -54,8 +49,10 @@ class AuthService
             return LoginResult::failed('Use Admin Login for this account.', 403);
         }
 
-        if ($owner && ! $user->email) {
-            return LoginResult::failed('Owner email enrollment is required. Configure the private destination on the store host.', 403);
+        // An employee account is only as good as the person behind it. Deactivating
+        // the employee record must lock the login out, not just hide the record.
+        if ($user->isEmployee() && (! $user->employee || ! $user->employee->is_active)) {
+            return LoginResult::failed(self::INVALID_CREDENTIALS);
         }
 
         return LoginResult::ok($user);

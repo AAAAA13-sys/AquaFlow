@@ -66,9 +66,13 @@ function pending(c) {
 }
 
 // Status label + pill tone. The label itself is an explicit instruction
-// ("REORDER NOW") rather than a passive "Warning"; the pill tone still carries
-// the severity split so the two tiers remain visually distinguishable.
-// `status_label` / `needs_reorder` come from the backend resource.
+// ("REORDER NOW") rather than a passive "Warning".
+// `status_label` / `status` / `needs_reorder` come from the backend resource.
+//
+// The tone is keyed off `status` ("Critical" / "Warning" / "OK"), never off the
+// label. The label is "REORDER NOW" for both reorder tiers, so branching on it
+// gave every healthy item the warning colour and the Status column read as one
+// undifferentiated amber wash - the column carried no signal at all.
 //
 // An item whose reorder point is 0 has no threshold configured at all. It is
 // NOT "critical": the order engine has nothing to compare against and emits a
@@ -78,7 +82,12 @@ function pending(c) {
 // scripts without this file and stubs statusOf directly.
 function statusOf(inv) {
   if (isUnconfigured(inv)) return ['SET REORDER POINT', 'pill-neutral'];
-  if (inv.status_label) return [inv.status_label, inv.status === 'Critical' ? 'pill-bad' : 'pill-warn'];
+  if (inv.status_label) {
+    const tone = inv.status === 'Critical' ? 'pill-bad'
+      : inv.status === 'OK' ? 'pill-ok'
+        : 'pill-warn';
+    return [inv.status_label, tone];
+  }
   if (inv.on <= inv.ss) return ['REORDER NOW', 'pill-bad'];
   if (inv.on <= inv.rop) return ['REORDER NOW', 'pill-warn'];
   return ['OK', 'pill-ok'];

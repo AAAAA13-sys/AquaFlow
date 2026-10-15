@@ -21,23 +21,26 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
 
+    /** Operational staff who work a station floor rather than a till. */
+    public const ROLE_REFILLER = 'refiller';
+
+    public const ROLE_RIDER = 'rider';
+
     protected $fillable = [
         'is_bootstrap',
         'bootstrap_secret_hash',
         'email',
-        'email_verified_at',
-        'recovery_codes',
         'employee_id',
         'username',
         'password',
         'role',
         'name',
+        'job_title',
         'is_active',
     ];
 
     protected $hidden = [
         'bootstrap_secret_hash',
-        'recovery_codes',
         'password',
     ];
 
@@ -45,8 +48,6 @@ class User extends Authenticatable
     {
         return [
             'is_bootstrap' => 'boolean',
-            'email_verified_at' => 'datetime',
-            'recovery_codes' => 'array',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
@@ -62,14 +63,23 @@ class User extends Authenticatable
         return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_CASHIER], true);
     }
 
+    /** The employee record a rider or refiller is attached to, when one is. */
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
     }
 
+    /**
+     * Staff who work the station floor rather than a till or a dashboard.
+     *
+     * Riders and refillers sign in to the employee portal, never to the POS or
+     * the owner portal. The role is what routes them; EnsureRoleAccess then
+     * confines them to their own work surface and checks the linked employee
+     * record is still active.
+     */
     public function isEmployee(): bool
     {
-        return false;
+        return in_array($this->role, [self::ROLE_REFILLER, self::ROLE_RIDER], true);
     }
 
     public function transactions(): HasMany

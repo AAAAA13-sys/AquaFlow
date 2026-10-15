@@ -405,10 +405,10 @@ class PageTest extends TestCase
             'dashboard' => 'Overview',
             'sales' => 'Sales History',
             'arima' => 'Demand Forecast',
-            'inventory' => 'Stock &amp; Supplies',
+            'inventory' => 'Stock &amp; Prices',
             'customers' => 'Customer Balances',
             'suppliers' => 'Suppliers',
-            'users' => 'Staff &amp; Access',
+            'users' => 'Team &amp; Access',
             'settings' => 'Settings',
         ];
 

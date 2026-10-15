@@ -97,7 +97,28 @@
 #s-dash .overview-action p { font-size: 13.5px; line-height: 1.6; color: #475569; margin: 0 0 16px; }
 #s-dash .overview-action a { margin-top: auto; }
 #s-dash .dash-row-chart { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; }
+/* Nothing to buy: the rail is hidden and the forecast takes the full width,
+   because the chart is the reason the owner came to this screen. */
+#s-dash .dash-row-chart.is-wide { grid-template-columns: minmax(0, 1fr); }
 #s-dash .card--rail { border-left: 1px solid var(--border-line); }
+
+/* KPI action link. This is where the removed "Today's priorities" band put its
+   navigation: the figure states the situation, the link acts on it. Tertiary in
+   colour so it never competes with the number above it. */
+#s-dash .kpi-action {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+#s-dash .kpi-action:hover { text-decoration: underline; }
+#s-dash .kpi-action:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; border-radius: 4px; }
+
+/* One line instead of a table of settled accounts. */
+#s-dash .table-empty-note { padding: 18px 4px; font-size: 13.5px; color: #475569; }
+
 #s-dash .advisory-card { padding: 14px; font-size: 13.5px; line-height: 1.6; margin-bottom: 12px; }
 #s-dash .advisory-card .btn { display: block; margin-top: 12px; }
 #s-dash .dashboard-row-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
@@ -280,7 +301,7 @@
 }
 
 /* =============================================================================
-   AquaFlow — Owner Getting Started Onboarding Checklist
+   AquaFlow ï¿½ Owner Getting Started Onboarding Checklist
    ========================================================================== */
 .onboarding-checklist-card {
   margin: 1.25rem 0 0;

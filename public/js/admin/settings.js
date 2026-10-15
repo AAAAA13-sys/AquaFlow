@@ -70,6 +70,7 @@ function renderUsers() {
     const active = u.active !== false;
     const canManage = u.id !== undefined && u.id !== null;
     return '<tr><td>' + escUser(u.u) + '</td><td>' + escUser(u.name) + '</td>' +
+      '<td>' + escUser(u.job_title || '-') + '</td>' +
       '<td><span class="pill ' + (u.role === 'admin' ? 'pill-ok' : 'pill-info') + '">' + escUser(u.role) + '</span></td>' +
       '<td>' + escUser(u.access || (u.role === 'admin' ? 'Full + Analytics' : 'POS only')) + '</td>' +
       '<td><span class="pill ' + (active ? 'pill-ok' : 'pill-bad') + '">' + (active ? 'Active' : 'Inactive') + '</span></td>' +
@@ -79,7 +80,7 @@ function renderUsers() {
           '<button onclick="deleteUser(' + u.id + ')" class="btn btn-ghost btn-sm">Delete</button>'
         : '<span class="cell-sub">offline</span>') + '</td></tr>';
   }).join('');
-  showTableEmpty(body, 6);
+  showTableEmpty(body, 7);
 }
 
 let userCreatePending = false;
@@ -98,7 +99,7 @@ async function createUser(event) {
     password: document.getElementById('usrPassword') ? document.getElementById('usrPassword').value : '',
     role: role,
     email: document.getElementById('usrEmail')?.value.trim() || null,
-    employee_id: Number(document.getElementById('usrEmployee')?.value) || null
+    job_title: document.getElementById('usrJob')?.value.trim() || null
   };
   if (!validNewPassword(payload.password)) {
     showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.');
@@ -133,12 +134,11 @@ async function openUserEditor(id) {
   const wrap = document.getElementById('userEditWrap');
   const bodyEl = document.getElementById('userEditBody');
   if (!u || !wrap || !bodyEl) return;
-  let employees;
-  try { employees = (await API.request('employees')).employees; } catch (error) { appNotice(error.message); return; }
   bodyEl.innerHTML =
-    '<label for="usrEditEmail">Admin email (sign-in and OTP)</label><input id="usrEditEmail" type="email" class="form-input" maxlength="255" value="' + escUser(u.email || '') + '">' +
+    '<label for="usrEditEmail">Email (optional)</label><input id="usrEditEmail" type="email" class="form-input" maxlength="255" value="' + escUser(u.email || '') + '">' +
     '<p class="cell-sub">Editing <b>' + escUser(u.u) + '</b></p>' +
     '<label class="cell-sub">Full name</label><input id="usrEditName" class="form-input" value="' + escUser(u.name) + '" maxlength="100">' +
+    '<div style="height:.5rem"></div><label class="cell-sub">Job title</label><input id="usrEditJob" class="form-input" value="' + escUser(u.job_title || '') + '" maxlength="120" placeholder="e.g. Cashier, Delivery rider">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Role</label><select id="usrEditRole" class="form-input">' +
     '<option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Cashier (POS only)</option>' +
     '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option></select>' +
@@ -163,7 +163,8 @@ async function saveUserEdit(id) {
   const payload = {
     name: document.getElementById('usrEditName').value.trim(),
     role: document.getElementById('usrEditRole').value,
-    email: document.getElementById('usrEditEmail')?.value.trim() || null
+    email: document.getElementById('usrEditEmail')?.value.trim() || null,
+    job_title: document.getElementById('usrEditJob')?.value.trim() || null
   };
   const pw = document.getElementById('usrEditPassword').value;
   if (pw && !validNewPassword(pw)) { showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.'); return; }

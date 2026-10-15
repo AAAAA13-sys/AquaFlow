@@ -15,12 +15,13 @@ class UserService
     {
         $this->validateEmployee($data['role'], $data['employee_id'] ?? null);
         $user = User::query()->create([
-            'email' => $data['role'] === User::ROLE_ADMIN ? ($data['email'] ?? null) : null,
+            'email' => $data['email'] ?? null,
             'employee_id' => $data['employee_id'] ?? null,
             'username' => $data['username'],
             'password' => $data['password'],
             'role' => $data['role'],
             'name' => $data['name'],
+            'job_title' => $data['job_title'] ?? null,
             'is_active' => $data['is_active'] ?? true,
         ]);
 
@@ -33,10 +34,11 @@ class UserService
         $employeeId = $data['employee_id'] ?? $user->employee_id;
         $this->validateEmployee($role, $employeeId);
         $user->employee_id = $employeeId;
+        if (array_key_exists('job_title', $data)) {
+            $user->job_title = $data['job_title'];
+        }
+
         if (array_key_exists('email', $data) && $data['email'] !== $user->email) {
-            if ($user->email_verified_at) {
-                throw ValidationException::withMessages(['email' => 'Verified owner email changes require local recovery enrollment.']);
-            }
             $user->email = $data['email'];
         }
         if (array_key_exists('name', $data)) {

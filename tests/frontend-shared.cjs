@@ -106,17 +106,24 @@ ctx.renderInsights();
 assert.ok(elements.kRev.textContent.includes('70'));
 assert.equal(elements.kGal.textContent,'30 gallons');
 // Overview must not invent urgency when the station has no records.
-elements.insActions={innerHTML:''};elements.advisory={innerHTML:''};elements.insRunway={innerHTML:''};
+elements.advisoryRail={classList:{_s:new Set(),toggle(c,on){if(on)this._s.add(c);else this._s.delete(c);},contains(c){return this._s.has(c);}}};
+elements.dashChartRow={classList:{_s:new Set(),toggle(c,on){if(on)this._s.add(c);else this._s.delete(c);},contains(c){return this._s.has(c);}}};
+elements.topCollectorsCard={classList:{_s:new Set(),toggle(c,on){if(on)this._s.add(c);else this._s.delete(c);},contains(c){return this._s.has(c);}}};
+elements.kStockAction={textContent:'',href:'',setAttribute(){}};
+elements.insCollect={innerHTML:''};
+elements.advisory={innerHTML:''};elements.insRunway={innerHTML:''};
 ctx.DB.advisories=[];
 ctx.renderInsights();
 // The empty states are worded for an owner, not for engineers: the old copy
 // read "No stock alerts" in a card whose button said "Set thresholds", which
-// contradicted itself. What matters here is that they stay reassuring.
-assert.ok(elements.insActions.innerHTML.includes('Nothing to buy'));
-assert.ok(elements.insActions.innerHTML.includes('No outstanding balances'));
-assert.ok(elements.advisory.innerHTML.includes('Nothing to buy right now'));
+// contradicted itself. What matters here is that they stay reassuring, and that
+// the panels which would only restate a zero are removed rather than shown empty.
+assert.ok(!elements.advisoryRail.classList.contains('hidden')===false,'rail hidden when nothing to buy');
+assert.ok(elements.dashChartRow.classList.contains('is-wide'),'chart claims the width the rail gave up');
+assert.ok(elements.topCollectorsCard.classList.contains('hidden'),'collectors hidden when nobody owes');
 assert.ok(elements.insRunway.innerHTML.includes('No inventory items'));
-delete elements.insActions;delete elements.advisory;delete elements.insRunway;
+delete elements.advisoryRail;delete elements.dashChartRow;delete elements.topCollectorsCard;
+delete elements.kStockAction;delete elements.insCollect;delete elements.advisory;delete elements.insRunway;
 delete elements.chDemand;delete elements.fHorizon;
 elements.testSearch = {value:' caps '};
 elements.testOrder = {value:'newest'};
