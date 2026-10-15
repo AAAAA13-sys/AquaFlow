@@ -20,9 +20,8 @@
         <div class="admin-entry-field"><label class="form-label" for="usrPassword">Password</label><div class="credential-control"><input id="usrPassword" type="password" class="form-input field-min-140" placeholder="Password *" required minlength="8" maxlength="64" autocomplete="new-password" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])[\x21-\x7E]{8,64}" aria-label="Password"><button id="usrPasswordToggle" type="button" class="btn btn-ghost btn-sm" aria-controls="usrPassword" aria-pressed="false" onclick="togglePassword('usrPassword', this)">Show</button></div><p class="credential-hint">8–64 characters, with uppercase, lowercase and a number. No spaces.</p><button type="button" class="btn btn-secondary btn-sm" onclick="generateAccountPassword('usrPassword')">Generate password</button></div>
         <div class="admin-entry-field"><label class="form-label" for="usrRole">Access role</label><select id="usrRole" class="form-input"  aria-label="Access role">
           <option value="cashier">Cashier (POS only)</option>
-          <option value="rider">Delivery rider</option><option value="refiller">Refiller</option><option value="admin">Owner (Full + Analytics)</option>
+          <option value="admin">Owner / Admin (Full + Analytics)</option>
         </select></div>
-        <div class="admin-entry-field"><label for="usrEmployee">Employee (rider/refiller)</label><select id="usrEmployee" class="form-input"><option value="">Select employee</option>@foreach(\App\Models\Employee::where('is_active', true)->orderBy('name')->get() as $employee)<option value="{{ $employee->id }}">{{ $employee->name }}</option>@endforeach</select></div>
         <div class="admin-entry-field"><label for="usrEmail">Admin email (sign-in and OTP)</label><input id="usrEmail" type="email" class="form-input" maxlength="255"></div>
         <p id="userCreateError" class="auth-error hidden" role="alert"></p>
         <button id="userCreateButton" type="submit" class="btn btn-primary btn-sm">Create account</button>
@@ -46,7 +45,7 @@
         <tbody id="usersBody"></tbody>
       </table>
     </div>
-    <p class="auth-footer-text text-center">Cashiers use the cashier portal. Riders and refillers use their employee workspace. Owners manage the station and analytics.</p>
+    <p class="auth-footer-text text-center">Cashiers use the cashier portal. Owners manage the station and analytics.</p>
   </section>
 
   @include('partials.editor-drawer', ['drawerId' => 'userEditWrap', 'bodyId' => 'userEditBody', 'title' => 'Edit user', 'closeAction' => 'closeUserEditor()'])

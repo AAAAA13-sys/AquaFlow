@@ -1,4 +1,18 @@
-let currentProfileData = null;
+function showProfileError(message) {
+  const error = document.getElementById('profileError');
+  if (error) {
+    error.textContent = message;
+    error.classList.remove('hidden');
+  }
+  return false;
+}
+
+function clearProfilePasswords() {
+  for (const id of ['profileCurrentPasswordInput', 'profileNewPasswordInput', 'profileConfirmPasswordInput']) {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  }
+}
 
 function computeInitials(name) {
   if (!name) return 'U';
@@ -16,19 +30,12 @@ async function openProfileModal() {
   if (errEl) errEl.classList.add('hidden');
   if (successEl) successEl.classList.add('hidden');
 
-  // Reset password inputs
-  const currentPass = document.getElementById('profileCurrentPasswordInput');
-  const newPass = document.getElementById('profileNewPasswordInput');
-  const confirmPass = document.getElementById('profileConfirmPasswordInput');
-  if (currentPass) currentPass.value = '';
-  if (newPass) newPass.value = '';
-  if (confirmPass) confirmPass.value = '';
+  clearProfilePasswords();
 
   modal.classList.remove('hidden');
 
   try {
     const data = await API.get('profile');
-    currentProfileData = data;
     const user = data.user || {};
     const employee = data.employee;
 
@@ -41,7 +48,7 @@ async function openProfileModal() {
     if (nameEl) nameEl.textContent = user.name || 'User';
     if (userEl) userEl.textContent = user.u || user.username || '--';
     if (roleEl) {
-      const roleName = user.role === 'admin' ? 'Store Owner' : (user.role === 'rider' ? 'Delivery Rider' : (user.role === 'refiller' ? 'Refill Operator' : 'Cashier'));
+      const roleName = user.role === 'admin' ? 'Store Owner / Admin' : 'Cashier';
       roleEl.textContent = roleName;
     }
     if (badgeEl) badgeEl.textContent = computeInitials(user.name);
@@ -58,10 +65,7 @@ async function openProfileModal() {
       }
     }
   } catch (err) {
-    if (errEl) {
-      errEl.textContent = err.message || 'Unable to load profile data.';
-      errEl.classList.remove('hidden');
-    }
+    showProfileError(err.message || 'Unable to load profile data.');
   }
 }
 
@@ -80,7 +84,7 @@ function toggleProfilePassword(inputId, btn) {
 
 async function saveProfile(event) {
   event.preventDefault();
-  const form = event.target;
+  if (saveProfile.busy) return false;
   const saveBtn = document.getElementById('profileSaveBtn');
   const errEl = document.getElementById('profileError');
   const successEl = document.getElementById('profileSuccess');
@@ -93,36 +97,11 @@ async function saveProfile(event) {
   const newPassword = (document.getElementById('profileNewPasswordInput')?.value || '');
   const confirmPassword = (document.getElementById('profileConfirmPasswordInput')?.value || '');
 
-  if (!name) {
-    if (errEl) {
-      errEl.textContent = 'Display name cannot be empty.';
-      errEl.classList.remove('hidden');
-    }
-    return false;
-  }
-
+  if (!name || name.length > 100) return showProfileError('Enter a display name from 1 to 100 characters.');
   if (newPassword || confirmPassword || currentPassword) {
-    if (!currentPassword) {
-      if (errEl) {
-        errEl.textContent = 'Current password is required to change password.';
-        errEl.classList.remove('hidden');
-      }
-      return false;
-    }
-    if (newPassword.length < 8) {
-      if (errEl) {
-        errEl.textContent = 'New password must be at least 8 characters long.';
-        errEl.classList.remove('hidden');
-      }
-      return false;
-    }
-    if (newPassword !== confirmPassword) {
-      if (errEl) {
-        errEl.textContent = 'New password and confirmation do not match.';
-        errEl.classList.remove('hidden');
-      }
-      return false;
-    }
+    if (!currentPassword) return showProfileError('Current password is required to change password.');
+    if (!validNewPassword(newPassword)) return showProfileError('Use 8 to 64 characters with uppercase, lowercase and a number, without spaces.');
+    if (newPassword !== confirmPassword) return showProfileError('New password and confirmation do not match.');
   }
 
   const payload = { name };
@@ -132,6 +111,7 @@ async function saveProfile(event) {
     payload.new_password_confirmation = confirmPassword;
   }
 
+  saveProfile.busy = true;
   if (saveBtn) saveBtn.disabled = true;
 
   try {
@@ -143,40 +123,25 @@ async function saveProfile(event) {
       successEl.classList.remove('hidden');
     }
 
-    // Reset password inputs
-    const curP = document.getElementById('profileCurrentPasswordInput');
-    const newP = document.getElementById('profileNewPasswordInput');
-    const confP = document.getElementById('profileConfirmPasswordInput');
-    if (curP) curP.value = '';
-    if (newP) newP.value = '';
-    if (confP) confP.value = '';
-
-    // Update avatar and name badges in the active DOM session
-    const overviewName = document.getElementById('profileOverviewName');
-    const badgeEl = document.getElementById('profileAvatarBadge');
-    if (overviewName) overviewName.textContent = updatedUser.name || name;
-    if (badgeEl) badgeEl.textContent = computeInitials(updatedUser.name || name);
-
-    // Update global session header elements if present on page
-    const whoEl = document.getElementById('who');
-    if (whoEl) whoEl.textContent = updatedUser.name || name;
-
-    const empHeaderName = document.getElementById('empHeaderName');
-    if (empHeaderName) empHeaderName.textContent = updatedUser.name || name;
-
-    const empAvatar = document.getElementById('empAvatar');
-    if (empAvatar) empAvatar.textContent = computeInitials(updatedUser.name || name);
+    clearProfilePasswords();
+    const displayName = updatedUser.name || name;
+    for (const id of ['profileOverviewName', 'who', 'empHeaderName']) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = displayName;
+    }
+    for (const id of ['profileAvatarBadge', 'empAvatar']) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = computeInitials(displayName);
+    }
 
     // Close after short pause so user sees confirmation
     setTimeout(() => {
       closeProfileModal();
     }, 1200);
   } catch (error) {
-    if (errEl) {
-      errEl.textContent = error.message || 'Failed to update profile.';
-      errEl.classList.remove('hidden');
-    }
+    showProfileError(error.message || 'Failed to update profile.');
   } finally {
+    saveProfile.busy = false;
     if (saveBtn) saveBtn.disabled = false;
   }
 

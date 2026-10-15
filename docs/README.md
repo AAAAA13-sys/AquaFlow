@@ -11,6 +11,8 @@
 | [Store installation](../distribution/Getting%20Started.md) | Packaged store setup, update, backup/restore and remote access |
 | [Development record](IMPLEMENTATION-2026-10-09.md) | Delivered scope and later login/setup corrections |
 | [Master plan](MASTERPLAN.md) | MP backlog and accepted scope; historical details yield to the implementation record |
+| [Employee QA](EMPLOYEE-QA-2026-10-15.md) | Current employee, evidence, remittance and cash validation results and remaining limits |
+| [Delivery accountability](DELIVERY-ACCOUNTABILITY.md) | Buyer codes, private delivery photos, cashier handover, remittance and evidence backups |
 | [Email setup](EMAIL-VERIFICATION-SETUP.md) | Sender configuration and email-login requirements |
 
 The application serves assets directly from public/css and public/js. There is no production Vite/Tailwind/axios asset pipeline. package.json retains concurrently for composer dev, plus a frontend test command. PHP dependencies remain governed by composer.lock.

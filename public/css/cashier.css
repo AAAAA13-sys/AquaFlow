@@ -123,3 +123,17 @@
 @media(max-width:900px) { .cashier-orders-page #queue { grid-template-columns:1fr; } }
 @media(max-width:600px) { .cashier-orders-page .queue-workspace { padding:16px; } .cashier-orders-page .queue-search { flex:1 1 100%; min-width:0; } .cashier-orders-page .queue-card { padding:16px; } }
 
+
+.cashier-drawer-dialog {
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 16px;
+  padding: 24px;
+}
+.cashier-drawer-dialog::backdrop { background: #0f172a80; }
+.cashier-drawer-dialog .cash-card { padding: 16px; margin-top: 12px; }
+.cashier-drawer-dialog .form-input { display: block; width: 100%; box-sizing: border-box; margin-bottom: 12px; }
+.cashier-drawer-dialog .insight-row { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }

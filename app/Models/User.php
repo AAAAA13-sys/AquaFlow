@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,6 +57,11 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMIN;
     }
 
+    public function canHandleCash(): bool
+    {
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_CASHIER], true);
+    }
+
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
@@ -63,7 +69,7 @@ class User extends Authenticatable
 
     public function isEmployee(): bool
     {
-        return in_array($this->role, ['rider', 'refiller'], true);
+        return false;
     }
 
     public function transactions(): HasMany

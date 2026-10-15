@@ -45,27 +45,5 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-
-        User::query()->updateOrCreate(
-            ['username' => 'refiller'],
-            [
-                'password' => Hash::make('1234'),
-                'role' => 'refiller',
-                'name' => 'Marco Reyes (Refiller)',
-                'employee_id' => \App\Models\Employee::where('name', 'Marco Reyes')->firstOrFail()->id,
-                'is_active' => true,
-            ]
-        );
-
-        User::query()->updateOrCreate(
-            ['username' => 'rider'],
-            [
-                'password' => Hash::make('1234'),
-                'role' => 'rider',
-                'name' => 'Luis Garcia (Rider)',
-                'employee_id' => \App\Models\Employee::where('name', 'Luis Garcia')->firstOrFail()->id,
-                'is_active' => true,
-            ]
-        );
     }
 }

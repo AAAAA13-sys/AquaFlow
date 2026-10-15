@@ -137,13 +137,11 @@ async function openUserEditor(id) {
   try { employees = (await API.request('employees')).employees; } catch (error) { appNotice(error.message); return; }
   bodyEl.innerHTML =
     '<label for="usrEditEmail">Admin email (sign-in and OTP)</label><input id="usrEditEmail" type="email" class="form-input" maxlength="255" value="' + escUser(u.email || '') + '">' +
-    '<label>Employee (rider/refiller)</label><select id="usrEditEmployee" class="form-input"><option value="">No employee</option>' + employees.map(e => '<option value="' + Number(e.id) + '"' + (e.id === u.employee_id ? ' selected' : '') + '>' + escUser(e.name) + '</option>').join('') + '</select>' +
     '<p class="cell-sub">Editing <b>' + escUser(u.u) + '</b></p>' +
     '<label class="cell-sub">Full name</label><input id="usrEditName" class="form-input" value="' + escUser(u.name) + '" maxlength="100">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Role</label><select id="usrEditRole" class="form-input">' +
     '<option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Cashier (POS only)</option>' +
-    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option>' +
-    '<option value="rider"' + (u.role === 'rider' ? ' selected' : '') + '>Delivery rider</option><option value="refiller"' + (u.role === 'refiller' ? ' selected' : '') + '>Refiller</option></select>' +
+    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option></select>' +
     '<div style="height:.5rem"></div><label class="cell-sub">New password (blank = keep)</label><input id="usrEditPassword" type="password" class="form-input" minlength="8" maxlength="64" autocomplete="new-password">' +
     '<div class="drawer-actions"><button id="usrEditPasswordToggle" type="button" class="btn btn-ghost btn-sm" onclick="togglePassword(\'usrEditPassword\', this)" aria-pressed="false">Show password</button><button type="button" class="btn btn-secondary btn-sm" onclick="generateAccountPassword(\'usrEditPassword\')">Generate password</button></div><p class="credential-hint">8–64 characters, uppercase, lowercase and a number. Leave blank to keep the current password.</p>' +
     '<p id="userEditError" class="auth-error hidden" role="alert"></p>' +
@@ -165,8 +163,7 @@ async function saveUserEdit(id) {
   const payload = {
     name: document.getElementById('usrEditName').value.trim(),
     role: document.getElementById('usrEditRole').value,
-    employee_id: Number(document.getElementById('usrEditEmployee').value) || null,
-    email: document.getElementById('usrEditEmail').value.trim() || null
+    email: document.getElementById('usrEditEmail')?.value.trim() || null
   };
   const pw = document.getElementById('usrEditPassword').value;
   if (pw && !validNewPassword(pw)) { showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.'); return; }

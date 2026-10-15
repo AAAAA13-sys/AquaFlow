@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
-use App\Services\EmployeeService;
 use Illuminate\Http\JsonResponse;
 
 class EmployeeController extends Controller
@@ -15,19 +14,21 @@ class EmployeeController extends Controller
         return response()->json(['employees' => EmployeeResource::collection(Employee::orderByDesc('id')->get())]);
     }
 
-    public function store(EmployeeRequest $request, EmployeeService $service): JsonResponse
+    public function store(EmployeeRequest $request): JsonResponse
     {
-        return response()->json(['employee' => new EmployeeResource($service->create($request->validated()))], 201);
+        return response()->json(['employee' => new EmployeeResource(Employee::create($request->validated()))], 201);
     }
 
-    public function update(EmployeeRequest $request, Employee $employee, EmployeeService $service): JsonResponse
+    public function update(EmployeeRequest $request, Employee $employee): JsonResponse
     {
-        return response()->json(['employee' => new EmployeeResource($service->update($employee, $request->validated()))]);
+        $employee->update($request->validated());
+
+        return response()->json(['employee' => new EmployeeResource($employee->refresh())]);
     }
 
-    public function destroy(Employee $employee, EmployeeService $service): JsonResponse
+    public function destroy(Employee $employee): JsonResponse
     {
-        $service->delete($employee);
+        $employee->delete();
 
         return response()->json(['ok' => true]);
     }

@@ -129,7 +129,7 @@
                 Pay Cashier (Cash)
               </button>
               <button type="button" id="payOptRider" class="seg-btn active" style="min-height:38px;font-size:12px;padding:6px 10px;" onclick="setDeliveryPayOption('rider')">
-                Pay to Rider
+                Charge to Account
               </button>
             </div>
           </div>

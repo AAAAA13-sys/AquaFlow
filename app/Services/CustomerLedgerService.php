@@ -9,9 +9,11 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerLedgerService
 {
-    public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey): array
+    public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey, ?int $deliveryProofId = null, ?string $note = null): array
     {
-        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', ['customer_id' => $customer->id, 'amount' => $amount], function () use ($customer, $amount, $cashier): array {
+        abort_unless($cashier->canHandleCash(), 403);
+
+        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', array_filter(['customer_id' => $customer->id, 'amount' => $amount, 'note' => $note], fn ($value) => $value !== null), function () use ($customer, $amount, $cashier): array {
             /** @var Customer $locked */
             $locked = Customer::query()->lockForUpdate()->find($customer->id);
 
@@ -26,6 +28,12 @@ class CustomerLedgerService
                     'amount' => 'Payment cannot exceed the outstanding balance.',
                 ]);
             }
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Payment amount must be greater than zero.',
+                ]);
+            }
+
             $applied = round($amount, 2);
             $locked->debt_balance = round($locked->debt_balance - $applied, 2);
             $locked->save();
@@ -57,6 +65,6 @@ class CustomerLedgerService
 
             return ['applied' => $applied, 'customer' => $locked, 'transaction' => $transaction->load(['customer', 'cashier'])];
         });
-
     }
 }
+

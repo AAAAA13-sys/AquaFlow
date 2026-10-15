@@ -56,7 +56,7 @@
       <button type="submit" class="btn btn-primary">Verify email and finish setup</button>
     </form>
     <section id="recoverySetup" class="hidden"><h2>Save your recovery codes</h2><p>Store these privately. Each works once with your password if email is unavailable.</p><pre id="recoveryCodes"></pre><a href="/admin" class="btn btn-primary">I saved my codes — continue</a></section>
-    <p class="auth-footer-text">Cashier, rider or refiller? <a href="{{ url('/') }}" class="auth-link">Employee Login</a></p>
+    <p class="auth-footer-text">Station cashier? <a href="{{ url('/') }}" class="auth-link">Employee Login</a></p>
   </main>
   @include('partials.scripts-base')
   <script src="{{ asset('js/auth/admin-login.js') }}?v={{ asset_version('js/auth/admin-login.js') }}"></script>

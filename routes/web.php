@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\AdminSetupController;
 use App\Http\Controllers\AdvisoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
-use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ForecastController;
@@ -12,6 +12,7 @@ use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SettingsController;
@@ -30,14 +31,6 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'auth.cashier-login')->name('cashier.login');
 Route::view('/owner/login', 'auth.owner-login')->name('owner.login');
 
-Route::view('/employee', 'employee.home')->middleware('auth');
-Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
-    Route::get('orders', [FulfillmentController::class, 'index']);
-    Route::post('orders/{id}', [FulfillmentController::class, 'update'])->whereNumber('id');
-    Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show']);
-    Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update']);
-});
-
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
@@ -52,7 +45,7 @@ Route::middleware('auth')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'users', 'settings', 'cash'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'till', 'customers', 'suppliers', 'employees', 'users', 'settings'])
             ->name('admin.tab');
     });
 });
@@ -68,9 +61,9 @@ Route::prefix('api')->group(function (): void {
 
     // Login is rate limited to slow down credential stuffing.
     Route::middleware('throttle:10,1')->group(function (): void {
-        Route::post('auth/setup-login', [\App\Http\Controllers\AdminSetupController::class, 'login']);
-        Route::post('auth/setup-owner', [\App\Http\Controllers\AdminSetupController::class, 'prepare']);
-        Route::post('auth/setup-verify', [\App\Http\Controllers\AdminSetupController::class, 'verify']);
+        Route::post('auth/setup-login', [AdminSetupController::class, 'login']);
+        Route::post('auth/setup-owner', [AdminSetupController::class, 'prepare']);
+        Route::post('auth/setup-verify', [AdminSetupController::class, 'verify']);
         Route::post('auth/verify-email', [AuthController::class, 'verifyEmail']);
         Route::post('auth/recover', [AuthController::class, 'recover']);
         Route::post('auth/login', [AuthController::class, 'login'])->name('api.login');
@@ -83,8 +76,8 @@ Route::prefix('api')->group(function (): void {
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
 
         // Personal profile and settings
-        Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('api.profile.show');
-        Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('api.profile.update');
+        Route::get('profile', [ProfileController::class, 'show'])->name('api.profile.show');
+        Route::put('profile', [ProfileController::class, 'update'])->name('api.profile.update');
 
         // Customers and receivables
         Route::get('customers', [CustomerController::class, 'index'])->name('api.customers.index');
@@ -107,15 +100,15 @@ Route::prefix('api')->group(function (): void {
 
         Route::middleware('owner')->group(function (): void {
             // Which stock row a sale consumes - the same shape the POS needs.
-        Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
-        Route::post('products', [ProductController::class, 'store'])
-            ->middleware('owner')
-            ->name('api.products.store');
-        Route::patch('products/{product}', [ProductController::class, 'update'])
-            ->middleware('owner')
-            ->name('api.products.update');
+            Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
+            Route::post('products', [ProductController::class, 'store'])
+                ->middleware('owner')
+                ->name('api.products.store');
+            Route::patch('products/{product}', [ProductController::class, 'update'])
+                ->middleware('owner')
+                ->name('api.products.update');
 
-        Route::get('products/recipes', [RecipeController::class, 'index']);
+            Route::get('products/recipes', [RecipeController::class, 'index']);
             Route::put('products/{product}/recipe', [RecipeController::class, 'update']);
             Route::get('inventory/{inventory}/movements', [StockMovementController::class, 'index']);
             Route::post('inventory/{inventory}/movements', [StockMovementController::class, 'store']);
@@ -147,20 +140,9 @@ Route::prefix('api')->group(function (): void {
         });
         Route::post('queue/{queueItem}/deliver', [QueueController::class, 'deliver']);
 
-        Route::get('fulfillment', [FulfillmentController::class, 'index']);
-        Route::post('fulfillment/{id}', [FulfillmentController::class, 'update'])->whereNumber('id')->middleware('owner');
-
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');
         Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->middleware('owner')->name('api.queue.advance');
-
-        // End-of-day cash reconciliation (own drawer).
-        Route::get('cash-shift', [CashShiftController::class, 'current'])->name('api.cash-shift.current');
-        Route::post('cash-shift/open', [CashShiftController::class, 'open'])->name('api.cash-shift.open');
-        Route::post('cash-shift/close', [CashShiftController::class, 'close'])->name('api.cash-shift.close');
-        Route::get('cash-shift/overview', [CashShiftController::class, 'overview'])
-            ->middleware('owner')
-            ->name('api.cash-shift.overview');
 
         // Settings
         Route::get('settings', [SettingsController::class, 'index'])->name('api.settings.index');

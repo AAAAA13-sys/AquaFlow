@@ -74,6 +74,7 @@ services:
       ANALYTICS_URL: http://analytics:5000
       ANALYTICS_TIMEOUT: ${ANALYTICS_TIMEOUT:-240}
     volumes:
+      - proof_data:/var/www/html/storage/app/private
       - ./app:/var/www/html/app
       - ./routes:/var/www/html/routes
       - ./config:/var/www/html/config
@@ -275,6 +276,7 @@ services:
     networks: [aquaflow]
 
 volumes:
+  proof_data:
   db_data:
 
 networks:

@@ -12,7 +12,7 @@
         <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Staff workspace</p>
       </div>
     </header>
-    <p class="auth-description">For cashiers, delivery riders and refillers.</p>
+    <p class="auth-description">For station cashiers.</p>
     <form class="auth-form" onsubmit="event.preventDefault(); doLogin();">
       @include('partials.login-credentials', ['usernameLabel' => 'Username'])
 
@@ -28,7 +28,7 @@
   <script>
     function finishLogin(result) {
       setSession(result.user);
-      window.location.href = result.user.role === 'admin' ? '/admin' : (['rider', 'refiller'].includes(result.user.role) ? '/employee' : '/cashier');
+      window.location.href = result.user.role === 'admin' ? '/admin' : '/cashier';
     }
     async function doLogin() {
       const username = document.getElementById('u').value.trim();

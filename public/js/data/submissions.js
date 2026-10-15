@@ -1,3 +1,12 @@
+// LAN HTTP may lack randomUUID; getRandomValues still provides cryptographic bytes.
+function newSubmissionKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  return [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join('-');
+}
+
 // Preserve the original financial request until its receipt is acknowledged.
 // sessionStorage survives refresh and isolates independent cashier tabs.
 const Submissions = {
@@ -19,7 +28,7 @@ const Submissions = {
     if (entry && entry.result) return entry.result;
     if (this.flight) return this.flight;
     if (!entry) {
-      entry = {path, signature, body:{...payload, submission_key:crypto.randomUUID()}};
+      entry = {path, signature, body:{...payload, submission_key:newSubmissionKey()}};
       this.save(entry); // If browser storage is unavailable, do not send a payment.
     }
     this.flight = this.perform(entry);

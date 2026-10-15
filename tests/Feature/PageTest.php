@@ -115,7 +115,7 @@ class PageTest extends TestCase
 
         $cart = $this->js('js/pos/cart.js');
 
-        $this->assertStringContainsString('Available to add: ', $cart);
+        $this->assertStringContainsString('Available stock: ', $cart);
         $this->assertStringContainsString('Walk-in only', $cart);
         $this->assertStringContainsString('For Sale - brand new', $cart);
     }
@@ -246,13 +246,19 @@ class PageTest extends TestCase
 
     public function test_the_cashier_has_no_route_to_the_owner_portal(): void
     {
-        // The cashier sidebar used to link straight into the owner portal.
+        // Shared assets may live under js/admin; navigation must never expose owner routes.
         foreach (['/cashier', '/cashier/queue', '/cashier/history'] as $url) {
-            $this->actingAs($this->cashier)->get($url)
-                ->assertOk()
-                ->assertDontSee('Owner Portal', false)
-                ->assertDontSee('/admin', false);
+            $response = $this->actingAs($this->cashier)->get($url)
+                ->assertOk()->assertDontSee('Owner Portal', false);
+            $document = new \DOMDocument;
+            @$document->loadHTML($response->getContent());
+            foreach ((new \DOMXPath($document))->query('//a[@href] | //form[@action]') as $element) {
+                $target = $element->getAttribute($element->tagName === 'form' ? 'action' : 'href');
+                $this->assertDoesNotMatchRegularExpression('~^/admin(?:/|$)~', parse_url($target, PHP_URL_PATH) ?? '');
+            }
         }
+        $this->get('/admin/dashboard')->assertRedirect('/cashier');
+        $this->getJson('/api/users')->assertForbidden();
     }
 
     public function test_the_cashier_subpages_have_no_back_to_pos_button(): void

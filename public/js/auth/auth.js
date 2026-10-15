@@ -11,7 +11,7 @@ function getSession() {
 }
 
 function setSession(user) {
-  if (getSession()?.u !== user.u || ['rider', 'refiller'].includes(user.role)) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
+  if (getSession()?.u !== user.u) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
   localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, t: Date.now() }));
 }
 

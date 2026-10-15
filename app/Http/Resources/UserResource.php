@@ -23,7 +23,7 @@ class UserResource extends JsonResource
             'role' => $this->role,
             'email' => $this->email,
             'employee_id' => $this->employee_id,
-            'access' => $this->isAdmin() ? 'Full + Analytics' : ($this->isEmployee() ? 'Own work orders' : 'POS only'),
+            'access' => $this->isAdmin() ? 'Full + Analytics' : 'POS only',
             'active' => (bool) $this->is_active,
         ];
     }

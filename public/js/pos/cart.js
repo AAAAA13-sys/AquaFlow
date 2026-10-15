@@ -54,8 +54,18 @@ function isDelivery() {
 
 const peso = n => '₱' + Number(n).toLocaleString();
 
+function posChangeAllowed() {
+  if ((typeof completeSale === 'function' && completeSale.busy) || (typeof settleDebt === 'function' && settleDebt.busy)) {
+    showStageError('Wait for the current payment to finish before changing the order.'); return false;
+  }
+  if (typeof Submissions !== 'undefined' && Submissions.pending()) {
+    showStageError('Finish or recover the pending receipt before changing the order.'); return false;
+  }
+  return true;
+}
+
 async function confirmOrderType(type) {
-  if (type === POS.type || confirmOrderType.busy) return;
+  if (type === POS.type || confirmOrderType.busy || !posChangeAllowed()) return;
   if (type === 'Delivery' && (!posCust() || posCust().is_guest)) {
     showStageError('Select a registered customer for delivery.'); return;
   }
@@ -73,6 +83,7 @@ async function confirmCartAction(message, action) {
 }
 
 function setType(t) {
+  if (t !== POS.type && !posChangeAllowed()) return;
   POS.type = t;
 
   const walk = document.getElementById('bWalk');
@@ -235,12 +246,10 @@ function renderCustList() {
 
 async function pickCust(id) {
   if (POS.custId === id) return true;
-  if (typeof Submissions !== 'undefined' && Submissions.pending()) {
-    showStageError('Recover the pending receipt before changing customers.'); return false;
-  }
+  if (!posChangeAllowed()) return false;
   if (POS.cart.length && !await appConfirm('Discard the current order and switch customers?', 'Discard and switch')) return false;
   if (!POS.cart.length && !await appConfirm('Select ' + (DB.customers.find(c => c.id === id)?.name || 'this customer') + ' for this order?', 'Select customer')) return false;
-  POS.cart = []; POS.custId = id; POS.type = 'Walk-in';
+  POS.cart = []; POS.custId = id; POS.type = 'Walk-in'; POS.deliveryPay = 'rider';
   ['tender', 'debtPay'].forEach(key => { const el = document.getElementById(key); if (el) el.value = 0; });
   const receipt = document.getElementById('receipt'); if (receipt) receipt.classList.add('hidden');
   showStageError(null); savePOSState(); renderPOS(); posStep(1);
@@ -323,6 +332,7 @@ function renderProducts() {
 }
 
 async function addProduct(pid) {
+  if (!posChangeAllowed()) return;
   const existing = POS.cart.find(i => i.id === pid);
   if (existing && existing.q >= MAX_QTY_PER_ITEM) {
     appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
@@ -349,6 +359,7 @@ async function addProduct(pid) {
 }
 
 async function chgQty(i, d) {
+  if (!posChangeAllowed()) return;
   if (!POS.cart[i]) return;
   if (d > 0 && POS.cart[i].q >= MAX_QTY_PER_ITEM) {
     appNotice('Maximum ' + MAX_QTY_PER_ITEM + ' units per item.');
@@ -363,6 +374,7 @@ async function chgQty(i, d) {
 
 /** Bulk quantity step for commercial orders: +1 / +5 / +10 in one click. */
 async function addQty(i, step) {
+  if (!posChangeAllowed()) return;
   if (!POS.cart[i]) return;
   const amount = Number(step) || 0;
   if (amount > 0 && POS.cart[i].q >= MAX_QTY_PER_ITEM) {
@@ -424,7 +436,9 @@ function cartRowsHtml() {
 }
 
 function setDeliveryPayOption(opt) {
+  if (!['cashier', 'rider'].includes(opt) || !posChangeAllowed()) return;
   POS.deliveryPay = opt;
+  savePOSState();
   renderPaymentPanel();
   renderPOS();
 }
@@ -450,7 +464,7 @@ function renderPaymentPanel() {
 
     if (cash) cash.classList.toggle('hidden', !payToCashier);
     if (delivery) delivery.classList.toggle('hidden', payToCashier);
-    if (badge) badge.textContent = payToCashier ? 'CASH (COLLECT NOW)' : 'PAY TO RIDER';
+    if (badge) badge.textContent = payToCashier ? 'CASH (COLLECT NOW)' : 'ACCOUNT (PAY LATER)';
 
     const c = posCust();
     const t = posTotals();
@@ -504,7 +518,7 @@ function renderPOS() {
   const deductNote = document.getElementById('deductNote');
   if (deductNote) {
     deductNote.textContent = t.gal > 0
-      ? 'Each refilled gallon also consumes 1 cap and 1 seal from station stock.'
+      ? 'Stock is deducted using the configured recipe for each product.'
       : '';
   }
 
@@ -527,7 +541,7 @@ function renderPOS() {
   const orderNote = document.getElementById('orderTypeNote');
   if (orderNote) {
     orderNote.textContent = isDelivery()
-      ? 'Delivery orders are charged to the customer account. Refills and new jugs can both be delivered.'
+      ? 'Delivery needs a registered customer and address. Choose cash collected now or charge to the account; record later collections separately.'
       : '';
   }
 
@@ -558,16 +572,21 @@ function cartSignature() { return JSON.stringify(POS.cart.map(i => [i.id, i.q]))
 async function refreshStockPreview() {
   const seq = ++stockSequence, signature = cartSignature();
   stockPreview = null;
+  const status = document.getElementById('stockPreview');
+  if (status) { status.classList.remove('hidden'); status.textContent = 'Checking stock...'; }
   renderProducts();
   try {
     const result = await API.request('cart/availability', {method:'POST', body:{items:POS.cart.map(i => ({product_id:i.id, quantity:i.q}))}});
     if (seq !== stockSequence || signature !== cartSignature()) return null;
     stockPreview = result;
+    if (status) status.innerHTML = result.valid ? 'Stock checked. Availability is checked again before sale.' : (result.shortages || ['Stock is insufficient. Reduce the affected quantities.']).map(esc).join('<br>');
+    if (typeof refreshStageValidation === 'function') refreshStageValidation();
     renderProducts();
     return result;
   } catch (error) {
     if (seq === stockSequence) {
       stockSignature = null;
+      if (status) status.innerHTML = 'Could not check stock. Reconnect, then <button type="button" class="btn btn-ghost btn-sm" onclick="refreshStockPreview()">Retry stock check</button>.';
     }
     return null;
   }

@@ -6,6 +6,8 @@ use App\Models\CashShift;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Till cash reconciliation.
@@ -15,28 +17,21 @@ use Illuminate\Support\Collection;
  */
 class CashReconciliationService
 {
-    /**
-     * Cash taken during a shift: opening float plus cash sales.
-     *
-     * Account (credit) sales are excluded - no money moved at the counter, so
-     * including them would overstate the drawer. Debt payments are excluded
-     * too because they are collected against an existing balance and are
-     * reported separately on the sales page.
-     */
+    /** Physical cash includes collections; sales revenue and count exclude them. */
     public function cashMovement(CashShift $shift): array
     {
         $sales = Transaction::query()
             ->where('cashier_id', $shift->user_id)
             ->whereDate('transaction_date', $shift->business_date)
             ->where('payment_method', 'Cash')
-            ->where('order_type', '!=', 'Debt Payment')
-            ->get(['total_amount']);
+            ->get(['total_amount', 'order_type']);
 
         $total = (float) $sales->sum('total_amount');
+        $revenue = $sales->where('order_type', '!=', 'Debt Payment');
 
         return [
-            'total_sales' => round($total, 2),
-            'cash_sales_count' => $sales->count(),
+            'total_sales' => round((float) $revenue->sum('total_amount'), 2),
+            'cash_sales_count' => $revenue->count(),
             'expected_cash' => round($shift->opening_float + $total, 2),
         ];
     }
@@ -49,27 +44,30 @@ class CashReconciliationService
      */
     public function open(User $user, float $openingFloat, ?string $date = null): array
     {
-        $businessDate = $date ?: today()->toDateString();
+        return DB::transaction(function () use ($user, $openingFloat, $date): array {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $businessDate = $date ?: today()->toDateString();
 
-        $existing = CashShift::query()
-            ->where('user_id', $user->id)
-            ->whereDate('business_date', $businessDate)
-            ->first();
+            $existing = CashShift::query()
+                ->where('user_id', $user->id)
+                ->where(fn ($query) => $query->whereDate('business_date', $businessDate)->orWhereNull('closed_at'))
+                ->orderBy('business_date')->lockForUpdate()->first();
 
-        if ($existing) {
-            return ['shift' => $existing, 'already_open' => true];
-        }
+            if ($existing) {
+                return ['shift' => $existing, 'already_open' => true];
+            }
 
-        $shift = CashShift::create([
-            'user_id' => $user->id,
-            'business_date' => $businessDate,
-            'opening_float' => round($openingFloat, 2),
-            'opened_at' => now(),
-        ]);
+            $shift = CashShift::create([
+                'user_id' => $user->id,
+                'business_date' => $businessDate,
+                'opening_float' => round($openingFloat, 2),
+                'opened_at' => now(),
+            ]);
 
-        $shift->fill($this->cashMovement($shift))->save();
+            $shift->fill($this->cashMovement($shift))->save();
 
-        return ['shift' => $shift->fresh(), 'already_open' => false];
+            return ['shift' => $shift->fresh(), 'already_open' => false];
+        });
     }
 
     /**
@@ -82,29 +80,37 @@ class CashReconciliationService
      */
     public function close(CashShift $shift, float $countedCash, ?string $note = null): array
     {
-        $movement = $this->cashMovement($shift);
+        return DB::transaction(function () use ($shift, $countedCash, $note): array {
+            User::whereKey($shift->user_id)->lockForUpdate()->firstOrFail();
+            $shift = CashShift::whereKey($shift->id)->lockForUpdate()->firstOrFail();
+            if (! $shift->isOpen()) {
+                throw ValidationException::withMessages(['counted_cash' => 'This drawer has already been closed.']);
+            }
+            $movement = $this->cashMovement($shift);
 
-        $expected = $movement['expected_cash'];
-        $variance = round($countedCash - $expected, 2);
+            $expected = $movement['expected_cash'];
+            $variance = round($countedCash - $expected, 2);
 
-        $shift->fill([
-            'expected_cash' => $expected,
-            'counted_cash' => round($countedCash, 2),
-            'variance' => $variance,
-            'total_sales' => $movement['total_sales'],
-            'cash_sales_count' => $movement['cash_sales_count'],
-            'closed_at' => now(),
-            'note' => $note,
-        ])->save();
+            $shift->fill([
+                'expected_cash' => $expected,
+                'counted_cash' => round($countedCash, 2),
+                'variance' => $variance,
+                'total_sales' => $movement['total_sales'],
+                'cash_sales_count' => $movement['cash_sales_count'],
+                'closed_at' => now(),
+                'note' => $note,
+            ])->save();
 
-        return ['shift' => $shift->fresh(), 'expected_cash' => $expected, 'variance' => $variance];
+            return ['shift' => $shift->fresh(), 'expected_cash' => $expected, 'variance' => $variance];
+        });
     }
 
     /** Recent closed sessions, newest first, for the history list. */
-    public function recentHistory(int $limit = 14): Collection
+    public function recentHistory(int $limit = 14, ?int $userId = null): Collection
     {
         return CashShift::query()
             ->with('user')
+            ->when($userId !== null, fn ($query) => $query->where('user_id', $userId))
             ->whereNotNull('closed_at')
             ->orderByDesc('closed_at')
             ->limit($limit)

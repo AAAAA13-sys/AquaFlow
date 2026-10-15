@@ -53,6 +53,8 @@ RUN docker-php-ext-install pdo_mysql \
          echo 'expose_php=Off'; \
          echo 'display_errors=Off'; \
          echo 'log_errors=On'; \
+         echo 'upload_max_filesize=5M'; \
+         echo 'post_max_size=8M'; \
        } > /usr/local/etc/php/conf.d/aquaflow-hardening.ini
 
 # Serve Laravel's public/ directory instead of the framework root
@@ -79,7 +81,7 @@ COPY . .
 COPY --from=vendor-dev /app/vendor ./vendor
 COPY docker/app/test-entrypoint.sh /usr/local/bin/aquaflow-test-entrypoint
 RUN chmod +x /usr/local/bin/aquaflow-test-entrypoint \
-    && mkdir -p storage/framework/cache/data \
+    && mkdir -p storage/app/private/delivery-proofs storage/framework/cache/data \
                 storage/framework/sessions \
                 storage/framework/views \
                 storage/logs \
@@ -99,7 +101,7 @@ COPY --from=vendor /app/vendor ./vendor
 
 # Laravel writes here at runtime. .dockerignore deliberately keeps local logs and
 # caches out of the image, so the directories must be recreated before chown.
-RUN mkdir -p storage/framework/cache/data \
+RUN mkdir -p storage/app/private/delivery-proofs storage/framework/cache/data \
              storage/framework/sessions \
              storage/framework/views \
              storage/logs \

@@ -7,6 +7,7 @@
 
 // ---------- Orders in Progress ----------
 
+let queueDeliverBusy = false;
 let queueStatus = 'active', queuePage = 1, queueRequest = 0, queueSearchTimer;
 function queueWaitLabel(minutes) {
  const total = Math.max(0, Math.floor(Number(minutes) || 0));
@@ -17,13 +18,13 @@ function queueWaitLabel(minutes) {
 function renderQueuePage() {
  const list = document.getElementById('queue'); if (!list) return;
  list.innerHTML = (DB.queue || []).map(q => {
-  const ready = !q.completed && q.orderType === 'Walk-in' && q.fulfillment_status === 'ready';
-  const note = q.completed ? 'Customer received this order' : ready ? 'Ready for customer pickup' : q.fulfillment_status === 'out_for_delivery' ? 'With the delivery rider' : q.orderType === 'Delivery' && q.fulfillment_status === 'ready' ? 'Ready for rider dispatch' : 'Waiting for preparation';
+  const ready = !q.completed;
+  const note = q.completed ? 'Customer received this order' : (q.orderType === 'Delivery' ? 'Ready for delivery' : 'Ready for customer pickup');
   const time = q.completed ? (q.delivered_at ? 'Delivered ' + new Date(q.delivered_at).toLocaleString() : 'Handover time unavailable') : 'Waiting ' + queueWaitLabel(q.mins);
   return '<article class="queue-card' + (ready ? ' queue-card--ready' : '') + '"><div class="queue-card-heading"><span class="queue-receipt">' + esc(q.no) + '</span><span class="pill ' + (q.completed ? 'pill-ok' : 'pill-info') + '">' + (q.completed ? 'Delivered' : 'Active order') + '</span></div>' +
    '<h3>' + esc(q.cust) + '</h3><div class="queue-order-detail"><span class="queue-channel">' + esc(q.orderType) + '</span><span>' + esc(q.items) + '</span></div>' +
    '<div class="queue-card-footer"><div><p class="queue-next-action">' + esc(note) + '</p><p class="queue-meta">' + esc(time) + '</p></div>' +
-   (ready ? '<button class="btn btn-primary btn-sm" onclick="deliverQueueOrder(' + Number(q.id) + ',this)">Confirm handover</button>' : '') + '</div></article>';
+   (ready ? '<button class="btn btn-primary btn-sm" onclick="deliverQueueOrder(' + Number(q.id) + ',this)">Confirm ' + (q.orderType === 'Delivery' ? 'delivery' : 'handover') + '</button>' : '') + '</div></article>';
  }).join('') || '<div class="cashier-empty"><b>No ' + (queueStatus === 'active' ? 'active orders' : 'delivered orders') + '</b><p>' + (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.') + '</p></div>';
 }
 async function selectQueueStatus(status) {
@@ -37,11 +38,15 @@ async function selectQueueStatus(status) {
 }
 function searchQueue() { clearTimeout(queueSearchTimer); queueRequest++; queuePage=1; queueSearchTimer=setTimeout(refreshQueuePage,250); }
 async function deliverQueueOrder(id,button) {
- if(!await appConfirm('Confirm that the customer has received this order?')) return;
- button.disabled=true;
- try { await API.post('queue/'+id+'/deliver'); await refreshQueuePage(); }
- catch(error) { appNotice(error.message || 'Unable to confirm delivery.'); }
- finally { button.disabled=false; }
+ if(queueDeliverBusy) return;
+ queueDeliverBusy=true; button.disabled=true;
+ try {
+  if(!await appConfirm('Confirm that the customer has received all items in this order?', 'Confirm handover')) return;
+  await API.post('queue/'+id+'/deliver');
+  if(await refreshQueuePage() === false) appNotice('Handover recorded. Refresh the orders list to see the updated status.');
+ } catch(error) {
+  appNotice((error.message || 'Handover was not confirmed.') + ' Refresh and check this order before handing it over again.');
+ } finally { queueDeliverBusy=false; button.disabled=false; }
 }
 function changeQueuePage(delta) { queuePage=Math.max(1,queuePage+delta); refreshQueuePage(); }
 
@@ -200,5 +205,6 @@ async function refreshQueuePage() {
   DB.queue=response.queue || []; renderQueuePage();
   document.getElementById('queueCount').textContent=response.total+' orders';
   document.getElementById('queuePages').innerHTML='<button class="btn btn-ghost btn-sm" onclick="changeQueuePage(-1)"'+(queuePage===1 ? ' disabled' : '')+'>Previous</button><span>Page '+queuePage+'</span><button class="btn btn-ghost btn-sm" onclick="changeQueuePage(1)"'+(!response.has_more ? ' disabled' : '')+'>Next</button>';
- } catch(error) { if(request===queueRequest) { document.getElementById('queue').innerHTML='<div class="cashier-empty" role="alert"><p>'+esc(error.message || 'Unable to load orders.')+'</p><button class="btn btn-secondary" onclick="refreshQueuePage()">Retry</button></div>'; document.getElementById('queueCount').textContent='Unavailable'; document.getElementById('queuePages').innerHTML=''; } }
+  return true;
+ } catch(error) { if(request===queueRequest) { document.getElementById('queue').innerHTML='<div class="cashier-empty" role="alert"><p>'+esc(error.message || 'Unable to load orders.')+'</p><button class="btn btn-secondary" onclick="refreshQueuePage()">Retry</button></div>'; document.getElementById('queueCount').textContent='Unavailable'; document.getElementById('queuePages').innerHTML=''; } return false; }
 }

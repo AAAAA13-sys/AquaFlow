@@ -58,10 +58,6 @@ class AuthService
             return LoginResult::failed('Owner email enrollment is required. Configure the private destination on the store host.', 403);
         }
 
-        if ($user->isEmployee() && (! $user->employee || ! $user->employee->is_active)) {
-            return LoginResult::failed(self::INVALID_CREDENTIALS);
-        }
-
         return LoginResult::ok($user);
     }
 

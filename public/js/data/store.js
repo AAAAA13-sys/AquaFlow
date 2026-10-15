@@ -64,6 +64,7 @@ function savePOSState() {
       orderN: POS.orderN,
       cart: POS.cart,
       custId: POS.custId,
+      deliveryPay: POS.deliveryPay,
       type: POS.type
     }));
   } catch (e) {
@@ -76,7 +77,7 @@ function restorePOSState() {
   try {
     const saved = JSON.parse(sessionStorage.getItem('aquaflow_pos_v2:' + (getSession()?.u || 'guest')) || 'null');
     if (!saved) return;
-    ['orderN', 'cart', 'custId', 'type'].forEach(k => {
+    ['orderN', 'cart', 'custId', 'type', 'deliveryPay'].forEach(k => {
       if (saved[k] !== undefined) POS[k] = saved[k];
     });
     if (!Array.isArray(POS.cart)) POS.cart = [];

@@ -30,7 +30,7 @@
     <form id="profileForm" onsubmit="return saveProfile(event)" style="padding:20px 24px;margin:0;">
       <div class="form-group" style="margin-bottom:18px;">
         <label class="form-label" for="profileNameInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">Full name</label>
-        <input type="text" id="profileNameInput" name="name" class="form-input" required maxlength="120" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+        <input type="text" id="profileNameInput" name="name" class="form-input" required maxlength="100" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
       </div>
 
       <!-- Password Section Divider -->
@@ -51,12 +51,12 @@
             <label class="form-label" for="profileNewPasswordInput" style="font-size:13px;font-weight:600;color:#334155;margin:0;">New password</label>
             <button type="button" class="btn btn-ghost btn-sm" onclick="toggleProfilePassword('profileNewPasswordInput', this)" style="padding:2px 6px;font-size:11px;">Show</button>
           </div>
-          <input type="password" id="profileNewPasswordInput" name="new_password" class="form-input" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+          <input type="password" id="profileNewPasswordInput" name="new_password" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="8 to 64 characters, uppercase, lowercase and number" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
         </div>
 
         <div class="form-group" style="margin-bottom:4px;">
           <label class="form-label" for="profileConfirmPasswordInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">Confirm new password</label>
-          <input type="password" id="profileConfirmPasswordInput" name="new_password_confirmation" class="form-input" autocomplete="new-password" minlength="8" placeholder="Re-type new password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+          <input type="password" id="profileConfirmPasswordInput" name="new_password_confirmation" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="Re-type new password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
         </div>
       </div>
 

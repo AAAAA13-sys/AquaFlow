@@ -21,7 +21,7 @@ class StoreUserRequest extends FormRequest
         return [
             'username' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:users,username'],
             'password' => ['required', ...CredentialRules::password()],
-            'role' => ['required', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN, 'rider', 'refiller'])],
+            'role' => ['required', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN])],
             'email' => ['required_if:role,admin', 'nullable', 'email:rfc', 'max:255', 'unique:users,email'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($this->route('user')?->id)],
             'name' => ['required', 'string', 'max:100'],

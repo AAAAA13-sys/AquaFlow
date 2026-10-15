@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 class ProductionQueueItem extends Model
 {
     protected $table = 'production_queue';
+
+    protected $hidden = ['delivery_code'];
 
     public const STAGES = ['Unload', 'Wash', 'Fill', 'Seal'];
 
@@ -33,6 +36,8 @@ class ProductionQueueItem extends Model
     {
         return [
             'delivered_at' => 'datetime',
+            'handed_over_at' => 'datetime',
+            'delivery_code' => 'encrypted',
             'version' => 'integer',
             'stage' => 'integer',
             'stage_history' => 'array',
@@ -50,6 +55,11 @@ class ProductionQueueItem extends Model
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
+    }
+
+    public function deliveryProof(): HasOne
+    {
+        return $this->hasOne(DeliveryProof::class, 'production_queue_id');
     }
 
     public function advance(): self

@@ -58,6 +58,7 @@ services:
     image: aquaflow/app:${AQUAFLOW_VERSION:?Missing release.env}
     pull_policy: never
     environment: *app-env
+    volumes: ["proof_data:/var/www/html/storage/app/private"]
     depends_on:
       db: {condition: service_healthy}
     restart: unless-stopped
@@ -98,4 +99,5 @@ services:
       app: {condition: service_healthy}
     restart: unless-stopped
 volumes:
+  proof_data:
   db_data:

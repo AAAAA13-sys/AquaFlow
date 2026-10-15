@@ -65,26 +65,17 @@ class SourceEncodingTest extends TestCase
         );
     }
 
-    public function test_the_employee_portal_response_starts_with_the_doctype(): void
+    public function test_the_cashier_portal_response_starts_with_the_doctype(): void
     {
         $this->seed();
+        $user = User::where('role', 'cashier')->firstOrFail();
 
-        $employee = Employee::where('name', 'Carla Mendoza')->firstOrFail();
-        $user = User::create([
-            'username' => 'encoding_rider',
-            'name' => 'Rider',
-            'password' => 'Rider123',
-            'role' => 'rider',
-            'employee_id' => $employee->id,
-            'is_active' => true,
-        ]);
-
-        $body = $this->actingAs($user)->get('/employee')->assertOk()->getContent();
+        $body = $this->actingAs($user)->get('/cashier')->assertOk()->getContent();
 
         $this->assertStringStartsWith(
             '<!DOCTYPE html>',
             ltrim($body, "\xEF\xBB\xBF"),
-            'The employee portal served bytes ahead of its DOCTYPE.'
+            'The cashier portal served bytes ahead of its DOCTYPE.'
         );
     }
 }

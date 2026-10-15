@@ -150,6 +150,7 @@ assert.ok(elements.invBody.innerHTML.includes('No matching records.'));
 const rows=[{no:'OR-1',date:'2026-01-01',t:'12:00',cust:'Ada',type:'Walk-in',gal:'1S',total:35,pay:'Cash',by:'Sam',vatable:31.25,vat:3.75}];
 ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
 (async()=>{
+  await require('./frontend-dialog.cjs')(root);
   await require('./frontend-history.cjs')(root);
   await require('./frontend-submissions.cjs')(root);
   await require('./frontend-stock.cjs')(root);

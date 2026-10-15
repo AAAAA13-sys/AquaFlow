@@ -23,26 +23,25 @@ class CashShiftController extends Controller
         private readonly CashReconciliationService $cash,
     ) {}
 
-    /** The caller's own session for today, or null if the drawer is closed. */
+    /** The caller's outstanding session, otherwise today's closed session. */
     public function current(Request $request): JsonResponse
     {
         $shift = CashShift::query()
             ->where('user_id', $request->user()->id)
-            ->whereDate('business_date', today())
-            ->first();
+            ->where(fn ($query) => $query->whereDate('business_date', today())->orWhereNull('closed_at'))
+            ->orderBy('business_date')->first();
 
         // While the drawer is open the operator is counting cash against a live
         // figure, so refresh what *should* be there as sales come in rather than
         // showing the figure recorded when the drawer was opened.
         if ($shift?->isOpen()) {
             $movement = $this->cash->cashMovement($shift);
-            $shift->fill($movement)->save();
-            $shift->refresh();
+            $shift->fill($movement);
         }
 
         return response()->json([
             'shift' => $shift ? $this->present($shift) : null,
-            'history' => $this->cash->recentHistory()->map(fn (CashShift $s): array => $this->present($s))->values(),
+            'history' => $this->cash->recentHistory(userId: $request->user()->id)->map(fn (CashShift $s): array => $this->present($s))->values(),
         ]);
     }
 
@@ -55,7 +54,7 @@ class CashShiftController extends Controller
 
         if ($result['already_open']) {
             return response()->json([
-                'message' => 'A drawer session is already open for today.',
+                'message' => 'A drawer session already exists. Close any outstanding drawer before opening another.',
                 'shift' => $this->present($result['shift']),
             ], 409);
         }
@@ -70,13 +69,12 @@ class CashShiftController extends Controller
     {
         $shift = CashShift::query()
             ->where('user_id', $request->user()->id)
-            ->whereDate('business_date', today())
             ->whereNull('closed_at')
-            ->first();
+            ->orderBy('business_date')->first();
 
         if (! $shift) {
             throw ValidationException::withMessages([
-                'counted_cash' => 'No open drawer session for today. Open the drawer first.',
+                'counted_cash' => 'No open drawer session. Open the drawer first.',
             ]);
         }
 

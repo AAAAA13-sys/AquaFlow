@@ -319,35 +319,6 @@ body.employee-page {
   background: var(--emp-brand-hover);
 }
 
-.emp-issue-box {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--emp-border);
-}
-
-.emp-issue-toggle {
-  background: none;
-  border: none;
-  color: var(--emp-muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 2px 0;
-  text-decoration: underline;
-}
-
-.emp-issue-report-btn {
-  background: #ffffff;
-  border: 1px solid var(--emp-border);
-  color: #B91C1C;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 7px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 6px;
-}
-
 /* Error banner */
 .emp-alert {
   background: #FEE2E2;
@@ -380,3 +351,18 @@ body.employee-page {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.emp-action-btn:disabled, .emp-issue-top-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.employee-issue-dialog {
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+.employee-issue-dialog::backdrop { background: #0f172a80; }
+.emp-order-lines, .emp-order-meta, .emp-order-customer { overflow-wrap: anywhere; }

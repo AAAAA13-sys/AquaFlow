@@ -41,7 +41,8 @@ const API = {
     if (method !== 'GET' && method !== 'HEAD') {
       headers[this.csrfHeaderName()] = this.csrf();
     }
-    if (options.body !== undefined) {
+    const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    if (options.body !== undefined && !multipart) {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -51,7 +52,7 @@ const API = {
         method: method,
         credentials: 'same-origin',
         headers: headers,
-        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        body: multipart ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,
         signal: controller.signal
       });
     } catch (error) {
@@ -127,11 +128,6 @@ const API = {
   createCustomer(customer) { return this.post('customers', customer); },
   settleDebt(customerId, amount) { return Submissions.send('customers/' + customerId + '/settle', { amount: amount }); },
   logReturn(customerId, kind) { return this.post('customers/' + customerId + '/returns', { kind: kind }); },
-
-  // Cash reconciliation (end-of-day drawer)
-  cashShift() { return this.get('cash-shift'); },
-  openCashShift(openingFloat) { return this.post('cash-shift/open', { opening_float: openingFloat }); },
-  closeCashShift(countedCash, note) { return this.post('cash-shift/close', { counted_cash: countedCash, note: note || null }); },
 
   // Inventory
   inventory() { return this.get('inventory'); },

@@ -188,7 +188,7 @@ const POS_HOTKEYS = {
   Enter: { whileTyping: false, run: () => posNext() },
   Escape: { whileTyping: true, run: () => posPrev() },
   F2: { whileTyping: true, run: () => pickWalkIn() },
-  F4: { whileTyping: true, run: () => setType(isDelivery() ? 'Walk-in' : 'Delivery') },
+  F4: { whileTyping: true, run: () => confirmOrderType(isDelivery() ? 'Walk-in' : 'Delivery') },
   F8: { whileTyping: true, run: () => { if (typeof toggleDebtSettle === 'function') toggleDebtSettle(); } },
 };
 
@@ -324,7 +324,7 @@ function clampDebtPay() {
 }
 
 async function settleDebt() {
-  if (settleDebt.busy) return;
+  if (settleDebt.busy || completeSale.busy) return;
   settleDebt.busy = true;
   try {
     const c = posCust();
@@ -462,7 +462,7 @@ function showServerReceipt(result) {
 }
 
 async function completeSale(sessionName) {
-  if (completeSale.busy) return;
+  if (completeSale.busy || settleDebt.busy) return;
   completeSale.busy = true;
   try {
     // Same inline validation the stage gates use, so the cashier always sees one
@@ -471,9 +471,13 @@ async function completeSale(sessionName) {
     if (!POS.cart.length) { showStageError('Add at least one item before completing the sale.'); return; }
 
     const c = posCust();
-    if (isDelivery() && c.name === 'Walk-in Guest') {
+    if (isDelivery() && (c.is_guest || c.name === 'Walk-in Guest')) {
       showStageError('Delivery requires a registered customer.');
       return;
+    }
+
+    if (isDelivery() && (!c.addr?.trim() || c.addr.trim() === '-')) {
+      showStageError('Delivery needs a customer address. Ask the owner to update this customer before taking the order.'); return;
     }
 
     const tenderEl = document.getElementById('tender');
@@ -506,10 +510,15 @@ async function completeSale(sessionName) {
     };
 
     const confirmNote = isDelivery()
-      ? (payToRider ? ': ' + money(t.total) + ' (to be collected by delivery rider)?' : ': ' + money(t.total) + ' paid in cash now?')
+      ? (payToRider ? ': ' + money(t.total) + ' (charged to customer account)?' : ': ' + money(t.total) + ' paid in cash now?')
       : ': ' + money(t.total) + ' paid in cash?';
 
     if (!await appConfirm('Confirm ' + POS.type + ' order for ' + c.name + confirmNote, 'Confirm sale')) return;
+    const preview = await refreshStockPreview();
+    if (!preview?.valid) {
+      showStageError(preview ? (preview.shortages || ['Not enough stock. Reduce the affected quantities.']).join(' ') : 'Stock cannot be checked. Reconnect and retry before taking payment.');
+      return;
+    }
     let result;
     try {
       result = await API.createTransaction(payload);
@@ -541,6 +550,7 @@ function closeReceipt() {
   POS.cart = [];
   POS.custId = null;
   POS.type = 'Walk-in';
+  POS.deliveryPay = 'rider';
 
   const tender = document.getElementById('tender');
   if (tender) tender.value = 0;

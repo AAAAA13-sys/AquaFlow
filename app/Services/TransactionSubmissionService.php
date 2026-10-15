@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TransactionSubmissionService
 {
@@ -22,7 +23,6 @@ class TransactionSubmissionService
                 $existing->load(['customer', 'cashier', 'items']);
 
                 return $existing->submission_result + ['transaction' => $existing, 'customer' => $existing->customer, 'replayed' => true];
-            }
             $result = $write();
             $snapshot = array_intersect_key($result, array_flip(['totals', 'applied']));
             $result['transaction']->forceFill(['submission_key' => $key, 'submission_hash' => $hash, 'submission_result' => $snapshot])->save();

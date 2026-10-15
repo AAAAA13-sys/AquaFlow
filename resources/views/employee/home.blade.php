@@ -7,7 +7,7 @@
 @endpush
 
 @section('content')
-<main class="emp-container" data-role="{{ auth()->user()->role }}" data-name="{{ auth()->user()->name }}" data-user="{{ auth()->user()->username }}">
+<main class="emp-container" data-user-id="{{ auth()->id() }}" data-role="{{ auth()->user()->role }}" data-name="{{ auth()->user()->name }}" data-user="{{ auth()->user()->username }}">
   <!-- Top App Bar -->
   <header class="emp-header">
     <div class="emp-user-info" onclick="openProfileModal()" style="cursor:pointer;" title="Click to view profile and change password" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openProfileModal()">
@@ -32,12 +32,19 @@
   <div class="emp-status-bar">
     <div class="emp-pulse-wrapper">
       <span id="pulseDot" class="emp-pulse-dot"></span>
-      <span id="connection">Updating...</span>
+      <span id="connection" role="status">Updating...</span>
     </div>
   </div>
 
   <!-- Error alert banner -->
   <div id="error" class="emp-alert hidden" role="alert"></div>
+
+  <p class="emp-order-meta">{{ auth()->user()->role === 'rider' ? 'Ready deliveries are available in the shared rider queue. Start the oldest ready order after the cashier confirms handover. Confirm delivery only after the customer receives the items. Submit a photo, the buyer code and cash collected. Buyer debt is reduced only when the cashier accepts your remittance.' : 'Check the receipt, product types and quantities. Mark ready only after all items are prepared; ready deliveries appear in the shared rider queue.' }}</p>
+  <aside id="employeeRecovery" class="emp-alert" hidden role="status">
+    <p id="employeeRecoveryText"></p>
+    <button type="button" id="retryEmployeeAction" class="btn btn-primary" onclick="retryEmployeeAction()">Retry saved action</button>
+  </aside>
+  <p id="employeeResult" role="status"></p>
 
   <!-- Orders Section (Refresh button placed here) -->
   <section>
@@ -58,5 +65,6 @@
 </main>
 
 @include('partials.scripts-base')
+<script src="{{ asset('js/employee-delivery.js') }}?v={{ asset_version('js/employee-delivery.js') }}"></script>
 <script src="{{ asset('js/employee.js') }}?v={{ asset_version('js/employee.js') }}"></script>
 @endsection
