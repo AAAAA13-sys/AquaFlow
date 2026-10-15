@@ -19,12 +19,11 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['nullable', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user')?->id)],
+            'email' => ['sometimes', 'required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user')?->id)],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($this->route('user')?->id)],
-            'name' => ['sometimes', 'string', 'max:100'],
-            'job_title' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'name' => ['sometimes', 'string', 'max:20'],
             'role' => ['sometimes', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN])],
-            'password' => ['sometimes', 'nullable', ...CredentialRules::password()],
+            'password' => [Rule::requiredIf($this->input('role') === User::ROLE_ADMIN && $this->route('user')?->role !== User::ROLE_ADMIN), 'nullable', ...CredentialRules::password()],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

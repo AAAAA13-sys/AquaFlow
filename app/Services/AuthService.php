@@ -31,6 +31,7 @@ class AuthService
         // so neither page can be used to reach the other role's workspace.
         $user = User::query()
             ->where('username', $username)
+            ->where('role', $owner ? User::ROLE_ADMIN : User::ROLE_CASHIER)
             ->where('is_active', true)
             ->where('is_bootstrap', false)
             ->first();
@@ -38,20 +39,6 @@ class AuthService
         if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
             $this->reject('Login failed: bad credentials.', $username, $ip);
 
-            return LoginResult::failed(self::INVALID_CREDENTIALS);
-        }
-
-        if ($owner && ! $user->isAdmin()) {
-            return LoginResult::failed('Use Employee Login for this account.', 403);
-        }
-
-        if (! $owner && $user->isAdmin()) {
-            return LoginResult::failed('Use Admin Login for this account.', 403);
-        }
-
-        // An employee account is only as good as the person behind it. Deactivating
-        // the employee record must lock the login out, not just hide the record.
-        if ($user->isEmployee() && (! $user->employee || ! $user->employee->is_active)) {
             return LoginResult::failed(self::INVALID_CREDENTIALS);
         }
 

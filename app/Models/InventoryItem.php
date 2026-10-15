@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -43,6 +44,11 @@ class InventoryItem extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    public function scopeCurrent(Builder $query): Builder
+    {
+        return $query->whereNull('retired_at');
     }
 
     public function isPieces(): bool

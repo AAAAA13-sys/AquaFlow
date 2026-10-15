@@ -26,7 +26,7 @@ function renderCustTable(q, f) {
           ? '<span class="debt-cell">' + money(Number(c.debt)) + magBar(Number(c.debt), maxDebt, 'debt') + '</span>'
           : money(Number(c.debt))) +
       '</td><td>' + c.last + '</td>' +
-      '<td><button onclick="openDrawer(' + c.id + ')" class="btn btn-ghost btn-sm">View account</button></td></tr>';
+      '<td class="text-right"><button onclick="openDrawer(' + c.id + ')" class="btn btn-ghost btn-sm">View account</button></td></tr>';
   }).join('');
   showTableEmpty(body, 5);
 }
@@ -77,7 +77,7 @@ function toggleAddCustomerForm(button) {
 
   const panel = document.createElement('div');
   panel.id = 'customerCreatePanel';
-  panel.className = 'card hidden';
+  panel.className = 'card form-card';
   panel.innerHTML =
     '<h3 class="panel-heading">Add customer</h3>' +
     '<div class="admin-entry-form">' +
@@ -86,7 +86,7 @@ function toggleAddCustomerForm(button) {
       '<div class="admin-entry-field"><label class="form-label" for="newCustAddr">Address</label>' +
         '<input id="newCustAddr" class="form-input field-min-160" placeholder="Address" maxlength="255"></div>' +
       '<div class="admin-entry-field"><label class="form-label" for="newCustContact">Contact number</label>' +
-        '<input id="newCustContact" class="form-input field-min-140" placeholder="Contact" maxlength="50"></div>' +
+        '<input id="newCustContact" type="tel" class="form-input field-min-140" placeholder="09XXXXXXXXX or +639XXXXXXXXX" required maxlength="13"></div>' +
     '</div>' +
     '<button type="button" class="btn btn-primary btn-sm" onclick="createCustomerFromLedger()">Save customer</button>' +
     '<span id="newCustError" role="alert"></span>';
@@ -107,6 +107,11 @@ async function createCustomerFromLedger() {
   if (!name) {
     if (errorEl) errorEl.textContent = 'Enter a customer name.';
     appNotice('Enter a customer name.');
+    return;
+  }
+
+  if (!/^(09\d{9}|\+639\d{9})$/.test(contact)) {
+    if (errorEl) errorEl.textContent = 'Enter a mobile number: 09XXXXXXXXX or +639XXXXXXXXX.';
     return;
   }
 

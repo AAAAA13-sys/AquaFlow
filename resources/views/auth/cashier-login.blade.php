@@ -12,19 +12,23 @@
         <p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} Staff workspace</p>
       </div>
     </header>
-    <p class="auth-description">For station cashiers.</p>
-    <form class="auth-form" onsubmit="event.preventDefault(); doLogin();">
+    <p id="loginDescription" class="auth-description">For station cashiers.</p>
+    <div id="err" class="auth-error hidden" role="alert"></div>
+    <p id="loginStatus" role="status" aria-live="polite"></p>
+    <form id="adminForm" class="auth-form" onsubmit="event.preventDefault(); doLogin();">
       @include('partials.login-credentials', ['usernameLabel' => 'Username'])
 
-      <div id="err" class="auth-error hidden">Invalid username or password.</div>
+      <div style="display:flex;justify-content:flex-end;margin:6px 0 14px;"><a href="#" class="auth-link" onclick="event.preventDefault(); showForgotPasswordForm();" style="font-size:12px;">Forgot password?</a></div>
 
       <button type="submit" class="btn btn-primary btn-block">Sign in</button>
     </form>
+    @include('partials.password-recovery')
     <p class="auth-footer-text">Store administrator? <a href="{{ url('/owner/login') }}" class="auth-link">Admin Login</a></p>
   </main>
 
   @include('partials.scripts-base')
 
+  <script src="{{ asset('js/auth/password-recovery.js') }}?v={{ asset_version('js/auth/password-recovery.js') }}"></script>
   <script>
     function finishLogin(result) {
       setSession(result.user);
@@ -33,12 +37,10 @@
     async function doLogin() {
       const username = document.getElementById('u').value.trim();
       const password = document.getElementById('p').value;
-      const errorElement = document.getElementById('err');
       const button = document.querySelector('button[type="submit"]');
 
       if (!username || !password) {
-        errorElement.textContent = 'Enter username and password.';
-        errorElement.classList.remove('hidden');
+        showLoginError('Enter username and password.');
         return;
       }
 
@@ -48,8 +50,7 @@
         finishLogin(result);
         if (button) button.disabled = false;
       } catch (error) {
-        errorElement.textContent = error.message || 'Invalid username or password.';
-        errorElement.classList.remove('hidden');
+        showLoginError(error.message || 'Invalid username or password.');
         if (button) button.disabled = false;
       }
     }

@@ -308,7 +308,10 @@ class CheckoutService
     private function deductStock(Collection $catalog, Transaction $transaction, User $cashier): void
     {
         $requirements = app(CartAvailabilityService::class)->requirements($catalog->map(fn (Product $product): int => (int) $product->getAttribute('requested_quantity'))->all());
-        $stock = InventoryItem::whereIn('id', array_keys($requirements))->orderBy('id')->lockForUpdate()->get();
+        $stock = InventoryItem::current()->whereIn('id', array_keys($requirements))->orderBy('id')->lockForUpdate()->get();
+        if ($stock->count() !== count($requirements)) {
+            throw ValidationException::withMessages(['items' => 'The product recipe contains missing or retired stock.']);
+        }
         foreach ($stock as $item) {
             $qty = $requirements[$item->id];
             if ($item->stock_on_hand < $qty) {

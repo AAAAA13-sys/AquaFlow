@@ -46,7 +46,7 @@
           <div class="onboarding-step-icon" aria-hidden="true">3</div>
           <div class="onboarding-step-text">
             <span class="onboarding-step-label">Staff & Access</span>
-            <span class="onboarding-step-sub">Create cashiers, delivery riders, and refiller accounts.</span>
+            <span class="onboarding-step-sub">Create admin and cashier accounts.</span>
           </div>
         </a>
         <a href="{{ url('/admin/settings') }}" class="onboarding-step-item" id="stepSettings">
@@ -115,58 +115,36 @@
              behind it are already rendered as text in #insDemand below, so the
              label points there rather than restating them. --}}
         <canvas id="chDemand" height="120" role="img"
-                aria-label="Demand outlook chart: 30 days of refill sales against the next 7 days of forecast. The same figures are listed as text under Sales patterns."></canvas>
+                aria-label="Demand outlook chart: 30 days of refill sales against the next 7 days of forecast. Sales trends and averages are listed below under How Sales Are Going."></canvas>
         <div id="fcMetaDash" class="orders-queue-list order-type-selector"></div>
+        <h4 class="panel-heading">How Sales Are Going</h4>
+        <div id="insDemand"></div>
         {{-- Tertiary: this is a deep jump into analytics, not a committed
              action. It must not compete visually with "Make a Purchase Request". --}}
         <button onclick="showSection('arima')" class="btn btn-tertiary btn-sm order-type-selector">Open Demand Forecast</button>
       </div>
-      {{-- Rail: sizes to its own content instead of stretching to the chart's
-           height, which is what produced the empty block. Hidden when there is
-           nothing to buy - the "Needs Your Attention" KPI above already says
-           zero, so the rail was a second screen saying nothing to reorder. --}}
+      {{-- The forecast sets this row's height; the advisory list scrolls within it. --}}
       <div class="card card--rail" id="advisoryRail">
         <h3 class="panel-heading">Things to Buy</h3>
-        <div id="advisory" class="overview-advisories"></div>
+        <div id="advisory" class="overview-advisories" tabindex="0" role="region" aria-label="Things to buy"></div>
         <button type="button" onclick="draftPO()" class="btn btn-secondary btn-sm overview-purchase">Make a Purchase Request</button>
-      </div>
-    </div>
-
-    {{-- Supporting sales and collection details.
-
-         The old "Days of Stock Left" panel was removed from this row: it listed
-         the four items with the shortest cover, and the "Your Stock" table
-         directly below shows every item with the same days-left figure and a
-         "Needs reorder" filter. Three panels showing one fact was making the
-         owner read stock three times before reaching anything new. --}}
-    <div class="dashboard-row-2col">
-      <div class="card">
-        <h3 class="panel-heading">How Sales Are Going</h3>
-        <div id="insDemand"></div>
-      </div>
-      {{-- Hidden when nobody owes money. The "Customers Who Owe Money" KPI
-           already carries the total and the count, so an empty ranked list beside
-           it repeated the same zero a second time. --}}
-      <div class="card" id="topCollectorsCard">
-        <h3 class="panel-heading">Who Owes You Most</h3>
-        <div id="insCollect"></div>
       </div>
     </div>
 
     {{-- 3. REFERENCE. The tables behind the cards above. --}}
     <div class="dashboard-row-2col overview-reference">
       <div class="card">
-        <h3 class="panel-heading">Your Stock</h3>
+        <h3 class="panel-heading">Jug Stock &amp; Refill Supplies</h3>
         <p class="auto-deduct-caption">New Slim Jugs: <strong id="ledgerSlim">Loading</strong> &middot; New Round Jugs: <strong id="ledgerRound">Loading</strong></p>
-        <div class="stock-check-toolbar no-print">
-          <div class="stock-search-group">
+        <div class="filter-toolbar table-filters stock-filters no-print">
+          <div id="invFilterTabs" class="filter-group"></div>
+          <div class="filter-group"><label for="invBodyDashSearch">Search</label>
             <input id="invBodyDashSearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()" aria-label="Search stock">
           </div>
-          <div id="invFilterTabs" class="filter-tabs" role="group" aria-label="Filter stock by type"></div>
-          <div class="stock-sort-group">
+          <div class="filter-group"><label for="invBodyDashOrder">Sort</label>
             <select id="invBodyDashOrder" onchange="renderInvTable()" aria-label="Sort stock">
-              <option value="highest">Highest stock first</option>
-              <option value="lowest">Least to highest stock</option>
+              <option value="highest">Most to least stock</option>
+              <option value="lowest">Least to most stock</option>
               <option value="newest">New to Old</option>
               <option value="oldest">Old to New</option>
             </select>
@@ -216,7 +194,7 @@
               <tr>
                 <th>Customer</th>
                 <th class="num">Outstanding</th>
-                <th>Action</th>
+                <th class="text-right">Action</th>
               </tr>
             </thead>
             <tbody id="topLiaBody"></tbody>

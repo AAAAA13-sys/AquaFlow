@@ -6,8 +6,10 @@
         <h3 id="profileModalTitle" style="margin:0;font-size:17px;font-weight:700;color:#0f172a;">Personal Profile & Settings</h3>
         <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Manage your display name and login password</p>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="closeProfileModal()" aria-label="Close dialog" style="font-size:18px;line-height:1;padding:4px 8px;">&times;</button>
+      <button id="profileCloseButton" type="button" class="btn btn-ghost btn-sm" onclick="closeProfileModal()" aria-label="Close dialog" style="font-size:18px;line-height:1;padding:4px 8px;">&times;</button>
     </div>
+
+    <p id="profileOnboardingNotice" class="auth-error hidden" role="status" style="margin:16px 24px;">Change your temporary password before starting work. New accounts start with 12345678; otherwise use the temporary password given by your admin.</p>
 
     <!-- User Identity Summary -->
     <div style="padding:16px 24px;background:#f1f5f9;display:flex;align-items:center;gap:14px;border-bottom:1px solid #e2e8f0;">
@@ -21,7 +23,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:2px;font-size:12px;color:#64748b;flex-wrap:wrap;">
           <span>Username: <strong id="profileOverviewUsername" style="color:#334155;">--</strong></span>
-          <span id="profileOverviewJobWrapper" class="hidden">· <span id="profileOverviewJob" style="color:#0284c7;font-weight:600;"></span></span>
+          <span id="profileOverviewJobWrapper" class="hidden">Â· <span id="profileOverviewJob" style="color:#0284c7;font-weight:600;"></span></span>
         </div>
       </div>
     </div>
@@ -30,7 +32,7 @@
     <form id="profileForm" onsubmit="return saveProfile(event)" style="padding:20px 24px;margin:0;">
       <div class="form-group" style="margin-bottom:18px;">
         <label class="form-label" for="profileNameInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">Full name</label>
-        <input type="text" id="profileNameInput" name="name" class="form-input" required maxlength="100" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+        <input type="text" id="profileNameInput" name="name" class="form-input" required maxlength="20" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
       </div>
 
       <!-- Password Section Divider -->
@@ -39,24 +41,33 @@
         <p style="margin:0 0 12px;font-size:12px;color:#64748b;">Leave password fields blank if you only want to update your name.</p>
 
         <div class="form-group" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <label class="form-label" for="profileCurrentPasswordInput" style="font-size:13px;font-weight:600;color:#334155;margin:0;">Current password</label>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleProfilePassword('profileCurrentPasswordInput', this)" style="padding:2px 6px;font-size:11px;">Show</button>
+          <label class="form-label" for="profileCurrentPasswordInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">Current password</label>
+          <div class="credential-control">
+            <input type="password" id="profileCurrentPasswordInput" name="current_password" class="form-input" autocomplete="current-password" placeholder="Enter current password to confirm" style="width:100%;box-sizing:border-box;padding:9px 42px 9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+            <button type="button" class="password-toggle-btn" onclick="toggleProfilePassword('profileCurrentPasswordInput', this)" aria-controls="profileCurrentPasswordInput" aria-pressed="false" aria-label="Show password" title="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
-          <input type="password" id="profileCurrentPasswordInput" name="current_password" class="form-input" autocomplete="current-password" placeholder="Enter current password to confirm" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
         </div>
 
         <div class="form-group" style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <label class="form-label" for="profileNewPasswordInput" style="font-size:13px;font-weight:600;color:#334155;margin:0;">New password</label>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleProfilePassword('profileNewPasswordInput', this)" style="padding:2px 6px;font-size:11px;">Show</button>
+          <label class="form-label" for="profileNewPasswordInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">New password</label>
+          <div class="credential-control">
+            <input type="password" id="profileNewPasswordInput" name="new_password" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="8 to 64 characters, uppercase, lowercase and number" style="width:100%;box-sizing:border-box;padding:9px 42px 9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+            <button type="button" class="password-toggle-btn" onclick="toggleProfilePassword('profileNewPasswordInput', this)" aria-controls="profileNewPasswordInput" aria-pressed="false" aria-label="Show password" title="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
-          <input type="password" id="profileNewPasswordInput" name="new_password" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="8 to 64 characters, uppercase, lowercase and number" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
         </div>
 
         <div class="form-group" style="margin-bottom:4px;">
           <label class="form-label" for="profileConfirmPasswordInput" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;color:#334155;">Confirm new password</label>
-          <input type="password" id="profileConfirmPasswordInput" name="new_password_confirmation" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="Re-type new password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+          <div class="credential-control">
+            <input type="password" id="profileConfirmPasswordInput" name="new_password_confirmation" class="form-input" autocomplete="new-password" minlength="8" maxlength="64" placeholder="Re-type new password" style="width:100%;box-sizing:border-box;padding:9px 42px 9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+            <button type="button" class="password-toggle-btn" onclick="toggleProfilePassword('profileConfirmPasswordInput', this)" aria-controls="profileConfirmPasswordInput" aria-pressed="false" aria-label="Show password" title="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 

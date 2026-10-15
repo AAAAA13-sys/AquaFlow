@@ -108,7 +108,7 @@ class ProfileTest extends TestCase
 
         // Valid update succeeds
         $this->putJson('/api/profile', [
-            'name' => 'Profile Cashier Updated',
+            'name' => 'Cashier Updated',
             'current_password' => 'OldPassword123',
             'new_password' => 'BrandNewPassword123',
             'new_password_confirmation' => 'BrandNewPassword123',

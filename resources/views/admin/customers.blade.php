@@ -29,7 +29,7 @@
             <th class="num">Visits</th>
             <th class="num">Cash owed</th>
             <th>Last visit</th>
-            <th>Actions</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody id="custBody"></tbody>

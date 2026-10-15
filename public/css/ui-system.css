@@ -721,6 +721,9 @@
 }
 
 .action-message[aria-disabled='true'] {
+  background: #e5e7eb;
+  color: #6b7280;
+  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
 }

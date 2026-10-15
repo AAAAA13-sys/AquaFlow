@@ -15,7 +15,7 @@ class CredentialValidationTest extends TestCase
         $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'admin']);
         $this->actingAs($owner);
         foreach (['1234', 'Abc1234', 'abcdefghijkl', 'ABCDEFGHIJK1', str_repeat('Aa1', 25)] as $password) {
-            $this->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'role' => 'cashier', 'password' => $password])->assertUnprocessable()->assertJsonValidationErrors('password');
+            $this->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'email' => 'staff@example.com', 'role' => 'cashier', 'password' => $password])->assertUnprocessable()->assertJsonValidationErrors('password');
             $this->patchJson('/api/users/'.$owner->id, ['password' => $password])->assertUnprocessable()->assertJsonValidationErrors('password');
         }
     }
@@ -23,7 +23,7 @@ class CredentialValidationTest extends TestCase
     public function test_valid_credentials_are_hashed_and_never_returned(): void
     {
         $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'admin']);
-        $this->actingAs($owner)->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'role' => 'cashier', 'password' => 'Abcd1234'])->assertCreated()->assertJsonMissingPath('user.password');
+        $this->actingAs($owner)->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'email' => 'staff@example.com', 'role' => 'cashier', 'password' => 'Abcd1234'])->assertCreated()->assertJsonMissingPath('user.password');
         $staff = User::where('username', 'new_staff')->firstOrFail();
         $this->assertTrue(Hash::check('Abcd1234', $staff->password));
         $this->patchJson('/api/users/'.$staff->id, ['password' => 'ChangedPass12345'])->assertOk();

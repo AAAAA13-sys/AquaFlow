@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRecipeRequest extends FormRequest
 {
@@ -15,7 +16,7 @@ class UpdateRecipeRequest extends FormRequest
     {
         return [
             'consumables' => ['required', 'array', 'min:1', 'max:100'],
-            'consumables.*.inventory_item_id' => ['required', 'integer', 'distinct', 'exists:inventory,id'],
+            'consumables.*.inventory_item_id' => ['required', 'integer', 'distinct', Rule::exists('inventory', 'id')->whereNull('retired_at')],
             'consumables.*.qty_per_sale' => ['required', 'integer', 'min:1', 'max:1000000'],
         ];
     }

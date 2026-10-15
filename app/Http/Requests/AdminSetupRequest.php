@@ -25,11 +25,9 @@ class AdminSetupRequest extends FormRequest
     {
         return [
             'station_name' => ['required', 'string', 'max:100'],
-            'name' => ['required', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:20'],
             'username' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('users', 'username')],
-            // Email is optional now that nothing is sent to it. It is kept on the
-            // account as a contact, and the portal renders it if present.
-            'email' => ['nullable', 'email:rfc', 'max:255', Rule::notIn([StoreInstallationService::BOOTSTRAP_EMAIL]), Rule::unique('users', 'email')],
+            'email' => ['required', 'email:rfc', 'max:255', Rule::notIn([StoreInstallationService::BOOTSTRAP_EMAIL]), Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', ...CredentialRules::password()],
         ];
     }

@@ -143,23 +143,8 @@ function posStep(n, force) {
   renderStage(target);
 }
 
-async function posPrev() {
-  if (posCur <= 1) return;
-
-  let message = 'Return to the previous step?';
-  if (posCur === 2) {
-    message = (typeof POS !== 'undefined' && POS.cart && POS.cart.length > 0)
-      ? 'Return to customer selection? Your current cart items will be kept.'
-      : 'Return to customer selection?';
-  } else if (posCur === 3) {
-    message = 'Return to order items to make changes?';
-  }
-
-  if (typeof appConfirm === 'function') {
-    if (!await appConfirm(message, 'Go Back')) return;
-  }
-
-  posStep(posCur - 1);
+function posPrev() {
+  if (posCur > 1 && posChangeAllowed()) posStep(posCur - 1);
 }
 
 function posNext() {
@@ -168,50 +153,6 @@ function posNext() {
 
   if (posCur >= 3) completeSale(typeof SESSION !== 'undefined' ? SESSION.name : 'Cashier');
   else posStep(posCur + 1);
-}
-
-// ---------------------------------------------------------------------------
-// Keyboard shortcuts
-//
-// Every key is delegated to the same functions the on-screen buttons call, so
-// the hotkeys cannot bypass a stage-validity rule: Enter still runs
-// validateStage(), and Esc still calls posPrev().
-//
-// Keys are ignored while the cashier is typing in a field, otherwise a customer
-// name containing "enter"-adjacent keys would keep jumping the wizard.
-// ---------------------------------------------------------------------------
-
-// Each entry declares whether it may fire while the cashier is typing. Enter is
-// blocked in a text field because it would otherwise advance the wizard while
-// the cashier is still entering a customer name. F-keys and Escape are safe.
-const POS_HOTKEYS = {
-  Enter: { whileTyping: false, run: () => posNext() },
-  Escape: { whileTyping: true, run: () => posPrev() },
-  F2: { whileTyping: true, run: () => pickWalkIn() },
-  F4: { whileTyping: true, run: () => confirmOrderType(isDelivery() ? 'Walk-in' : 'Delivery') },
-  F8: { whileTyping: true, run: () => { if (typeof toggleDebtSettle === 'function') toggleDebtSettle(); } },
-};
-
-/** True when focus is somewhere the cashier is typing text. */
-function posTypingInField(target) {
-  if (!target) return false;
-  const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  return target.isContentEditable === true;
-}
-
-function initPosHotkeys() {
-  document.addEventListener('keydown', event => {
-    const binding = POS_HOTKEYS[event.key];
-    if (!binding) return;
-
-    if (document.querySelector('dialog[open]')) return;
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (!binding.whileTyping && posTypingInField(event.target)) return;
-
-    event.preventDefault();
-    binding.run();
-  });
 }
 
 // Shared boot: role guard, session name, live clock and live data.
@@ -223,17 +164,13 @@ async function bootCashierPortal() {
   if (who) who.textContent = session.name;
   startPortalClock('clock');
 
+  if (session.must_change_password) { await openProfileModal(); return null; }
+
   try {
     await loadFromServer();
   } catch (error) {
+    if (error.data?.code === 'password_change_required') { await openProfileModal(); return null; }
     console.warn('AquaFlow: API unavailable, using cached data. ' + error.message);
-  }
-
-  // Keyboard shortcuts are a document-level listener, so they are installed
-  // once per full page load (not per tab render) to avoid double-binding.
-  if (!document.body.dataset.posHotkeys) {
-    document.body.dataset.posHotkeys = '1';
-    initPosHotkeys();
   }
 
   return session;
@@ -392,13 +329,19 @@ async function saveNewCustomer() {
   if (saveNewCustomer.busy) return;
   const nameEl = document.getElementById('regName');
   const addrEl = document.getElementById('regAddr');
+  const contactEl = document.getElementById('regContact');
+  const contact = (contactEl?.value || '').trim();
   const name = ((nameEl && nameEl.value) || '').trim();
 
   const registrationError = document.getElementById('registrationError');
   if (registrationError) registrationError.textContent = '';
   if (/\d/.test(name) || !/^(?=.*\p{L})[\p{L}\s.'-]+$/u.test(name) || name.length > 150) {
-    if (registrationError) registrationError.textContent = 'Enter a customer name using letters only — numbers are not allowed (maximum 150 characters).';
+    if (registrationError) registrationError.textContent = 'Enter a customer name using letters only â€” numbers are not allowed (maximum 150 characters).';
     nameEl?.focus(); return;
+  }
+  if (!/^(09\d{9}|\+639\d{9})$/.test(contact)) {
+    if (registrationError) registrationError.textContent = 'Enter a mobile number: 09XXXXXXXXX or +639XXXXXXXXX.';
+    contactEl?.focus(); return;
   }
   saveNewCustomer.busy = true;
   if (!await appConfirm('Register ' + name + ' at ' + (addrEl?.value.trim() || 'no address') + '?', 'Register customer')) { saveNewCustomer.busy = false; return; }
@@ -406,6 +349,7 @@ async function saveNewCustomer() {
   try {
     const result = await API.createCustomer({
       name: name,
+      contact,
       address: ((addrEl && addrEl.value) || '').trim(),
     });
 
@@ -415,6 +359,7 @@ async function saveNewCustomer() {
     closeRegisterModal();
     if (nameEl) nameEl.value = '';
     if (addrEl) addrEl.value = '';
+    if (contactEl) contactEl.value = '';
     renderPOS();
     showStageError('Customer registered: ' + result.customer.name);
   } catch (error) {
@@ -440,21 +385,22 @@ function receiptContents(tx) {
   const isWalkIn = (!tx.cust || tx.cust === 'Walk-in Guest' || tx.type === 'Walk-in') && !tx.customer_id;
   return line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
     (tx.delivery_address ? line('Delivery address', tx.delivery_address) : '') +
-    (tx.items || []).map(item => line(item.quantity + ' × ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
+    (tx.items || []).map(item => line(item.quantity + ' Ã— ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
     (debtPayment ? '' : line('Vatable sales', money(tx.vatable || 0)) + line('12% VAT (inclusive)', money(tx.vat || 0))) +
     line(debtPayment ? 'Payment received' : 'Total', money(tx.total), true) +
     (tx.pay === 'Cash' && tx.cash_tendered != null && Number(tx.cash_tendered) >= Number(tx.total) ? line('Cash tendered', money(tx.cash_tendered)) + line('Change', money(tx.cash_change || 0)) : '') +
     (tx.balance_after != null && !isWalkIn ? line('Account balance after transaction', money(tx.balance_after)) : '') +
-    line('Cashier', tx.by || '—');
+    line('Cashier', tx.by || 'â€”');
 }
 
 function displayTransactionReceipt(tx, reprint = false) {
   const meta = document.getElementById('rMeta'), body = document.getElementById('rBody'), box = document.getElementById('receipt');
   if (!meta || !body || !box) return;
   const timeStr = [tx.date, tx.t].filter(Boolean).join(' ');
-  meta.textContent = tx.no + (timeStr ? ' · ' + timeStr : '');
+  meta.textContent = tx.no + (timeStr ? ' Â· ' + timeStr : '');
   body.innerHTML = receiptContents(tx);
   box.classList.remove('hidden');
+  if (typeof Submissions !== 'undefined') Submissions.render();
 }
 
 function showServerReceipt(result) {
@@ -494,7 +440,7 @@ async function completeSale(sessionName) {
     }
 
     if (!payToRider && ten > MAX_TENDER) {
-      showStageError('Amount tendered cannot exceed ₱1,000,000.');
+      showStageError('Amount tendered cannot exceed â‚±1,000,000.');
       if (tenderEl) tenderEl.focus();
       return;
     }

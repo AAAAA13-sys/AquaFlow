@@ -51,7 +51,7 @@ class BootstrapController extends Controller
                     ->orderBy('sort_order')->orderBy('id')->get()
             ),
             'inventory' => InventoryItemResource::forItems(
-                InventoryItem::query()->with('supplier')->orderBy('id')->get(),
+                InventoryItem::query()->current()->with('supplier')->orderBy('id')->get(),
                 $this->inventory
             ),
             'advisories' => $this->inventory->advisories(),
@@ -101,7 +101,7 @@ class BootstrapController extends Controller
 
         if ($request->user()?->isAdmin()) {
             $payload['users'] = UserResource::collection(
-                User::query()->orderBy('id')->get()
+                User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_CASHIER])->orderBy('id')->get()
             );
         }
 

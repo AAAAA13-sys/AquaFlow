@@ -353,3 +353,14 @@
 }
 
 
+
+.admin-layout .stock-filters { display: grid; grid-template-columns: minmax(140px, .7fr) minmax(180px, 1fr) minmax(180px, .8fr); width: 100%; box-sizing: border-box; gap: 12px; padding: 0; margin: 14px 0 16px; }
+.admin-layout .stock-filters .filter-group { min-width: 0; }
+.admin-layout .stock-filters input, .admin-layout .stock-filters select { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 650px) { .admin-layout .stock-filters { grid-template-columns: minmax(0, 1fr); } }
+
+/* Account fields stay paired; help and actions have their own row. */
+#userForm.user-account-form { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+#userForm .user-form-wide, #userForm > button { grid-column: 1 / -1; }
+#userForm .credential-hint { margin: 6px 0 0; }
+@media (max-width: 650px) { #userForm.user-account-form { grid-template-columns: 1fr; } }

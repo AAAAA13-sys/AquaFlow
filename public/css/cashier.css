@@ -5,10 +5,8 @@
 .cashier-shell .customer-search-panel .customer-list-container { max-height: 280px; overflow-y: auto; }
 .cashier-shell .customer-search-panel .customer-row { padding: 10px 12px; }
 .cashier-shell .stage-segment { align-items: center; grid-template-columns: 1fr 1fr; gap: 8px; }
-.walk-tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; margin-left: 6px; cursor: help; vertical-align: middle; transition: all .15s ease; }
-.walk-tip-icon:hover { background: #2563eb; color: #fff; transform: scale(1.1); }
 .seg-btn.active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
-.cashier-shell .pos-layout { padding-bottom: 90px; }
+.cashier-shell .pos-layout { padding-bottom: 0; }
 /* Stage 1 offered four equally weighted buttons, so the most common action in
    the terminal (a walk-in cash sale) had no visual priority over debt
    settlement. Quick Walk-In is pulled left as the dominant option. */
@@ -137,3 +135,7 @@
 .cashier-drawer-dialog .cash-card { padding: 16px; margin-top: 12px; }
 .cashier-drawer-dialog .form-input { display: block; width: 100%; box-sizing: border-box; margin-bottom: 12px; }
 .cashier-drawer-dialog .insight-row { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
+
+.cashier-viewport .pos-stage, .cashier-viewport .pos-step-wizard { max-width: none; }
+.cashier-viewport .mobile-action-bar { max-width: none; margin-top: auto; border-radius: 0; }
+.cashier-shell .cart-header-row, .cashier-shell .summary-row { grid-template-columns: minmax(0, 1fr) 60px minmax(90px, auto); gap: .25rem; }

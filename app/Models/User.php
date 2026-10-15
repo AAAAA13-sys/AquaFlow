@@ -33,6 +33,7 @@ class User extends Authenticatable
         'employee_id',
         'username',
         'password',
+        'must_change_password',
         'role',
         'name',
         'job_title',
@@ -50,6 +51,7 @@ class User extends Authenticatable
             'is_bootstrap' => 'boolean',
             'is_active' => 'boolean',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
     }
 

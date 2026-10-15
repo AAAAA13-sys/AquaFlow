@@ -33,6 +33,7 @@ Read the repository [backend and entry guide](../AGENTS.md) for shared rules and
 - Verify long names, empty lists, offline/error states, large balances and narrow screens for the changed view.
 - The POS has a fixed-height shell with deliberate internal scrolling. Keep navigation/payment controls reachable; queue/history pages may use normal document scrolling.
 - Verify receipt printing separately from on-screen layout when changing receipt markup or print styles.
+- Password inputs must use full-width input fields (`.credential-control`) with inside-field eye icon toggles instead of separate exterior "Show" text buttons. Maintain accessible `aria-label`, `aria-pressed`, `title` and SVG icon states.
 
 ## Verification and completion
 

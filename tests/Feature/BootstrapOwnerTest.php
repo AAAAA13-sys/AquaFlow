@@ -65,6 +65,7 @@ class BootstrapOwnerTest extends TestCase
         $this->assertAuthenticatedAs(User::sole());
 
         $this->postJson('/api/auth/logout');
+        $this->travel(61)->seconds();
         $this->postJson('/api/auth/setup-login', ['secret' => $secret])->assertUnauthorized();
         $this->artisan('aquaflow:install-store')->assertSuccessful();
         $this->assertDatabaseCount('users', 1);
@@ -74,10 +75,8 @@ class BootstrapOwnerTest extends TestCase
         $this->assertNull(app(StoreInstallationService::class)->reissueSecret());
     }
 
-    public function test_owner_email_is_optional_at_setup(): void
+    public function test_owner_email_is_required_at_setup(): void
     {
-        // Nothing is sent to an address any more, so requiring one only stranded
-        // stations whose owner has no mailbox.
         $this->artisan('aquaflow:install-store')->assertSuccessful();
         $this->postJson('/api/auth/setup-login', ['secret' => $this->setupSecret()])->assertOk();
         $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
@@ -88,11 +87,9 @@ class BootstrapOwnerTest extends TestCase
             'username' => 'ownername',
             'password' => 'MyPassword123',
             'password_confirmation' => 'MyPassword123',
-        ])->assertOk();
+        ])->assertUnprocessable()->assertJsonValidationErrors('email');
 
-        $this->assertNull(User::sole()->email);
-        $this->postJson('/api/auth/logout');
-        $this->postJson('/api/auth/login-owner', ['username' => 'ownername', 'password' => 'MyPassword123'])->assertOk();
+        $this->assertTrue(User::sole()->is_bootstrap);
     }
 
     public function test_the_credentials_published_by_earlier_releases_no_longer_work(): void

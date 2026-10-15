@@ -38,7 +38,7 @@ class EmployeeAndDeliveryTest extends TestCase
         // directory survives only to attribute delivery work in history.
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $this->get('/admin/employees')->assertNotFound();
-        $this->get('/admin/users')->assertOk()->assertSee('Team & Access')->assertSee('Job title');
+        $this->get('/admin/users')->assertOk()->assertSee('Team & Access')->assertDontSee('Job title');
     }
 
     public function test_employee_validation_and_owner_permissions(): void
@@ -51,13 +51,11 @@ class EmployeeAndDeliveryTest extends TestCase
         $this->postJson('/api/employees', ['name' => '', 'job_title' => ''])->assertUnprocessable()->assertJsonValidationErrors(['name', 'job_title']);
     }
 
-    public function test_cashier_can_only_handover_walk_ins_and_retries_are_idempotent(): void
+    public function test_cashier_can_handover_orders_and_retries_are_idempotent(): void
     {
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $this->actingAs($cashier);
         $item = ProductionQueueItem::create(['receipt_number' => 'TEST-DELIVERY', 'customer_name' => 'Ana', 'items_description' => '2 refills', 'order_type' => 'Delivery', 'stage' => 0, 'is_completed' => false]);
-        $this->postJson('/api/queue/'.$item->id.'/deliver')->assertForbidden();
-        $item->update(['order_type' => 'Walk-in']);
         $this->postJson('/api/queue/'.$item->id.'/deliver')->assertOk()->assertJsonPath('item.status', 'delivered');
         $this->postJson('/api/queue/'.$item->id.'/advance')->assertForbidden();
         $item->refresh();

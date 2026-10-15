@@ -1,9 +1,4 @@
-// Admin sign-in and first-run setup.
-//
-// Sign-in is one step: a username and a password, the same credentials any other
-// account uses. It used to be two - credentials, then a six-digit code emailed
-// to the address on file. The code is gone, so there is no second form to swap
-// in, no resend cooldown, and no recovery-code screen.
+// Admin sign-in, first-run setup and email OTP password recovery.
 const firstRun = document.getElementById('adminLogin').dataset.firstRun === '1';
 let adminBusy = false;
 const field = id => document.getElementById(id);
@@ -18,11 +13,13 @@ async function adminAction(action, fallbackMessage = '') {
   buttons.forEach(button => button.disabled = true);
   try { await action(); }
   catch (error) {
-    const message = fallbackMessage || error.message;
-    field('err').textContent = message;
-    field('err').classList.remove('hidden');
+    const message = error.message || fallbackMessage;
+    showLoginError(message);
   }
-  finally { adminBusy = false; buttons.forEach(button => button.disabled = false); }
+  finally {
+    adminBusy = false;
+    buttons.forEach(button => button.disabled = false);
+  }
 }
 function finishAdmin(result) {
   setSession(result.user);
@@ -54,7 +51,7 @@ function submitAdminLogin() {
 
 /** Final setup step. There is no code to return, so this signs the owner straight in. */
 function verifySetup() {
-  if (!validFields(['setupStation', 'setupName', 'setupUsername', 'setupPassword', 'setupConfirm'])) return;
+  if (!validFields(['setupStation', 'setupName', 'setupUsername', 'setupPassword', 'setupConfirm', 'setupEmail'])) return;
   return adminAction(async () => {
     finishAdmin(await API.post('auth/setup-owner', {
       station_name: field('setupStation').value.trim(),

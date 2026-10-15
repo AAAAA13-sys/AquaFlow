@@ -18,10 +18,10 @@ class UserService
             'email' => $data['email'] ?? null,
             'employee_id' => $data['employee_id'] ?? null,
             'username' => $data['username'],
-            'password' => $data['password'],
+            'password' => $data['role'] === User::ROLE_ADMIN ? $data['password'] : ($data['password'] ?? '12345678'),
+            'must_change_password' => $data['role'] === User::ROLE_CASHIER || ($data['password'] ?? '12345678') === '12345678',
             'role' => $data['role'],
             'name' => $data['name'],
-            'job_title' => $data['job_title'] ?? null,
             'is_active' => $data['is_active'] ?? true,
         ]);
 
@@ -34,10 +34,6 @@ class UserService
         $employeeId = $data['employee_id'] ?? $user->employee_id;
         $this->validateEmployee($role, $employeeId);
         $user->employee_id = $employeeId;
-        if (array_key_exists('job_title', $data)) {
-            $user->job_title = $data['job_title'];
-        }
-
         if (array_key_exists('email', $data) && $data['email'] !== $user->email) {
             $user->email = $data['email'];
         }
@@ -56,6 +52,7 @@ class UserService
 
         if (! empty($data['password'] ?? null)) {
             $user->password = $data['password'];
+            $user->must_change_password = true;
         }
 
         if (array_key_exists('is_active', $data)) {

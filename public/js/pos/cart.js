@@ -273,8 +273,8 @@ const PRODUCT_THEMES = {
 };
 
 const PRODUCT_SUBTITLES = {
-  refill: 'Bring your own jug',
-  container: 'For Sale - brand new',
+  refill: '',
+  container: 'For Sale Brand New',
   consumable: 'Supply',
   cleaning: 'Supply'
 };
@@ -287,7 +287,7 @@ function productTheme(product) {
 }
 
 function productSubtitle(product) {
-  return PRODUCT_SUBTITLES[product.cat] || 'For Sale';
+  return PRODUCT_SUBTITLES[product.cat] ?? 'For Sale';
 }
 
 function renderProducts() {
@@ -322,7 +322,7 @@ function renderProducts() {
       ' onclick="addProduct(\'' + product.id + '\')">' +
       '<span>' +
       '<span class="product-info-name">' + esc(product.name) + '</span>' +
-      '<span class="product-info-sub">' + productSubtitle(product) + '</span>' +
+      (productSubtitle(product) ? '<span class="product-info-sub">' + productSubtitle(product) + '</span>' : '') +
       stockLine +
       walkInBadge +
       '<span class="product-info-price">&#8369;' + price + '</span>' +
@@ -418,20 +418,21 @@ function posTotals() {
 }
 
 /** The bought-items rows, shared by the tray and the summary. */
-function cartRowsHtml() {
+function cartRowsHtml(editable = true) {
   if (!POS.cart.length) {
     return '<p class="cust-option-sub">No items yet - tap a product above.</p>';
   }
 
   return POS.cart.map((it, x) =>
-    '<div class="order-row">' +
-    '<span>' + esc(it.name) + '</span><span class="text-right">' + money(it.price) + '</span>' +
+    '<div class="order-row' + (editable ? '' : ' summary-row') + '">' +
+    '<span>' + esc(it.name) + '</span>' +
+    (editable ? '<span class="text-right">' + money(it.price) + '</span>' : '') +
     '<span class="qty-ctrl">' +
-      '<button type="button" onclick="chgQty(' + x + ',-1)">-</button>' +
-      '<b>x' + it.q + '</b>' +
-      '<button type="button" onclick="chgQty(' + x + ',1)">+</button>' +
+      (editable ? '<button type="button" aria-label="Decrease quantity" onclick="chgQty(' + x + ',-1)">-</button>' : '') +
+      '<b>' + it.q + '</b>' +
+      (editable ? '<button type="button" aria-label="Increase quantity" onclick="chgQty(' + x + ',1)">+</button>' : '') +
     '</span>' +
-    '<span class="text-right"><b>' + peso(it.price * it.q) + '</b></span></div>'
+    '<span class="text-right"><b>' + money(it.price * it.q) + '</b></span></div>'
   ).join('');
 }
 
@@ -492,7 +493,7 @@ function renderPOS() {
   if (rNo) rNo.textContent = 'OR-' + POS.orderN;
 
   const cart = document.getElementById('cart');
-  if (cart) cart.innerHTML = cartRowsHtml();
+  if (cart) cart.innerHTML = cartRowsHtml(false);
 
   const bought = document.getElementById('boughtItems');
   if (bought) bought.innerHTML = cartRowsHtml();
@@ -515,13 +516,6 @@ function renderPOS() {
   const ten = tender ? (+tender.value || 0) : 0;
   set('tChg', money(Math.max(0, ten - t.total)));
 
-  const deductNote = document.getElementById('deductNote');
-  if (deductNote) {
-    deductNote.textContent = t.gal > 0
-      ? 'Stock is deducted using the configured recipe for each product.'
-      : '';
-  }
-
   renderPaymentPanel();
 
   // Summary block: customer, address, order type, existing debt
@@ -535,14 +529,6 @@ function renderPOS() {
         '<span class="cust-detail">' + esc(c.addr) + '</span>' +
         '<span class="cust-detail">' + (isDelivery() ? icon('i-truck') + ' Delivery' : icon('i-walkin') + ' Walk-in') + '</span>' +
         '<span class="cust-detail">Existing debt: ' + money(Number(c.debt)) + '</span>';
-  }
-
-  // Order-type hint on stage 2
-  const orderNote = document.getElementById('orderTypeNote');
-  if (orderNote) {
-    orderNote.textContent = isDelivery()
-      ? 'Delivery needs a registered customer and address. Choose cash collected now or charge to the account; record later collections separately.'
-      : '';
   }
 
   if (typeof updateDebtPanel === 'function') updateDebtPanel();
@@ -573,19 +559,23 @@ async function refreshStockPreview() {
   const seq = ++stockSequence, signature = cartSignature();
   stockPreview = null;
   const status = document.getElementById('stockPreview');
-  if (status) { status.classList.remove('hidden'); status.textContent = 'Checking stock...'; }
+  if (status) { status.classList.add('hidden'); status.textContent = ''; }
   renderProducts();
   try {
     const result = await API.request('cart/availability', {method:'POST', body:{items:POS.cart.map(i => ({product_id:i.id, quantity:i.q}))}});
     if (seq !== stockSequence || signature !== cartSignature()) return null;
     stockPreview = result;
-    if (status) status.innerHTML = result.valid ? 'Stock checked. Availability is checked again before sale.' : (result.shortages || ['Stock is insufficient. Reduce the affected quantities.']).map(esc).join('<br>');
+    if (status) {
+      status.classList.toggle('hidden', result.valid);
+      status.innerHTML = result.valid ? '' : (result.shortages || ['Stock is insufficient. Reduce the affected quantities.']).map(esc).join('<br>');
+    }
     if (typeof refreshStageValidation === 'function') refreshStageValidation();
     renderProducts();
     return result;
   } catch (error) {
     if (seq === stockSequence) {
       stockSignature = null;
+      if (status) status.classList.remove('hidden');
       if (status) status.innerHTML = 'Could not check stock. Reconnect, then <button type="button" class="btn btn-ghost btn-sm" onclick="refreshStockPreview()">Retry stock check</button>.';
     }
     return null;

@@ -25,6 +25,9 @@ class StockMovementService
     {
         return DB::transaction(function () use ($item, $data, $user): StockMovement {
             $locked = InventoryItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            if ($locked->retired_at !== null) {
+                throw ValidationException::withMessages(['inventory' => 'This legacy stock item is retired.']);
+            }
             $next = $locked->stock_on_hand + $data['qty'];
             if ($next < 0 || $next > 1000000) {
                 throw ValidationException::withMessages(['qty' => 'Stock must remain between 0 and 1,000,000.']);

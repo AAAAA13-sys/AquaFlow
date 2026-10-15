@@ -117,7 +117,7 @@ class PageTest extends TestCase
 
         $this->assertStringContainsString('Available stock: ', $cart);
         $this->assertStringContainsString('Walk-in only', $cart);
-        $this->assertStringContainsString('For Sale - brand new', $cart);
+        $this->assertStringContainsString('For Sale Brand New', $cart);
     }
 
     public function test_stage_three_has_inclusive_vat_and_no_discounts(): void
@@ -473,8 +473,12 @@ class PageTest extends TestCase
             $response = $this->actingAs($this->owner)->get($url)->assertOk();
             foreach ($targets as $target) {
                 $response->assertSee('id="'.$target.'Search"', false)
-                    ->assertSee('id="'.$target.'Order"', false)
-                    ->assertSee('New to Old')->assertSee('Old to New');
+                    ->assertSee('id="'.$target.'Order"', false);
+                if (in_array($target, ['invBodyDash', 'invBody'])) {
+                    $response->assertSee('Least to most stock')->assertSee('Most to least stock');
+                } else {
+                    $response->assertSee('New to Old')->assertSee('Old to New');
+                }
             }
         }
     }

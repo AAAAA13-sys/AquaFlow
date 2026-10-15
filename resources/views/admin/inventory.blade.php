@@ -39,7 +39,11 @@
       </form>
     </div>
 
-    @include('partials.table-filters', ['target' => 'invBody', 'label' => 'stock', 'refresh' => "renderInvTable()"])
+    <div class="filter-toolbar no-print table-filters stock-filters">
+      <div class="filter-group"><label for="invType">Type</label><select id="invType" onchange="renderInvTable()"><option value="">All types</option><option>Consumable</option><option>Filtration</option><option>Cleaning</option><option>Asset</option></select></div>
+      <div class="filter-group"><label for="invBodySearch">Search</label><input id="invBodySearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()"></div>
+      <div class="filter-group"><label for="invBodyOrder">Sort</label><select id="invBodyOrder" onchange="renderInvTable()"><option value="lowest">Least to most stock</option><option value="highest">Most to least stock</option></select></div>
+    </div>
 
     <div class="card data-table-wrapper">
       <table class="clean">

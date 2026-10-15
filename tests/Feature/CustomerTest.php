@@ -116,7 +116,7 @@ class CustomerTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('name');
         $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Block 6 Residents'])
             ->assertUnprocessable()->assertJsonValidationErrors('name');
-        $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Juan Dela Cruz'])
+        $this->actingAs($this->cashier)->postJson('/api/customers', ['name' => 'Juan Dela Cruz', 'contact' => '09123456789'])
             ->assertCreated();
     }
 

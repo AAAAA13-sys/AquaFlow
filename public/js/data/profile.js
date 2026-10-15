@@ -1,3 +1,4 @@
+let profilePasswordRequired = false;
 function showProfileError(message) {
   const error = document.getElementById('profileError');
   if (error) {
@@ -31,6 +32,7 @@ async function openProfileModal() {
   if (successEl) successEl.classList.add('hidden');
 
   clearProfilePasswords();
+  profilePasswordRequired = typeof getSession === 'function' && !!getSession()?.must_change_password;
 
   modal.classList.remove('hidden');
 
@@ -38,6 +40,10 @@ async function openProfileModal() {
     const data = await API.get('profile');
     const user = data.user || {};
     const employee = data.employee;
+    profilePasswordRequired = !!user.must_change_password;
+    document.getElementById('profileOnboardingNotice')?.classList.toggle('hidden', !profilePasswordRequired);
+    const closeButton = document.getElementById('profileCloseButton');
+    if (closeButton) closeButton.hidden = profilePasswordRequired;
 
     const nameEl = document.getElementById('profileOverviewName');
     const roleEl = document.getElementById('profileOverviewRole');
@@ -53,6 +59,7 @@ async function openProfileModal() {
     }
     if (badgeEl) badgeEl.textContent = computeInitials(user.name);
     if (nameInput) nameInput.value = user.name || '';
+    if (profilePasswordRequired) document.getElementById('profileCurrentPasswordInput')?.focus();
 
     const jobWrap = document.getElementById('profileOverviewJobWrapper');
     const jobEl = document.getElementById('profileOverviewJob');
@@ -70,11 +77,16 @@ async function openProfileModal() {
 }
 
 function closeProfileModal() {
+  if (profilePasswordRequired) { showProfileError('Change your temporary password before starting work.'); return; }
   const modal = document.getElementById('profileModal');
   if (modal) modal.classList.add('hidden');
 }
 
 function toggleProfilePassword(inputId, btn) {
+  if (typeof togglePassword === 'function') {
+    togglePassword(inputId, btn);
+    return;
+  }
   const input = document.getElementById(inputId);
   if (!input) return;
   const isPass = input.type === 'password';
@@ -97,7 +109,8 @@ async function saveProfile(event) {
   const newPassword = (document.getElementById('profileNewPasswordInput')?.value || '');
   const confirmPassword = (document.getElementById('profileConfirmPasswordInput')?.value || '');
 
-  if (!name || name.length > 100) return showProfileError('Enter a display name from 1 to 100 characters.');
+  if (!name || name.length > 20) return showProfileError('Enter a display name from 1 to 20 characters.');
+  if (profilePasswordRequired && !newPassword) return showProfileError('Set a new password before starting work.');
   if (newPassword || confirmPassword || currentPassword) {
     if (!currentPassword) return showProfileError('Current password is required to change password.');
     if (!validNewPassword(newPassword)) return showProfileError('Use 8 to 64 characters with uppercase, lowercase and a number, without spaces.');
@@ -117,6 +130,9 @@ async function saveProfile(event) {
   try {
     const res = await API.request('profile', { method: 'PUT', body: payload });
     const updatedUser = res.user || {};
+    const finishedOnboarding = profilePasswordRequired && !updatedUser.must_change_password;
+    profilePasswordRequired = !!updatedUser.must_change_password;
+    if (typeof setSession === 'function' && updatedUser.u) setSession(updatedUser);
 
     if (successEl) {
       successEl.textContent = res.message || 'Profile updated successfully!';
@@ -136,7 +152,8 @@ async function saveProfile(event) {
 
     // Close after short pause so user sees confirmation
     setTimeout(() => {
-      closeProfileModal();
+      if (finishedOnboarding) window.location.reload();
+      else closeProfileModal();
     }, 1200);
   } catch (error) {
     showProfileError(error.message || 'Failed to update profile.');

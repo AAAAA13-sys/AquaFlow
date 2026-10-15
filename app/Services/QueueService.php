@@ -3,19 +3,21 @@
 namespace App\Services;
 
 use App\Models\ProductionQueueItem;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class QueueService
 {
     public function deliver(ProductionQueueItem $item, int $userId): ProductionQueueItem
     {
+        abort_if(
+            auth()->check() && ! in_array(auth()->user()->role, [User::ROLE_CASHIER, User::ROLE_ADMIN], true),
+            403,
+            'Only cashiers and administrators can confirm order delivery.'
+        );
+
         DB::transaction(function () use ($item, $userId): void {
             $locked = ProductionQueueItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
-            // A delivery order is handed over and completed through the fulfilment
-            // workflow, which captures the rider, the photo and the cash. Hitting
-            // this endpoint for one would skip every bit of that evidence.
-            abort_unless($locked->order_type === 'Walk-in', 403, 'Only the assigned rider can deliver this order.');
-            abort_unless($locked->fulfillment_status === 'ready' || $locked->is_completed || ! $locked->transaction_id, 422, 'The refiller must mark this order ready first.');
             if ($locked->is_completed) {
                 return;
             }

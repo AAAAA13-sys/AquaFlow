@@ -20,12 +20,13 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'username' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:users,username'],
-            'password' => ['required', ...CredentialRules::password()],
+            'password' => $this->input('role') === User::ROLE_ADMIN
+                ? ['required', ...CredentialRules::password()]
+                : ($this->input('password') === '12345678' ? ['sometimes', 'string', 'in:12345678'] : ['sometimes', ...CredentialRules::password()]),
             'role' => ['required', Rule::in([User::ROLE_CASHIER, User::ROLE_ADMIN])],
-            'email' => ['nullable', 'email:rfc', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($this->route('user')?->id)],
-            'name' => ['required', 'string', 'max:100'],
-            'job_title' => ['nullable', 'string', 'max:120'],
+            'name' => ['required', 'string', 'max:20'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

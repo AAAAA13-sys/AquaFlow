@@ -28,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
         // API responses use explicit top-level keys ({customers: [...]},
         // {transaction: {...}}), so resources must not add a "data" wrapper.
         JsonResource::withoutWrapping();
+        RateLimiter::for('login', fn ($request) => Limit::perMinute(config('rate_limits.login', 5))->by($request->ip()));
+        RateLimiter::for('password-reset-mail', fn ($request) => [
+            Limit::perMinute(1)->by('reset-email:'.hash('sha256', strtolower(trim((string) $request->input('email'))))),
+            Limit::perHour(5)->by('reset-hour:'.hash('sha256', strtolower(trim((string) $request->input('email'))))),
+        ]);
         RateLimiter::for('api', fn ($request) => Limit::perMinute(config('rate_limits.api', 120))->by('user:'.$request->user()->id));
         RateLimiter::for('forecast', fn ($request) => Limit::perMinute(config('rate_limits.forecast', 3))->by('forecast:'.$request->user()->id));
         RateLimiter::for('delivery', fn ($request) => Limit::perMinute(config('rate_limits.delivery', 10))->by('delivery:'.$request->user()->id));

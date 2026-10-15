@@ -64,7 +64,7 @@ class AuthTest extends TestCase
         $this->postJson('/api/auth/login-owner', [
             'username' => 'cashier',
             'password' => '1234',
-        ])->assertStatus(403);
+        ])->assertUnauthorized()->assertExactJson(['message' => 'Invalid username or password.']);
 
         $this->assertGuest();
     }
@@ -106,7 +106,7 @@ class AuthTest extends TestCase
         $this->postJson('/api/auth/login', [
             'username' => 'admin',
             'password' => '1234',
-        ])->assertStatus(403);
+        ])->assertUnauthorized()->assertExactJson(['message' => 'Invalid username or password.']);
 
         $this->assertGuest();
     }

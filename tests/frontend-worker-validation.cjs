@@ -16,8 +16,8 @@ module.exports=async root=>{
   ctx.API.request=async()=>{throw Error('offline');};await ctx.refreshStockPreview();
   assert.match(elements.stockPreview.innerHTML,/retry|Retry/,'Cashier gets an actionable stock failure');
   ctx.API.request=async()=>({valid:true,additional:{slim:1}});await ctx.completeSale();assert.equal(sent,1,'An available order can still be completed');
-  await vm.runInContext('POS_HOTKEYS.F4.run()',ctx);
-  assert.equal(ctx.POS.type,'Walk-in','F4 must not bypass registered-customer validation');
+  await ctx.confirmOrderType('Delivery');
+  assert.equal(ctx.POS.type,'Walk-in','Order type changes must require a registered customer');
   ctx.completeSale.busy=true;await ctx.chgQty(0,-1);ctx.setType('Delivery');
   assert.equal(ctx.POS.cart.length,1,'Cart cannot change during a financial write');assert.equal(ctx.POS.type,'Walk-in');
   ctx.completeSale.busy=false;
@@ -34,7 +34,7 @@ module.exports=async root=>{
   ctx.validNewPassword=value=>/^[\x21-\x7E]{8,64}$/.test(value)&&/[a-z]/.test(value)&&/[A-Z]/.test(value)&&/[0-9]/.test(value);
   vm.runInContext(fs.readFileSync(path.join(root,'public/js/data/profile.js'),'utf8'),ctx);
   const event={preventDefault(){},target:{}};ctx.API.request=async()=>{profileWrites++;return {user:{name:'Worker'}};};
-  elements.profileNameInput.value='x'.repeat(101);await ctx.saveProfile(event);assert.equal(profileWrites,0);
+  elements.profileNameInput.value='x'.repeat(21);await ctx.saveProfile(event);assert.equal(profileWrites,0);
   elements.profileNameInput.value='Worker';elements.profileCurrentPasswordInput.value='OldPassword1';elements.profileNewPasswordInput.value='aaaaaaaa';elements.profileConfirmPasswordInput.value='aaaaaaaa';
   await ctx.saveProfile(event);assert.equal(profileWrites,0);
   for(const id of ['profileCurrentPasswordInput','profileNewPasswordInput','profileConfirmPasswordInput'])elements[id].value='';

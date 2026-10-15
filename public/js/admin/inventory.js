@@ -19,9 +19,7 @@ let stockFilter = 'all';
 const STOCK_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'Consumable', label: 'Consumables' },
-  { key: 'Filtration', label: 'Filtration' },
   { key: 'Asset', label: 'Assets' },
-  { key: 'Cleaning', label: 'Cleaning' },
   { key: 'reorder', label: 'Needs Reorder' },
 ];
 
@@ -31,20 +29,17 @@ function stockFilterMatch(v, key) {
   return v.cat === key;
 }
 
+// shortcut: dashboard matches the current jug supply names; use recipe IDs if custom-named supplies must appear here.
 function stockFiltered() {
-  return DB.inventory.filter(v => stockFilterMatch(v, stockFilter));
+  return DB.inventory.filter(v => /jug|clear cover|shrink seal/i.test(v.item) && stockFilterMatch(v, stockFilter));
 }
 
 function renderStockFilterTabs() {
   const host = document.getElementById('invFilterTabs');
   if (!host) return;
-  host.innerHTML = STOCK_FILTERS.map(f => {
-    const n = DB.inventory.filter(v => stockFilterMatch(v, f.key)).length;
-    const active = stockFilter === f.key;
-    return '<button type="button" class="filter-tab' + (active ? ' is-active' : '') + '" ' +
-      'onclick="setStockFilter(\'' + f.key + '\')" aria-pressed="' + active + '">' +
-      f.label + ' <span class="filter-tab-count">' + n + '</span></button>';
-  }).join('');
+  host.innerHTML = '<label class="form-label" for="dashStockType">Type</label><select id="dashStockType" onchange="setStockFilter(this.value)">' + STOCK_FILTERS.map(f =>
+    '<option value="' + f.key + '"' + (stockFilter === f.key ? ' selected' : '') + '>' + f.label + '</option>'
+  ).join('') + '</select>';
 }
 
 function setStockFilter(key) {
@@ -56,7 +51,8 @@ function setStockFilter(key) {
 function renderInvTable() {
   const body = document.getElementById('invBody');
   if (body) {
-    body.innerHTML = filterTableRows(DB.inventory, 'invBody').map(v => {
+    const type = document.getElementById('invType')?.value || '';
+    body.innerHTML = filterTableRows(DB.inventory.filter(v => !type || v.cat === type), 'invBody').map(v => {
       const i = DB.inventory.indexOf(v);
       const st = statusOf(v);
       const supplierSub = v.supplier ? '<span class="cell-sub">' + esc(v.supplier) + '</span>' : '';
@@ -276,7 +272,7 @@ function renderSup() {
   const summary = document.getElementById('supplierSummary');
   if (summary) {
     const leads = DB.suppliers.map(s => Number(s.lead)).filter(n => n > 0);
-    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : '—') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
+    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : 'â€”') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
   }
   grid.innerHTML = filterTableRows(DB.suppliers, 'supGrid').map(s => {
     const key = supKey(s);

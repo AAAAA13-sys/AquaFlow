@@ -12,7 +12,16 @@ function getSession() {
 
 function setSession(user) {
   if (getSession()?.u !== user.u) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
-  localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, t: Date.now() }));
+  localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, must_change_password: !!user.must_change_password, t: Date.now() }));
+}
+
+let loginErrorTimer;
+function showLoginError(message) {
+  const error = document.getElementById('err');
+  clearTimeout(loginErrorTimer);
+  error.textContent = message;
+  error.classList.remove('hidden');
+  loginErrorTimer = setTimeout(() => error.classList.add('hidden'), 5000);
 }
 
 // Cashier login (server-verified)
@@ -60,13 +69,24 @@ function guardAdmin() {
 }
 
 // Shared credential controls for sign-in and account management.
+const EYE_ICON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_ICON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24m-7.07-7.07C4.16 8.5 2 12 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/></svg>';
+
 function togglePassword(id, button) {
   const field = document.getElementById(id);
   if (!field) return;
   const show = field.type === 'password';
   field.type = show ? 'text' : 'password';
-  button.textContent = show ? 'Hide' : 'Show';
-  button.setAttribute('aria-pressed', String(show));
+  if (button) {
+    if ('innerHTML' in button && typeof button.innerHTML === 'string') {
+      button.innerHTML = show ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
+    } else {
+      button.textContent = show ? 'Hide' : 'Show';
+    }
+    button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    button.setAttribute('aria-pressed', String(show));
+    button.title = show ? 'Hide password' : 'Show password';
+  }
 }
 
 function validNewPassword(value) {

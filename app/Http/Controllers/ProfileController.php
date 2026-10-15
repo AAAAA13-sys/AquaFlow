@@ -7,6 +7,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
@@ -38,16 +39,19 @@ class ProfileController extends Controller
                 ]);
             }
             $user->password = $validated['new_password'];
+            $user->must_change_password = false;
         }
 
         if ($user->name !== $validated['name']) {
             $user->name = $validated['name'];
-            if ($user->employee_id && $user->employee) {
-                $user->employee->update(['name' => $user->name]);
-            }
         }
 
-        $user->save();
+        DB::transaction(function () use ($user): void {
+            if ($user->isDirty('name') && $user->employee_id && $user->employee) {
+                $user->employee->update(['name' => $user->name]);
+            }
+            $user->save();
+        });
 
         return response()->json([
             'ok' => true,

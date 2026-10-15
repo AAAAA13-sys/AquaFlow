@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
             [
                 'password' => Hash::make('1234'),
                 'role' => User::ROLE_CASHIER,
-                'name' => 'Juan Dela Cruz (Cashier #01)',
+                'name' => 'Juan Dela Cruz',
                 'is_active' => true,
             ]
         );

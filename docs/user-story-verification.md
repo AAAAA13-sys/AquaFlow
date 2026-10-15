@@ -80,7 +80,7 @@ PDF exports use the browser Print / Save PDF dialog. Daily/weekly/monthly are ag
 | US-64 | ROP check re-runs after every movement; breached SKU flagged with Warning/Critical badge. | [app/Services/StockMovementService.php](../app/Services/StockMovementService.php) | `docker compose exec -T test php artisan test --filter=ConsumableStoriesTest` |
 | US-65 | On restock save, InventoryEngine recalculates SS and ROP for that SKU. | [app/Services/StockMovementService.php](../app/Services/StockMovementService.php) | `docker compose exec -T test php artisan test --filter=ConsumableStoriesTest` |
 
-Additional security: login throttling (10/minute), authenticated API throttling (120/minute/user), owner forecast-run throttling (3/minute/user), and rejection of deactivated users with existing sessions. `tests/Feature/SecurityStoriesTest.php` verifies rate limits, account state and owner-only inventory writes.
+Additional security: login throttling (5/minute), authenticated API throttling (120/minute/user), owner forecast-run throttling (3/minute/user), and rejection of deactivated users with existing sessions. `tests/Feature/SecurityStoriesTest.php` verifies rate limits, account state and owner-only inventory writes.
 
 Run the full verification:
 

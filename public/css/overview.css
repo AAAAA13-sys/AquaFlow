@@ -407,3 +407,16 @@
   color: #5A6B85;
   line-height: 1.4;
 }
+
+#s-dash .dash-row-chart { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+#s-dash .dash-row-chart.is-wide { grid-template-columns: minmax(0, 1fr); }
+#s-dash .dash-row-chart > .card { align-self: stretch; }
+#s-dash .ledger-actions { justify-content: flex-end; }
+@media (max-width: 900px) { #s-dash .dash-row-chart { grid-template-columns: minmax(0, 1fr); } }
+
+@media (min-width: 901px) {
+  /* The forecast sets the row height; advisory content cannot enlarge it. */
+  #s-dash #advisoryRail:not(.hidden) { contain: size; display: flex; flex-direction: column; min-height: 0; }
+  #s-dash #advisoryRail .panel-heading, #s-dash .overview-purchase { flex-shrink: 0; }
+  #s-dash .overview-advisories { flex: 1; min-height: 0; overflow-y: auto; }
+}

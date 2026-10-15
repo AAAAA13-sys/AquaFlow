@@ -57,7 +57,7 @@ class ForecastController extends Controller
             'inventory_updated' => $updated,
             'forecasts' => DemandForecastResource::forSeries(DemandForecast::latestPerSeries()),
             'inventory' => InventoryItemResource::collection(
-                InventoryItem::query()->with('supplier')->orderBy('id')->get()
+                InventoryItem::query()->current()->with('supplier')->orderBy('id')->get()
             ),
             'advisories' => $this->inventory->advisories(),
         ]);

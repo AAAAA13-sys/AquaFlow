@@ -14,9 +14,9 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'max:20'],
             'current_password' => ['nullable', 'string', 'required_with:new_password'],
-            'new_password' => ['nullable', 'string', 'min:8', 'max:120'],
+            'new_password' => [$this->user()?->must_change_password ? 'required' : 'nullable', ...CredentialRules::password(), 'different:current_password'],
             'new_password_confirmation' => ['nullable', 'string', 'required_with:new_password', 'same:new_password'],
         ];
     }

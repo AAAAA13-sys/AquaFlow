@@ -18,6 +18,28 @@ use Illuminate\Database\Seeder;
  */
 class CatalogSeeder extends Seeder
 {
+    private const LEGACY_STOCK_NAMES = [
+        'Non-Spill Caps', 'Heat Shrink Seals', '5-Micron Sediment Filter Cartridges',
+        'Food-Grade Soap', 'Sanitizing Sponges', '5-Gal Replacement Slim Jugs',
+        '5-Gal Replacement Round Jugs', 'SHRINK_SLIM', 'SHRINK_ROUND', 'CLEAR_COVER',
+    ];
+
+    public function retireLegacyInventory(): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function (): void {
+            InventoryItem::query()->whereIn('item_name', self::LEGACY_STOCK_NAMES)
+                ->whereNull('retired_at')->update(['retired_at' => now()]);
+            foreach (Product::whereIn('id', ['slim', 'round', 'newS', 'newR'])->get() as $product) {
+                if (in_array($product->id, ['newS', 'newR'], true)) {
+                    $name = $product->id === 'newS' ? '5 Gallon Slim Jug' : '5 Gallon Round Jug';
+                    $product->inventory_item_id = InventoryItem::current()->where('item_name', $name)->firstOrFail()->id;
+                    $product->save();
+                }
+                app(RecipeService::class)->ensureConsumables($product);
+            }
+        });
+    }
+
     public function run(bool $demo = true): void
     {
         $suppliers = [
@@ -56,15 +78,6 @@ class CatalogSeeder extends Seeder
             ['item_name' => '5 Gallon Slim Jug', 'category' => 'Asset', 'stock_on_hand' => 40, 'unit' => 'units', 'lead_time_days' => 4, 'supplier_id' => 2],
             ['item_name' => '5 Gallon Round Jug', 'category' => 'Asset', 'stock_on_hand' => 30, 'unit' => 'units', 'lead_time_days' => 4, 'supplier_id' => 2],
         ];
-
-        $canonicalNames = array_column($inventory, 'item_name');
-        $obsoleteItems = InventoryItem::query()->whereNotIn('item_name', $canonicalNames)->get();
-        foreach ($obsoleteItems as $obsolete) {
-            \Illuminate\Support\Facades\DB::table('product_consumables')->where('inventory_item_id', $obsolete->id)->delete();
-            \Illuminate\Support\Facades\DB::table('stock_movements')->where('inventory_item_id', $obsolete->id)->delete();
-            \Illuminate\Support\Facades\DB::table('products')->where('inventory_item_id', $obsolete->id)->update(['inventory_item_id' => null]);
-            $obsolete->delete();
-        }
 
         foreach ($inventory as $item) {
             if (! $demo) {
@@ -127,6 +140,7 @@ class CatalogSeeder extends Seeder
         }
 
         app(RecipeService::class)->installDefaults($demo ? $stock['default'] : 0);
+        $this->retireLegacyInventory();
 
         SystemSetting::put(SystemSetting::KEY_STATION_NAME, 'AquaFlow Station', 'Displayed name of the water station');
         SystemSetting::put(SystemSetting::KEY_RESTOCK_LEAD_DAYS, '3', 'Default days until new supplies arrive');

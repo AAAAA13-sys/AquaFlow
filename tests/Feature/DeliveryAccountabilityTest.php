@@ -105,8 +105,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->assertEquals(100, $this->buyer->fresh()->debt_balance);
         $this->assertDatabaseCount('transactions', 1);
         Storage::disk('local')->assertExists(DeliveryProof::firstOrFail()->photo_path);
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 200])->assertOk();
-        $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash', 200);
+        $this->actingAs($this->cashier);
         $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         $remit = ['amount' => 100, 'submission_key' => (string) Str::uuid()];
         $response = $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $remit)->assertOk();
@@ -115,7 +114,6 @@ class DeliveryAccountabilityTest extends TestCase
         $this->assertDatabaseCount('transactions', 2);
         $this->assertDatabaseCount('delivery_remittances', 1);
         $this->assertEquals('paid', $this->job->transaction->fresh()->payment_status);
-        $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash', 300)->assertJsonPath('shift.total_sales', 0);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
     }
 
@@ -123,15 +121,14 @@ class DeliveryAccountabilityTest extends TestCase
     {
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 60, 'submission_key' => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors('note');
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 60, 'submission_key' => (string) Str::uuid(), 'note' => 'Rider is short forty pesos'])->assertOk();
         $this->assertEquals(40, $this->buyer->fresh()->debt_balance);
         $this->travel(10)->days();
         $this->getJson('/api/fulfillment')->assertOk()->assertJsonFragment(['pending_remittance' => 40]);
         $this->actingAs($this->rider)->getJson('/api/employee/orders')->assertOk()->assertJsonFragment(['pending_remittance' => 40]);
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/close', ['counted_cash' => 60])->assertOk();
-        $this->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 40, 'submission_key' => (string) Str::uuid()])->assertOk();
         $this->assertEquals(0, $this->buyer->fresh()->debt_balance);
     }
@@ -140,27 +137,24 @@ class DeliveryAccountabilityTest extends TestCase
     {
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
-        $this->get('/api/employee/orders/'.$this->job->id.'/proof')->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->get('/api/employee/orders/'.$this->job->id.'/proof')->assertNotFound();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertForbidden();
         $refiller = User::where('role', 'refiller')->firstOrFail();
-        $this->actingAs($refiller)->getJson('/api/employee/orders/'.$this->job->id.'/proof')->assertForbidden();
+        $this->actingAs($refiller)->getJson('/api/employee/orders/'.$this->job->id.'/proof')->assertNotFound();
         $employee = Employee::create(['name' => 'Other Rider', 'job_title' => 'Rider', 'is_active' => true]);
         $other = User::create(['username' => 'other_rider', 'name' => 'Other', 'role' => 'rider', 'password' => 'Other123', 'employee_id' => $employee->id, 'is_active' => true]);
-        $this->actingAs($other)->getJson('/api/employee/orders/'.$this->job->id.'/proof')->assertForbidden();
+        $this->actingAs($other)->getJson('/api/employee/orders/'.$this->job->id.'/proof')->assertNotFound();
         $this->actingAs($this->cashier)->get('/api/deliveries/'.$this->job->id.'/proof')->assertOk();
         $this->assertEquals(100, $this->buyer->fresh()->debt_balance);
     }
 
-    public function test_remittance_requires_an_open_drawer_and_conflicting_retries_are_rejected(): void
+    public function test_remittance_needs_no_drawer_and_conflicting_retries_are_rejected(): void
     {
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
         $this->actingAs($this->cashier);
         $body = ['amount' => 100, 'submission_key' => (string) Str::uuid()];
-        $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $body)->assertUnprocessable()->assertJsonValidationErrors('cash_shift');
-        $this->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $body)->assertOk();
-        $this->postJson('/api/cash-shift/close', ['counted_cash' => 100])->assertOk();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $body)->assertOk()->assertJsonPath('replayed', true);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 99, 'submission_key' => $body['submission_key']])->assertConflict();
         $this->assertDatabaseCount('delivery_remittances', 1);
@@ -196,7 +190,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->actingAs($this->cashier)->postJson('/api/fulfillment/'.$this->job->id, $this->action('reset_code'))->assertOk();
         $this->deliver(['recipient_code' => $oldCode])->assertUnprocessable();
         $this->deliver(['reported_cash' => 60, 'collection_note' => 'Buyer paid sixty pesos only'])->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 60, 'submission_key' => (string) Str::uuid()])->assertOk();
         $this->assertEquals(40, $this->buyer->fresh()->debt_balance);
         $this->assertEquals('unpaid', $this->job->transaction->fresh()->payment_status);
@@ -224,7 +218,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->getJson('/api/employee/orders')->assertOk()->assertJsonFragment(['collection_limit' => 0]);
         $this->deliver(['reported_cash' => 1])->assertUnprocessable();
         $this->deliver(['reported_cash' => 0])->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 1, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         $this->assertDatabaseCount('delivery_remittances', 0);
         $this->assertDatabaseCount('transactions', 1);
@@ -236,12 +230,11 @@ class DeliveryAccountabilityTest extends TestCase
         $this->buyer->update(['debt_balance' => 150]);
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 50, 'submission_key' => (string) Str::uuid()])->assertOk();
         $this->assertEquals(100, $this->buyer->fresh()->debt_balance);
         $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 1, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertOk();
-        $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash', 150)->assertJsonPath('shift.total_sales', 0);
         $this->assertEquals(0, $this->buyer->fresh()->debt_balance);
     }
 
@@ -249,14 +242,13 @@ class DeliveryAccountabilityTest extends TestCase
     {
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 40, 'submission_key' => (string) Str::uuid(), 'note' => 'First cash handover of forty'])->assertOk();
         $owner = User::where('role', 'admin')->firstOrFail();
-        $this->actingAs($owner)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($owner);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 60, 'submission_key' => (string) Str::uuid()])->assertOk();
-        $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash', 60);
-        $this->actingAs($this->cashier)->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash', 40);
+        $this->actingAs($this->cashier);
         $this->assertEquals(0, $this->buyer->fresh()->debt_balance);
         $this->assertDatabaseCount('delivery_remittances', 2);
         $this->assertDatabaseCount('transactions', 3);
@@ -282,7 +274,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->deliver(['reported_cash' => -1])->assertUnprocessable()->assertJsonValidationErrors('reported_cash');
         $this->deliver(['reported_cash' => '1.001'])->assertUnprocessable()->assertJsonValidationErrors('reported_cash');
         $this->deliver()->assertOk();
-        $this->actingAs($this->cashier)->postJson('/api/cash-shift/open', ['opening_float' => 0])->assertOk();
+        $this->actingAs($this->cashier);
         foreach ([0, -1, '1.001', 101] as $amount) {
             $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => $amount, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         }

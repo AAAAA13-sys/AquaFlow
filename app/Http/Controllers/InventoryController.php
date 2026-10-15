@@ -18,7 +18,7 @@ class InventoryController extends Controller
 
     public function index(): JsonResponse
     {
-        $items = InventoryItem::query()->with('supplier')->orderBy('id')->get();
+        $items = InventoryItem::query()->current()->with('supplier')->orderBy('id')->get();
 
         return response()->json([
             'inventory' => InventoryItemResource::forItems($items, $this->engine),
@@ -63,7 +63,7 @@ class InventoryController extends Controller
     public function recalculate(): JsonResponse
     {
         $updated = $this->engine->recalculateAll();
-        $items = InventoryItem::query()->with('supplier')->orderBy('id')->get();
+        $items = InventoryItem::query()->current()->with('supplier')->orderBy('id')->get();
 
         return response()->json([
             'updated' => $updated,

@@ -17,7 +17,7 @@
              grouped and de-emphasised. Search keeps the middle. --}}
         <div class="stage-toolbar">
           <button type="button" onclick="pickWalkIn()" class="btn btn-primary btn-sm stage-fasttrack"
-                  title="Start a walk-in cash sale without choosing a customer (F2)">
+                  title="Start a walk-in cash sale">
             Quick Walk-In
           </button>
           <input id="custSearch" oninput="queueCustSearch()" class="form-input stage-search"
@@ -45,14 +45,12 @@
         <div class="card stage-card">
           <div class="flex-between">
             <h3 class="panel-heading" style="margin:0;">Products</h3>
-            <p id="orderTypeNote" class="auto-deduct-caption" style="margin:0;"></p>
           </div>
 
           <div class="stage-segment" role="group" aria-label="Order type" style="margin:0.5rem 0 0.85rem;">
             <button type="button" id="bWalk" onclick="confirmOrderType('Walk-in')" class="seg-btn">
               <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-walkin"></use></svg>
               <span>Walk-In</span>
-              <span class="walk-tip-icon" title="Walk-In: Customer waits at counter and pays cash now. Delivery: Driver delivers to customer address.">?</span>
             </button>
             <button type="button" id="bDel" onclick="confirmOrderType('Delivery')" class="seg-btn">
               <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-truck"></use></svg>
@@ -154,8 +152,6 @@
               <span>Change</span>
               <b id="tChg">&#8369;0.00</b>
             </div>
-
-            <p id="deductNote" class="auto-deduct-caption"></p>
           </div>
 
           {{-- Delivery: charged to the customer ledger --}}
@@ -217,7 +213,7 @@
     </div>
   </main>
 
-  {{-- Customer registration modal (name + address only) --}}
+  {{-- Customer registration --}}
   <dialog id="registerModal" class="customer-dialog" aria-labelledby="registerTitle" oncancel="event.preventDefault(); requestCloseRegisterModal()">
     <div class="auth-card" style="max-width:400px;">
       <h3 id="registerTitle" class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
@@ -225,6 +221,8 @@
       <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz" autocomplete="off"
              inputmode="text" pattern="^[^0-9]+$" title="Letters only — numbers are not allowed"
              oninput="this.value = this.value.replace(/[0-9]/g, '')">
+      <label class="form-label" for="regContact">Mobile number</label>
+      <input id="regContact" type="tel" class="form-input" required maxlength="13" autocomplete="tel" placeholder="09XXXXXXXXX or +639XXXXXXXXX">
       <label class="form-label" for="regAddr">Address</label>
       <input id="regAddr" maxlength="255" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">

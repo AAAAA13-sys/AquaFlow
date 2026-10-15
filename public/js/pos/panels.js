@@ -1,3 +1,7 @@
+function historyVolumeLabel(value) {
+  return String(value || '').replace(/(\d+)\s*S\b/g, '$1 Slim').replace(/(\d+)\s*R\b/g, '$1 Round').replace(/\s*gals?\b/gi, '').replace(/\+/g, ', ').trim();
+}
+
 // AquaFlow CASHIER terminal - sidebar pages.
 //
 //   Orders in Progress : active orders and confirmed deliveries
@@ -147,8 +151,8 @@ async function renderHistoryPage() {
       '<article><span>Debt payments</span><strong>' + money(collected) + '</strong><small>' +
         (payments.length ? payments.length + (payments.length === 1 ? ' payment recorded' : ' payments recorded') : 'None this period') +
         '</small></article>' +
-      '<article><span>Cash from sales</span><strong>' + money(cash) + '</strong><small>Cash and account split</small></article>' +
-      '<article><span>Records</span><strong>' + rows.length + '</strong><small>Matching your filters</small></article>';
+      '<article><span>Cash from sales</span><strong>' + money(cash) + '</strong></article>' +
+      '<article><span>Records</span><strong>' + rows.length + '</strong></article>';
   }
 
   markScrollableTables('ledgerScrollNote');
@@ -166,7 +170,7 @@ function renderHistoryRows() {
       '<td><b>' + esc(t.no) + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
       '<td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td>' +
       '<td>' + esc(t.cust || 'Walk-in Guest') + '</td>' +
-      '<td><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub">' + esc(t.gal) + (t.gal == 1 ? ' gal' : ' gals') + '</span>' : '') + '</td>' +
+      '<td><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub">' + esc(historyVolumeLabel(t.gal)) + '</span>' : '') + '</td>' +
       '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
       '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
       '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';

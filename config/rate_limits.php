@@ -6,4 +6,4 @@
  | is deliberately tight: ten attempts a minute is enough for a rider retrying
  | after a typo and far too slow to search the code space.
  */
-return ['api' => 120, 'forecast' => 3, 'delivery' => 10];
+return ['login' => 5, 'api' => 120, 'forecast' => 3, 'delivery' => 10];

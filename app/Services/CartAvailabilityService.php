@@ -50,7 +50,7 @@ class CartAvailabilityService
             throw ValidationException::withMessages(['items' => 'This product is not sold at the POS.']);
         }
         $required = $this->requirements($quantities);
-        $stock = InventoryItem::all()->keyBy('id');
+        $stock = InventoryItem::current()->get()->keyBy('id');
         $shortages = [];
         foreach ($required as $id => $quantity) {
             if (! isset($stock[$id]) || $stock[$id]->stock_on_hand < $quantity) {

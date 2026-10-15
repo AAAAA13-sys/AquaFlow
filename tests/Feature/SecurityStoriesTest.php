@@ -40,4 +40,19 @@ class SecurityStoriesTest extends TestCase
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())
             ->patchJson('/api/inventory/'.InventoryItem::value('id'), ['direction' => 1])->assertForbidden();
     }
+
+    public function test_login_rate_limit_is_capped_at_five_per_minute(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/auth/login', [
+                'username' => 'cashier',
+                'password' => 'wrong-pass',
+            ])->assertStatus(401);
+        }
+
+        $this->postJson('/api/auth/login', [
+            'username' => 'cashier',
+            'password' => 'wrong-pass',
+        ])->assertStatus(429);
+    }
 }

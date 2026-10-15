@@ -160,7 +160,7 @@ function renderDemandChart() {
       // autoSkip: false here.
       plugins: {
         legend: { display: true },
-        tooltip: { mode: 'index', intersect: false }
+        tooltip: { mode: 'index', intersect: false, callbacks: { label: context => context.dataset.label + ': ' + Number(context.parsed.y).toLocaleString() + ' Gallons' } }
       },
       scales: {
         y: { beginAtZero: true },

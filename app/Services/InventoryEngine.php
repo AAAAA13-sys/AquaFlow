@@ -309,6 +309,9 @@ class InventoryEngine
     {
         DB::transaction(function () use ($inventory, $data): void {
             $inventory = InventoryItem::whereKey($inventory->id)->lockForUpdate()->firstOrFail();
+            if ($inventory->retired_at !== null) {
+                throw ValidationException::withMessages(['inventory' => 'This legacy stock item is retired.']);
+            }
             $before = $inventory->stock_on_hand;
             // Full-field edits (owner-managed catalogue fields).
             if (array_key_exists('item_name', $data)) {
@@ -369,7 +372,7 @@ class InventoryEngine
     public function recalculateAll(): int
     {
         return DB::transaction(function (): int {
-            $items = InventoryItem::query()->orderBy('id')->get();
+            $items = InventoryItem::query()->current()->orderBy('id')->get();
 
             foreach ($items as $item) {
                 $this->recalculateItem($item);
@@ -386,6 +389,7 @@ class InventoryEngine
     public function advisories(): Collection
     {
         return InventoryItem::query()
+            ->current()
             ->with('supplier')
             ->orderBy('id')
             ->get()

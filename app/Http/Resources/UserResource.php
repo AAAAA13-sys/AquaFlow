@@ -26,6 +26,7 @@ class UserResource extends JsonResource
             'job_title' => $this->job_title,
             'access' => $this->isAdmin() ? 'Full + Analytics' : 'POS only',
             'active' => (bool) $this->is_active,
+            'must_change_password' => (bool) $this->must_change_password,
         ];
     }
 }

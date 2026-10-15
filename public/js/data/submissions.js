@@ -72,7 +72,8 @@ const Submissions = {
     const box = document.getElementById('paymentRecovery');
     if (!box) return;
     const entry = this.pending();
-    box.hidden = !entry;
+    const receipt = document.getElementById('receipt');
+    box.hidden = !entry || !!(entry.result && receipt && !receipt.classList.contains('hidden'));
     if (entry) document.getElementById('recoverPayment').textContent = entry.result ? 'Finish transaction' : 'Recover receipt';
     if (entry) document.getElementById('paymentRecoveryText').textContent = entry.result
       ? 'Receipt ' + entry.result.transaction.no + ' is saved. Finish this transaction before taking another payment.'

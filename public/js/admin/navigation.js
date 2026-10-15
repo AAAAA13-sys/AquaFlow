@@ -38,9 +38,12 @@ async function bootAdminPortal(pageTitle) {
 
   startPortalClock('adminClock');
 
+  if (session.must_change_password) { await openProfileModal(); return null; }
+
   try {
     await loadFromServer();
   } catch (error) {
+    if (error.data?.code === 'password_change_required') { await openProfileModal(); return null; }
     console.warn('AquaFlow: API unavailable, using cached data. ' + error.message);
   }
 

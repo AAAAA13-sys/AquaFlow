@@ -18,7 +18,7 @@ class UserController extends Controller
     {
         return response()->json([
             'users' => UserResource::collection(
-                User::query()->orderBy('id')->get()
+                User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_CASHIER])->orderBy('id')->get()
             ),
         ]);
     }

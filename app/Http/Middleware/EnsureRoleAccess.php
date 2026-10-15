@@ -10,6 +10,10 @@ class EnsureRoleAccess
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
+        if ($user && $user->must_change_password && $request->is('api/*')
+            && ! $request->is('api/profile', 'api/auth/session', 'api/auth/logout')) {
+            return response()->json(['message' => 'Change your password before starting work.', 'code' => 'password_change_required'], 403);
+        }
         if ($user && $user->isEmployee()) {
             $user->load('employee');
             abort_unless($user->employee && $user->employee->is_active, 403, 'Employee access is inactive.');

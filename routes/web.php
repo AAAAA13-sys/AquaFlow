@@ -5,7 +5,6 @@ use App\Http\Controllers\AdvisoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
-use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ForecastController;
@@ -51,7 +50,7 @@ Route::middleware('auth')->group(function (): void {
             ->name('admin.till');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings', 'cash'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings'])
             ->name('admin.tab');
     });
 });
@@ -65,12 +64,15 @@ Route::prefix('api')->group(function (): void {
     Route::get('health', HealthController::class)->name('api.health');
     Route::get('auth/session', [AuthController::class, 'session'])->name('api.session');
 
-    // Login is rate limited to slow down credential stuffing.
-    Route::middleware('throttle:10,1')->group(function (): void {
+    // Login is rate limited to slow down credential stuffing (5 attempts/min).
+    Route::middleware('throttle:login')->group(function (): void {
         Route::post('auth/setup-login', [AdminSetupController::class, 'login']);
         Route::post('auth/setup-owner', [AdminSetupController::class, 'complete']);
         Route::post('auth/login', [AuthController::class, 'login'])->name('api.login');
         Route::post('auth/login-owner', [AuthController::class, 'loginOwner'])->name('api.login.owner');
+        Route::post('auth/forgot-password/send-otp', [AuthController::class, 'sendPasswordResetOtp'])->middleware('throttle:password-reset-mail')->name('api.forgot-password.send-otp');
+        Route::post('auth/forgot-password/verify-otp', [AuthController::class, 'verifyPasswordResetOtp'])->name('api.forgot-password.verify-otp');
+        Route::post('auth/forgot-password/verify-reset', [AuthController::class, 'resetPasswordWithOtp'])->name('api.forgot-password.verify-reset');
     });
 
     Route::middleware(['auth', 'throttle:api'])->group(function (): void {
@@ -163,14 +165,6 @@ Route::prefix('api')->group(function (): void {
         Route::get('deliveries/{id}', [FulfillmentController::class, 'show'])->whereNumber('id');
         Route::get('deliveries/{id}/proof', [FulfillmentController::class, 'proof'])->whereNumber('id');
         Route::post('deliveries/{id}/remit', [FulfillmentController::class, 'remit'])->whereNumber('id');
-
-        // End-of-day cash reconciliation (own drawer).
-        Route::get('cash-shift', [CashShiftController::class, 'current'])->name('api.cash-shift.current');
-        Route::post('cash-shift/open', [CashShiftController::class, 'open'])->name('api.cash-shift.open');
-        Route::post('cash-shift/close', [CashShiftController::class, 'close'])->name('api.cash-shift.close');
-        Route::get('cash-shift/overview', [CashShiftController::class, 'overview'])
-            ->middleware('owner')
-            ->name('api.cash-shift.overview');
 
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');

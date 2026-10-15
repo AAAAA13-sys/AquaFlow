@@ -17,10 +17,9 @@
       'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances', 'featured' => false],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
-      'cash'       => ['label' => 'Cash Reconciliation', 'hint' => 'Drawer & float', 'badge' => null, 'featured' => false],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
-  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['arima', 'inventory', 'suppliers'], 'Team & administration' => ['users', 'cash', 'settings']];
+  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['arima', 'inventory', 'suppliers'], 'Team & administration' => ['users', 'settings']];
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 

@@ -292,24 +292,6 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
     ).join('') || '<p class="overview-empty">Set a reorder point on each item to see stock runway.</p>';
   }
 
-  const insCollect = document.getElementById('insCollect');
-  if (insCollect) {
-    const owing = I.custs.filter(c => c.debt > 0);
-    const customers = owing.slice(0, 3);
-    const topDebt = owing.reduce((n, c) => Math.max(n, Number(c.debt)), 0);
-    insCollect.innerHTML = customers.map((c, i) =>
-      '<div class="insight-row"><span>' + (i + 1) + '. ' + esc(c.name) + '</span>' +
-      '<b class="debt-inline">' + money(c.debt) +
-      magBar(Number(c.debt), topDebt, 'debt') + '</b></div>'
-    ).join('') || '<p class="insight-note">No outstanding customer balances.</p>';
-
-    // The KPI card already reads P0.00 / 0 customers. A ranked list of nothing
-    // beside it repeated the same zero, so the whole card steps aside until
-    // someone actually owes something.
-    const card = document.getElementById('topCollectorsCard');
-    if (card) card.classList.toggle('hidden', owing.length === 0);
-  }
-
   // "Today's priorities" used to be rendered here as three cards restating the
   // KPI row. The KPI cards carry the action links now, so this renders nothing;
   // only the stock action link still needs to switch its label.
@@ -340,7 +322,7 @@ function renderAdvisories() {
     const real = DB.advisories.filter(a => Number(a.reorder_at) > 0);
     const unconfigured = DB.advisories.filter(a => Number(a.reorder_at) <= 0);
 
-    const cards = real.slice(0, 3).map(advisory => {
+    const cards = real.map(advisory => {
       const critical = advisory.severity === 'critical';
       return '<article class="advisory-card ' + (critical ? 'advisory-critical' : 'advisory-watch') + '">' +
         '<div class="overview-advisory-head"><b>' + esc(advisory.item) + '</b><span>' + (critical ? 'Critical' : 'Low stock') + '</span></div>' +
@@ -359,19 +341,7 @@ function renderAdvisories() {
         '<p class="overview-advisory-supplier">Until a threshold is set, these items cannot be tracked for stockouts.</p></article>'
       : '';
 
-    // Only three cards fit this panel. Without saying so, the panel reads as if
-    // three items are low while the KPI above it counts every item needing a
-    // reorder, which looks like missing data.
-    const overflow = real.length > 3
-      ? '<article class="advisory-card advisory-info"><div class="overview-advisory-head"><b>' +
-        (real.length - 3) + ' more ' + (real.length - 3 === 1 ? 'item' : 'items') +
-        ' need reordering</b><span>Not shown</span></div>' +
-        '<p>' + esc(real.slice(3).map(a => a.item).join(', ')) + '</p>' +
-        '<p class="overview-advisory-supplier"><a href="/admin/inventory">View stock &amp; reordering</a> to see all ' +
-        real.length + ' items.</p></article>'
-      : '';
-
-    el.innerHTML = cards + prompt + overflow;
+    el.innerHTML = cards + prompt;
     showAdvisoryRail(true);
     return;
   }
@@ -541,7 +511,6 @@ function renderLedger() {
       return;
     }
     tb.innerHTML = ledgerRows.map(c => {
-      const hasContact = !!dialNumber(c.contact);
       const isZero = !c.debt || Number(c.debt) <= 0;
 
       return '<tr>' +
@@ -550,12 +519,11 @@ function renderLedger() {
         '<td class="num ledger-balance"><span class="' + (isZero ? 'balance-zero' : 'debt') + '">' + money(c.debt) +
           (isZero ? '' : magBar(Number(c.debt), ledgerMax, 'debt')) + '</span>' +
           '</td>' +
-        '<td><div class="ledger-actions">' +
+        '<td class="text-right"><div class="ledger-actions">' +
           (isZero
             ? '<button type="button" class="btn btn-secondary btn-sm" onclick="showSection(\'cust\')">View</button>'
-            : '<button type="button" class="action-message" data-cust="' + c.id + '"' +
-                (hasContact ? '' : ' aria-disabled="true" title="No contact number on file"') +
-                '>Remind</button><button class="btn btn-tertiary btn-sm" onclick="showSection(\'cust\')">Balances</button>') +
+            : '<button type="button" class="action-message" disabled aria-disabled="true" title="SMS reminders are unavailable for now.">Remind</button>' +
+                '<button class="btn btn-tertiary btn-sm" onclick="showSection(\'cust\')">Balances</button>') +
         '</div></td>' +
       '</tr>';
     }).join('');

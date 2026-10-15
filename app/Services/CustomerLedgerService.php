@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Customer;
+use App\Models\DeliveryProof;
+use App\Models\DeliveryRemittance;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -13,9 +15,21 @@ class CustomerLedgerService
     {
         abort_unless($cashier->canHandleCash(), 403);
 
-        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', array_filter(['customer_id' => $customer->id, 'amount' => $amount, 'note' => $note], fn ($value) => $value !== null), function () use ($customer, $amount, $cashier): array {
+        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', array_filter(['customer_id' => $customer->id, 'amount' => $amount, 'note' => $note, 'delivery_proof_id' => $deliveryProofId], fn ($value) => $value !== null), function () use ($customer, $amount, $cashier, $deliveryProofId, $note): array {
             /** @var Customer $locked */
             $locked = Customer::query()->lockForUpdate()->find($customer->id);
+
+            $pending = DeliveryProof::pendingForCustomer($locked->id);
+            $proof = $deliveryProofId === null ? null : DeliveryProof::where('customer_id', $locked->id)->lockForUpdate()->findOrFail($deliveryProofId);
+            $available = $proof ? $proof->unremittedCash(true) : max(0, $locked->debt_balance - $pending);
+            if ((int) round($amount * 100) > (int) round($available * 100)) {
+                throw ValidationException::withMessages(['amount' => $proof
+                    ? 'Payment exceeds the remaining delivery collection.'
+                    : 'This balance includes a pending delivery collection. Record that collection separately.']);
+            }
+            if ($proof && $amount < $available && empty($note)) {
+                throw ValidationException::withMessages(['note' => 'Explain the partial delivery remittance.']);
+            }
 
             if ($locked->debt_balance <= 0) {
                 throw ValidationException::withMessages([
@@ -62,6 +76,11 @@ class CustomerLedgerService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            if ($proof) {
+                DeliveryRemittance::create(['delivery_proof_id' => $proof->id, 'cashier_id' => $cashier->id,
+                    'transaction_id' => $transaction->id, 'amount' => $applied, 'note' => $note, 'created_at' => now()]);
+            }
 
             return ['applied' => $applied, 'customer' => $locked, 'transaction' => $transaction->load(['customer', 'cashier'])];
         });

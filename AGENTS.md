@@ -29,6 +29,7 @@ This file is the repository entry point and backend guide. For frontend work in 
 - Use one station business-day policy across Laravel, Python and SQL. Exercise midnight boundaries when changing dates or scheduled forecasts.
 - Add a new migration for schema changes to deployed installations. Never rewrite an already-shipped migration to repair an existing database. Explain any irreversible data removal.
 - Attendance and station-owned jug lending are removed product workflows. Add them only when the user explicitly requests them.
+- Admin password resets require email OTPs dispatched asynchronously to the mail worker queue ('mail'). The flow must prevent email enumeration, burn tokens after maximum failed attempts or expiration, and enforce password complexity through `CredentialRules`.
 
 ## Verification
 
