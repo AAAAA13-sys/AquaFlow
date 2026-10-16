@@ -18,6 +18,9 @@ return [
 
     'connect_timeout' => (int) env('ANALYTICS_CONNECT_TIMEOUT', 5),
 
+    // shortcut: presentation forecasts use synthetic demand; disable for actual store forecasting.
+    'demo' => (bool) env('ANALYTICS_DEMO', false),
+
     'history_days' => (int) env('ANALYTICS_HISTORY_DAYS', 90),
 
     'horizon_days' => (int) env('ANALYTICS_HORIZON_DAYS', 7),

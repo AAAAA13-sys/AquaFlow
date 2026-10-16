@@ -15,6 +15,10 @@
 .cashier-shell .stage-toolbar .stage-fasttrack { order: -1; padding: 0.6rem 1.1rem; font-size: 0.9rem; }
 .cashier-shell .stage-toolbar .stage-secondary { display: flex; gap: 10px; margin-left: auto; }
 .cashier-shell .customer-row { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border-line); background: #fff; }
+.cashier-shell .customer-row { font-family: inherit; font-size: 14px; line-height: 1.5; }
+.cashier-shell .cust-row-name, .cashier-shell .cust-detail-name { font-size: 14px; font-weight: 600; }
+.cashier-shell .cust-row-addr, .cashier-shell .cust-row-stat, .cashier-shell .active-customer-banner { font-size: 13px; line-height: 1.5; }
+.cashier-shell .customer-search-panel label[for="customerOrder"] { font-size: 13px; font-weight: 600; }
 .cashier-shell .customer-row.selected { border-color: #1D4ED8; background: #F5F8FF; }
 .cashier-shell .active-customer-banner { border-radius: 10px; background: #F5F8FF; }
 .cashier-shell .total-due-banner { border-radius: 10px; padding: 16px; }

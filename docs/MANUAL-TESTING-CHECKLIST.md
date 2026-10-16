@@ -139,6 +139,7 @@ This document provides the complete, structured acceptance test matrix and manua
 - [ ] **TC-POS-26: No POS Hotkeys:** F-keys, Enter and Escape do not navigate POS steps or toggle order type. Normal dialog Escape cancellation remains available.
 - [ ] **TC-POS-27: Wide Workspace & Footer:** Product/payment panels use the available width. Back/Next sit flat at the bottom at desktop and narrow widths; content scrolls without hiding the buttons.
 - [ ] **TC-POS-28: Clean Summary:** Step 3 has read-only quantities, right-aligned Amount header/values, no recipe explanation, and no saved-transaction banner over an open receipt. Step 2 keeps quantity adjustments, shows stock shortages/failures, and omits success captions, order-type hints and refill subtitles. New jugs say "For Sale Brand New".
+- [ ] **TC-POS-29: In-Terminal Quick Stocks View:** In Step 1 toolbar, click "Stocks". The `#stocksModal` dialog opens showing live read-only stock quantities, categories, and reorder points with search filter, plus a link to `/cashier/stocks`.
 
 ---
 
@@ -168,44 +169,29 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 6. Station Overview & Dashboard (`/admin/dashboard`)
+## 6. Cashier Current Stocks Panel (`/cashier/stocks`)
 
-- [ ] **TC-DASH-01: Key KPI Cards:** Verify Today's Sales (â‚±), Total Gallons, Orders Count, Low Stock Alerts, and Outstanding Receivables render accurate live totals.
+- [ ] **TC-CSTK-01: Stocks Panel Render:** Sidebar displays "Current Stocks" with package icon (`#i-package`). Page displays live stock levels table with search, category filtering, and sorting.
+- [ ] **TC-CSTK-02: Action-Free View:** No add item, edit item, delete item, restock, or price editing buttons/controls are present on the cashier interface.
+- [ ] **TC-CSTK-03: Category & Search Filters:** Filter table by category (`Consumable`, `Asset`, `Filtration`, `Cleaning`) or search by item name. Sorting works by stock quantity (lowest/highest) and alphabetical name.
+- [ ] **TC-CSTK-04: Real-Time Refresh:** Clicking "Refresh" updates stock counts from `GET /api/inventory` live.
+- [ ] **TC-CSTK-05: Clean Display Columns & High-Legibility Typography:** Table displays Item Name, Category, In Stock, Status, Safety Stock, and Reorder Point (Est. Cover and Supplier are omitted for a distraction-free cashier interface). Stock figures and labels feature larger, prominent typography for fast glanceability at the counter.
+
+---
+
+## 7. Station Overview & Dashboard (`/admin/dashboard`)
+
+- [ ] **TC-DASH-01: Key KPI Cards:** Verify Today's Sales (₱), Total Gallons, Orders Count, Low Stock Alerts, and Outstanding Receivables render accurate live totals.
 - [ ] **TC-DASH-02: Replenishment Advisories:** Consumables below Reorder Point (ROP) generate actionable advisory cards (e.g. *"Order 500 Clear Covers from EastPack now; 1.8 days buffer left"*).
 - [ ] **TC-DASH-03: "Who to Visit First" (Debt Priority):** Debt collection ranking table sorts debtor customers by highest debt amount and oldest unpaid order.
-- [ ] **TC-DASH-05: SMS Reminders Unavailable:** Remind buttons are gray and disabled, with an unavailable explanation. Clicking or using the keyboard cannot open a messaging app; Balances remains usable.
+- [ ] **TC-DASH-04: Quick Navigation Links:** Clicking cards or advisories routes directly to the relevant sub-screen (Stock, Customers, Forecast).
 - [ ] **TC-DASH-05: Forecast Units & Matching Cards:** Hover History/Forecast values: both show Gallons. Expected Sales determines the row height. Things to Buy matches it; a long advisory list scrolls inside its card without enlarging Expected Sales.
 - [ ] **TC-DASH-06: Jug Supplies:** Dashboard stock lists jugs, clear covers and shrink seals; excludes filtration/cleaning equipment. Type, search and quantity sort work together. Customer-balance actions align to the far right.
-- [ ] **TC-DASH-04: Quick Navigation Links:** Clicking cards or advisories routes directly to the relevant sub-screen (Stock, Customers, Forecast).
+- [ ] **TC-DASH-07: SMS Reminders Unavailable:** Remind buttons are gray and disabled, with an unavailable explanation. Clicking or using the keyboard cannot open a messaging app; Balances remains usable.
 
 ---
 
-## 7. Sales History & POS Logs (`/admin/sales`)
-
-- [ ] **TC-SALE-01: Transactions Ledger Table:** Displays Receipt #, Date & Time, Customer Name, Order Type (Walk-in / Delivery / Debt Payment), Gallons, Total (â‚±), Payment Mode, and Cashier attribution.
-- [ ] **TC-SALE-02: Filter Summary Strip:** Summarizes total sales revenue, order count, and gallon volume matching active filter criteria.
-- [ ] **TC-SALE-03: Date/Time Range Filter:** Filter transactions using custom "From" and "Through" datetime controls.
-- [ ] **TC-SALE-04: Order Type & Payment Filter:** Filter by Order Type (`Walk-in`, `Delivery`, `Debt Payment`) and Payment (`Cash`, `Account`).
-- [ ] **TC-SALE-05: Cashier Filter:** Filter sales by specific staff member or select "All cashiers".
-- [ ] **TC-SALE-06: CSV Export:** Click "Export CSV â†“". File downloads immediately with sanitized headers and neutralized formula injection prefixes (`=`, `@`, `+`, `-`).
-- [ ] **TC-SALE-07: Pagination:** Navigate through transaction pages without clearing active filter parameters.
-
----
-
-## 8. Customer Balances & Debt Management (`/admin/customers`)
-
-- [ ] **TC-CUST-01: Customers Table:** Lists Name, Phone, Address, Outstanding Debt Balance ("Utang"), Total Orders, Last Order Date.
-- [ ] **TC-CUST-02: Search & Filter:** Filter by name, phone, or "With Debt Only".
-- [ ] **TC-CUST-03: Add Customer:** "+ Add Customer" saves Name, Phone, Address, Notes.
-- [ ] **TC-CUST-04: Edit Customer:** Update address or phone; changes persist.
-- [ ] **TC-CUST-05: Settle Debt Modal:** Click "Settle Debt" on a debtor.
-- [ ] **TC-CUST-06: Amount Validation:** Negative amounts and overpayments (> current balance) are rejected.
-- [ ] **TC-CUST-07: Partial Payment:** Settle partial debt (e.g. `â‚±100` of `â‚±300`). Balance becomes `â‚±200`; receipt generates cleanly.
-- [ ] **TC-CUST-08: Full Settlement:** Settle remaining `â‚±200`. Balance becomes `â‚±0.00`; linked unpaid sales mark as "Paid".
-
----
-
-## 9. Demand Forecast & ARIMA Analytics (`/admin/arima`)
+## 8. Demand Forecast & ARIMA Analytics (`/admin/arima`)
 
 - [ ] **TC-ARI-01: Forecast Dashboard:** Renders historical gallons chart, forecast chart, and metrics table.
 - [ ] **TC-ARI-02: Run Forecast Button:** Clicking "Run Forecast" triggers ARIMA model calculation.
@@ -217,33 +203,63 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 10. Stock, Prices & Recipes (`/admin/inventory`)
+## 9. Sales History & POS Logs (`/admin/sales`)
 
-### 10.1 Master Stock Table & Items
-- [ ] **TC-INV-15: Filter Bar:** Type, Search and Sort (least-to-most / most-to-least stock) appear together and combine correctly.
+- [ ] **TC-SALE-01: Transactions Ledger Table:** Displays Receipt #, Date & Time, Customer Name, Order Type (Walk-in / Delivery / Debt Payment), Gallons, Total (₱), Payment Mode, and Cashier attribution.
+- [ ] **TC-SALE-02: Filter Summary Strip:** Summarizes total sales revenue, order count, and gallon volume matching active filter criteria.
+- [ ] **TC-SALE-03: Date/Time Range Filter:** Filter transactions using custom "From" and "Through" datetime controls.
+- [ ] **TC-SALE-04: Order Type & Payment Filter:** Filter by Order Type (`Walk-in`, `Delivery`, `Debt Payment`) and Payment (`Cash`, `Account`).
+- [ ] **TC-SALE-05: Cashier Filter:** Filter sales by specific staff member or select "All cashiers".
+- [ ] **TC-SALE-06: CSV Export:** Click "Export CSV ↓". File downloads immediately with sanitized headers and neutralized formula injection prefixes (`=`, `@`, `+`, `-`).
+- [ ] **TC-SALE-07: Pagination:** Navigate through transaction pages without clearing active filter parameters.
+
+---
+
+## 10. Customer Balances & Debt Management (`/admin/customers`)
+
+- [ ] **TC-CUST-01: Customers Table:** Lists Name, Phone, Address, Outstanding Debt Balance ("Utang"), Total Orders, Last Order Date.
+- [ ] **TC-CUST-02: Search & Filter:** Filter by name, phone, or "With Debt Only".
+- [ ] **TC-CUST-03: Add Customer:** "+ Add Customer" saves Name, Phone, Address, Notes.
+- [ ] **TC-CUST-04: Edit Customer:** Update address or phone; changes persist.
+- [ ] **TC-CUST-05: Settle Debt Modal:** Click "Settle Debt" on a debtor.
+- [ ] **TC-CUST-06: Amount Validation:** Negative amounts and overpayments (> current balance) are rejected.
+- [ ] **TC-CUST-07: Partial Payment:** Settle partial debt (e.g. `₱100` of `₱300`). Balance becomes `₱200`; receipt generates cleanly.
+- [ ] **TC-CUST-08: Full Settlement:** Settle remaining `₱200`. Balance becomes `₱0.00`; linked unpaid sales mark as "Paid".
+
+---
+
+## 11. Stock, Prices & Recipes (`/admin/inventory`)
+
+### 11.1 Master Stock Table & Items
 - [ ] **TC-INV-01: Master Stock Table:** Lists Item Name, Category, SKU, Current Stock, Unit, ROP, Safety Stock, Supplier, Status.
 - [ ] **TC-INV-01A: Canonical Seed Stock:** Default supplies match Git recipe commit `00b6ece`: Clear Cover, Shrink Seal (Circle Top Slim), Shrink Seal (Circle Back), Shrink Seal (Circle Nozzle), Shrink Seal (Circle Top Round), 5 Gallon Slim Jug and 5 Gallon Round Jug (7 items). Old demo duplicates/equipment are absent from current stock and advisories. Historical stock movements remain available; legitimate custom stock is preserved.
 - [ ] **TC-INV-02: Add Stock Item:** Add custom item with name, category, initial stock, unit, ROP, SS, supplier.
 - [ ] **TC-INV-03: Edit Item:** Modify lead time, ROP, or supplier; changes persist.
 - [ ] **TC-INV-04: Deletion Guard:** Items with linked transaction or restock history cannot be deleted.
+- [ ] **TC-INV-15: Filter Bar:** Type, Search and Sort (least-to-most / most-to-least stock) appear together and combine correctly.
 
-### 10.2 Restock Operations
+### 11.2 Restock Operations
 - [ ] **TC-INV-05: Restock Modal:** Select supplier, quantity added (e.g. `500`), unit cost, lot number, notes.
 - [ ] **TC-INV-06: Save Restock:** Stock increments by 500; movement log records `type: restock`, `+500`, user, lot #, supplier; ROP/SS recalculate.
 
-### 10.3 Stock Adjustments & Spoilage
+### 11.3 Stock Adjustments & Spoilage
 - [ ] **TC-INV-07: Adjust Stock Modal:** Select reason (`Damage`, `Spoilage`, `Correction`), enter delta (`-10`), add notes.
 - [ ] **TC-INV-08: Save Adjustment:** Stock decrements by 10; movement log records `type: adjustment`, `-10`, reason, operator.
 
-### 10.4 Movements Audit Ledger
+### 11.4 Movements Audit Ledger
 - [ ] **TC-INV-09: Movement History Tab:** Lists Date, Item, Type, Delta Qty, Resulting Stock, Operator, Reason/Notes.
 - [ ] **TC-INV-10: CSV Export:** Exports sanitized stock movement history.
 
-### 10.5 Till & Prices (`/admin/inventory?view=prices`)
-- [ ] **TC-INV-11: Price Edit:** Update price of Slim Refill from `â‚±30` to `â‚±35`. Reflected in POS immediately.
+### 11.5 Till & Prices (`/admin/inventory?view=prices`)
+- [ ] **TC-INV-11: Price Edit:** Update price of Slim Refill from `₱30` to `₱35`. Reflected in POS immediately.
 - [ ] **TC-INV-12: Show / Hide Product:** Toggle visibility off -> product hides from POS.
+- [ ] **TC-INV-16: Add Item for Sale & Toggle Navigation:** Clicking "Add item for sale" toggles the form open and smoothly changes the button text to "Cancel". Clicking "Cancel" (or the form's Cancel button) closes the form and restores the button text back to "Add item for sale".
+- [ ] **TC-INV-17: Refill Recipe Consumables Checkboxes:** When adding a Refill, recipe contents (what consumables like Clear Covers, Shrink Seals, Caps are included) use checkboxes with live inventory stock counts instead of a single list box. Default suggested items auto-select based on the chosen Jug shape (Slim / Round), and the owner can check/uncheck any supplies.
+- [ ] **TC-INV-18: Permanent Product Removal & Deletion Guard:**
+  - Unreferenced till products can be permanently removed via the "Remove" button with confirmation.
+  - Till products with historical sales records are protected by a deletion guard; attempting deletion alerts the user that items with recorded transactions must be hidden instead.
 
-### 10.6 Consumable Recipes
+### 11.6 Consumable Recipes
 - [ ] **TC-INV-13: Recipe Mapping:**
   - **Slim Refill:** `1 Clear Cover`, `1 Shrink Seal (Circle Top Slim)`, `1 Shrink Seal (Circle Back)`, `1 Shrink Seal (Circle Nozzle)`.
   - **Round Refill:** `1 Clear Cover`, `1 Shrink Seal (Circle Top Round)`.
@@ -253,7 +269,7 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 11. Suppliers Directory & Lead Times (`/admin/suppliers`)
+## 12. Suppliers Directory & Lead Times (`/admin/suppliers`)
 
 - [ ] **TC-SUP-01: Suppliers Table:** Lists Supplier Name, Contact Person, Phone, Email, Address, Lead Time (Days).
 - [ ] **TC-SUP-02: Add Supplier:** Create new vendor with lead time (e.g. `3` days).
@@ -262,7 +278,7 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 12. Team & Access Control (`/admin/users`)
+## 13. Team & Access Control (`/admin/users`)
 
 - [ ] **TC-USR-01: Staff Directory:** View staff members (Cashiers, Administrators) and active status.
 - [ ] **TC-USR-02: Add Staff:** Create new employee record with Cashier role.
@@ -274,12 +290,6 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 13. Removed Cash Drawer Workflow
-
-- [ ] **TC-CASH-01: Removed:** No cash drawer or Cash Reconciliation control in either portal. `/admin/cash` and old cash-shift API routes are unavailable. Historical financial records remain intact.
-
----
-
 ## 14. Station Settings & Configuration (`/admin/settings`)
 
 - [ ] **TC-SET-01: Station Profile Form:** Edit Station Name, Contact Phone, Physical Address, Restock Lead Days, SUS Target.
@@ -287,7 +297,13 @@ This document provides the complete, structured acceptance test matrix and manua
 
 ---
 
-## 15. Cross-Cutting & Edge Case Tests
+## 15. Removed Cash Drawer Workflow
+
+- [ ] **TC-CASH-01: Removed:** No cash drawer or Cash Reconciliation control in either portal. `/admin/cash` and old cash-shift API routes are unavailable. Historical financial records remain intact.
+
+---
+
+## 16. Cross-Cutting & Edge Case Tests
 
 - [ ] **TC-UI-01: In-Field Eye Toggles Across All Password Inputs:** Verify full-width inputs with inside-field SVG eye toggles across:
   - Cashier Login (`/`)

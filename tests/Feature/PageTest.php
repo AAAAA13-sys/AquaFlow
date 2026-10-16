@@ -188,7 +188,7 @@ class PageTest extends TestCase
 
     // ---------- The cashier sidebar ----------
 
-    public function test_the_cashier_sidebar_links_the_three_pages(): void
+    public function test_the_cashier_sidebar_links_the_pages(): void
     {
         $response = $this->actingAs($this->cashier)->get('/cashier');
 
@@ -196,8 +196,10 @@ class PageTest extends TestCase
             ->assertSee('POS Terminal', false)
             ->assertSee('Orders in Progress', false)
             ->assertSee('Sales &amp; Transactions', false)
+            ->assertSee('Current Stocks', false)
             ->assertSee('/cashier/queue', false)
-            ->assertSee('/cashier/history', false);
+            ->assertSee('/cashier/history', false)
+            ->assertSee('/cashier/stocks', false);
     }
 
     public function test_the_queue_page_lists_the_production_line(): void
@@ -232,6 +234,7 @@ class PageTest extends TestCase
             '/cashier' => 'POS Terminal',
             '/cashier/queue' => 'Orders in Progress',
             '/cashier/history' => 'Sales &amp; Transaction History',
+            '/cashier/stocks' => 'Current stocks',
         ];
 
         foreach ($pages as $url => $marker) {
@@ -247,7 +250,7 @@ class PageTest extends TestCase
     public function test_the_cashier_has_no_route_to_the_owner_portal(): void
     {
         // Shared assets may live under js/admin; navigation must never expose owner routes.
-        foreach (['/cashier', '/cashier/queue', '/cashier/history'] as $url) {
+        foreach (['/cashier', '/cashier/queue', '/cashier/history', '/cashier/stocks'] as $url) {
             $response = $this->actingAs($this->cashier)->get($url)
                 ->assertOk()->assertDontSee('Owner Portal', false);
             $document = new \DOMDocument;
@@ -263,7 +266,7 @@ class PageTest extends TestCase
 
     public function test_the_cashier_subpages_have_no_back_to_pos_button(): void
     {
-        foreach (['/cashier/queue', '/cashier/history'] as $url) {
+        foreach (['/cashier/queue', '/cashier/history', '/cashier/stocks'] as $url) {
             $this->actingAs($this->cashier)->get($url)
                 ->assertOk()
                 ->assertDontSee('Back to POS Terminal', false);

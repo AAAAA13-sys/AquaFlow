@@ -71,6 +71,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
       MAIL_FROM_NAME: AquaFlow
+      ANALYTICS_DEMO: ${ANALYTICS_DEMO:-false}
       ANALYTICS_URL: http://analytics:5000
       ANALYTICS_TIMEOUT: ${ANALYTICS_TIMEOUT:-240}
     volumes:
@@ -210,6 +211,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-aquaflow_db}
       DB_USERNAME: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      ANALYTICS_DEMO: ${ANALYTICS_DEMO:-false}
       ANALYTICS_URL: http://analytics:5000
       LOG_CHANNEL: stderr
     depends_on:

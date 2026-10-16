@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
+    Route::view('/cashier/stocks', 'cashier.stocks')->name('cashier.stocks');
 
     // Legacy wizard URLs still resolve to the terminal.
     Route::get('/cashier/{step}', fn () => redirect()->route('cashier.index'))
@@ -112,6 +113,9 @@ Route::prefix('api')->group(function (): void {
             Route::patch('products/{product}', [ProductController::class, 'update'])
                 ->middleware('owner')
                 ->name('api.products.update');
+            Route::delete('products/{product}', [ProductController::class, 'destroy'])
+                ->middleware('owner')
+                ->name('api.products.destroy');
 
             Route::get('products/recipes', [RecipeController::class, 'index']);
             Route::put('products/{product}/recipe', [RecipeController::class, 'update']);

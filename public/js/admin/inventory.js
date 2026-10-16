@@ -190,9 +190,23 @@ async function createInventoryItem(event) {
     API.replaceInventory(result.item);
     if (result.advisories) DB.advisories = result.advisories;
     if (nameEl) nameEl.value = '';
+    const form = document.getElementById('invForm');
+    if (form) form.reset();
+    const panel = document.getElementById('invFormPanel');
+    if (panel) panel.classList.add('hidden');
+    const addButton = document.getElementById('stockAddButton');
+    if (addButton && addButton.getAttribute('aria-controls') === 'invFormPanel') {
+      addButton.textContent = addButton.dataset?.defaultLabel || 'Add consumable';
+      addButton.setAttribute('aria-expanded', 'false');
+      if (addButton.classList) {
+        addButton.classList.remove('btn-secondary');
+        addButton.classList.add('btn-primary');
+      }
+    }
     renderInvTable();
     if (typeof renderInsights === 'function') renderInsights();
     saveDB();
+    appNotice('"' + result.item.item + '" added to stock.');
   } catch (error) {
     appNotice(error.message || 'Could not add the item.');
   }

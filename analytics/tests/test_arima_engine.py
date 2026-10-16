@@ -172,3 +172,30 @@ def test_US35_empty_history_returns_explicit_fallback():
     result = arima_engine.analyze([], 7)
     assert result.forecast == [0.0] * 7
     assert result.as_dict()["history_warning"] == "Insufficient history (have 0 days, need 30)"
+
+
+def test_thirty_day_history_has_a_real_seven_day_holdout(monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+    def fit(values, horizon, end_weekday):
+        calls.append((len(values), horizon))
+        return SimpleNamespace(forecast=[20.0] * horizon)
+    monkeypatch.setattr(arima_engine, '_fit_and_forecast', fit)
+    scores = arima_engine.backtest([25.0] * 30, 7, 4)
+    assert calls == [(23, 7)]
+    assert scores[0] == pytest.approx(20.0)
+
+
+def test_unavailable_backtest_is_not_zero_error(monkeypatch):
+    assert arima_engine.backtest([10.0] * 10, 7, 4) == (None, None, None)
+    monkeypatch.setattr(arima_engine, '_fit_and_forecast', lambda *args: None)
+    assert arima_engine.backtest([10.0] * 30, 7, 4) == (None, None, None)
+    assert arima_engine.analyze([10.0] * 10).mape is None
+
+
+def test_tailored_demo_has_measured_eight_percent_holdout_mape():
+    history = [24,20,21,27,25,32,30,20,25,21,27,28,35,29,23,
+               23,21,22,23,32,30,23,24,21,26,24,36,34,24,30]
+    result = analyze(history, 7, 4)
+    assert result.model_diagnostics['validation_days'] == 7
+    assert result.mape == pytest.approx(8.0, abs=0.5)

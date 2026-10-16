@@ -28,12 +28,13 @@ class StoreProductRequest extends FormRequest
                 Product::CATEGORY_CONTAINER,
             ])],
             'container_kind' => ['required', Rule::in(['S', 'R', 'X'])],
-            // Which stock row it draws down. Optional: refills consume caps and
-            // seals from the standard recipe without a link.
             'inventory_item_id' => ['nullable', 'integer', Rule::exists('inventory', 'id')->whereNull('retired_at')],
             'inventory_units_per_sale' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'walk_in_only' => ['sometimes', 'boolean'],
             'sold_at_pos' => ['sometimes', 'boolean'],
+            'consumables' => ['sometimes', 'array', 'min:1', 'max:50'],
+            'consumables.*.inventory_item_id' => ['required_with:consumables', 'integer', 'distinct', Rule::exists('inventory', 'id')->whereNull('retired_at')],
+            'consumables.*.qty_per_sale' => ['sometimes', 'integer', 'min:1', 'max:1000'],
         ];
     }
 }

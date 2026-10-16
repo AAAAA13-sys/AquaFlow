@@ -33,6 +33,7 @@ class BootstrapController extends Controller
     {
         $forecasts = DemandForecast::latestPerSeries();
         $refill = $forecasts->get('Refill Gallons');
+        $refillModel = $refill ? (new DemandForecastResource($refill))->resolve($request)['model'] : [];
 
         // The forecast tier is optional, so a station that has never run the
         // ARIMA service has no historical_data at all. Recorded sales are the
@@ -79,9 +80,9 @@ class BootstrapController extends Controller
                 'order' => $refill?->model_order ?? 'ARIMA(1,1,1)',
                 'method' => $refill?->method ?? 'none',
                 'aic' => (float) ($refill?->aic_score ?? 0),
-                'mape' => (float) ($refill?->mape_score ?? 0),
-                'mae' => (float) ($refill?->mae_score ?? 0),
-                'rmse' => (float) ($refill?->rmse_score ?? 0),
+                'mape' => $refillModel['mape'] ?? null,
+                'mae' => $refillModel['mae'] ?? null,
+                'rmse' => $refillModel['rmse'] ?? null,
                 'adf' => $refill?->adf_pvalue,
                 'ljung_box_pvalue' => $refill?->ljung_box_pvalue,
             ],

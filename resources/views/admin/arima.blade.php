@@ -20,12 +20,6 @@
         <label class="form-label" for="fSeries">Forecast series</label>
         <select id="fSeries" onchange="renderArimaChart(); renderForecast()">
           <option>Refill gallons</option>
-          <option>Heat Shrink Seals</option>
-          <option>Non-Spill Caps</option>
-          <option>Sediment Filters</option>
-          <option value="SHRINK_SLIM">Slim jug seals</option>
-          <option value="SHRINK_ROUND">Round jug seals</option>
-          <option value="CLEAR_COVER">Clear covers</option>
         </select>
       </div>
       <button id="btnRunForecast" onclick="runForecast()" class="btn btn-primary">Update Forecast</button>
@@ -36,7 +30,7 @@
     <div class="dashboard-row-2col forecast-layout">
       <div class="card">
         <h3 class="panel-heading">Demand outlook <span class="term-hint">ARIMA demand forecast</span>@include('partials.tip', [
-          'text' => 'ARIMA is the forecasting method used to project how much you will sell. It looks for a pattern in your past sales — level, trend and seasonality — and extends it a week forward. Treat the result as an estimate, not a guarantee.',
+          'text' => 'ARIMA estimates future sales from past patterns in level, trend and seasonality. Treat the seven-day projection as an estimate, not a guarantee.',
           'label' => 'What does ARIMA mean?',
         ])</h3>
         <p class="settings-help">Daily view shows the latest 30 days of recorded demand alongside the stored forecast.</p>
@@ -48,6 +42,7 @@
         <div id="fcTable"></div>
       </div>
     </div>
+    <div id="forecastInsights" class="arima-insights-box" aria-live="polite"></div>
   </section>
 @endsection
 

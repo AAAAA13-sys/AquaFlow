@@ -39,9 +39,9 @@ class ForecastResult:
     forecast: list[float]
     order: tuple[int, int, int]
     aic: float
-    mape: float
-    mae: float
-    rmse: float
+    mape: float | None
+    mae: float | None
+    rmse: float | None
     adf_statistic: float
     adf_pvalue: float
     differencing: int
@@ -308,18 +308,19 @@ def _accuracy(actual: list[float], predicted: list[float]) -> tuple[float, float
     return mape, mae, rmse
 
 
-def backtest(values: list[float], horizon: int, end_weekday: int | None) -> tuple[float, float, float]:
+def backtest(values: list[float], horizon: int, end_weekday: int | None) -> tuple[float | None, float | None, float | None]:
     holdout = max(3, min(horizon, len(values) // 4))
-    if len(values) - holdout < MIN_POINTS_FOR_ARIMA:
-        return 0.0, 0.0, 0.0
+    # A 30-day input leaves at least three weekly cycles for holdout training.
+    if len(values) < MIN_POINTS_FOR_ARIMA or len(values) - holdout < 21:
+        return None, None, None
 
     train = values[:-holdout]
     actual = values[-holdout:]
     train_end_weekday = None if end_weekday is None else (end_weekday - holdout) % 7
 
     outcome = _fit_and_forecast(train, holdout, train_end_weekday)
-    if outcome is None:
-        return 0.0, 0.0, 0.0
+    if outcome is None or not any(actual):
+        return None, None, None
 
     return _accuracy(actual, outcome.forecast)
 
@@ -339,9 +340,9 @@ def _naive_result(
         forecast=[round(baseline, 1) for _ in range(horizon)],
         order=(0, 0, 0),
         aic=0.0,
-        mape=0.0,
-        mae=0.0,
-        rmse=0.0,
+        mape=None,
+        mae=None,
+        rmse=None,
         adf_statistic=statistic,
         adf_pvalue=pvalue,
         differencing=0,
@@ -350,6 +351,7 @@ def _naive_result(
         method=method,
         cleaning=cleaning,
         seasonal=False,
+        model_diagnostics={"validation_available": False},
     )
 
 
@@ -392,9 +394,9 @@ def analyze(
         forecast=forecast,
         order=outcome.order,
         aic=round(outcome.aic, 2),
-        mape=round(mape, 2),
-        mae=round(mae, 2),
-        rmse=round(rmse, 2),
+        mape=round(mape, 2) if mape is not None else None,
+        mae=round(mae, 2) if mae is not None else None,
+        rmse=round(rmse, 2) if rmse is not None else None,
         adf_statistic=round(statistic, 4),
         adf_pvalue=round(pvalue, 4),
         differencing=outcome.order[1],
@@ -407,6 +409,8 @@ def analyze(
         acf_values=acf_values,
         pacf_values=pacf_values,
         model_diagnostics={
+            "validation_available": mape is not None,
+            "validation_days": max(3, min(horizon, len(history) // 4)) if mape is not None else 0,
             "candidates": outcome.candidates,
             "bic": round(float(outcome.fitted.bic), 2),
             "forecast_error_variances": [max(0.0, float(value)) for value in outcome.fitted.get_forecast(horizon).var_pred_mean],

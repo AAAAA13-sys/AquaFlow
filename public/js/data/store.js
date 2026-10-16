@@ -188,12 +188,32 @@ function filterTableRows(rows, target) {
 }
 
 function toggleAddForm(button) {
+  if (!button) return;
   const panel = document.getElementById(button.getAttribute('aria-controls'));
   if (!panel) return;
   const opening = panel.classList.contains('hidden');
   panel.classList.toggle('hidden', !opening);
   button.setAttribute('aria-expanded', String(opening));
-  if (opening) panel.querySelector('input, select')?.focus();
+
+  if (!button.dataset) button.dataset = {};
+  if (!button.dataset.defaultLabel) {
+    button.dataset.defaultLabel = button.textContent ? button.textContent.trim() : '';
+  }
+
+  if (opening) {
+    button.textContent = 'Cancel';
+    if (button.classList?.add) {
+      button.classList.add('btn-secondary');
+      button.classList.remove('btn-primary');
+    }
+    panel.querySelector('input, select')?.focus();
+  } else {
+    button.textContent = button.dataset.defaultLabel || 'Add';
+    if (button.classList?.remove) {
+      button.classList.remove('btn-secondary');
+      button.classList.add('btn-primary');
+    }
+  }
 }
 
 function showTableEmpty(body, columns) {

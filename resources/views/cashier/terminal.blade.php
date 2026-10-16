@@ -23,6 +23,7 @@
           <input id="custSearch" oninput="queueCustSearch()" class="form-input stage-search"
                  aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <div class="stage-secondary">
+            <button type="button" onclick="openStocksModal()" class="btn btn-secondary btn-sm" title="View live stock levels">Stocks</button>
             <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
             <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>
           </div>
@@ -232,9 +233,107 @@
     </div>
   </dialog>
 
+  {{-- Read-Only Current Stocks Modal --}}
+  <dialog id="stocksModal" class="customer-dialog" aria-labelledby="stocksModalTitle" oncancel="event.preventDefault(); closeStocksModal()">
+    <div class="auth-card" style="max-width:680px;width:95vw;max-height:85vh;display:flex;flex-direction:column;">
+      <div class="flex-between" style="margin-bottom:12px;border-bottom:1px solid var(--border-line);padding-bottom:10px;">
+        <div>
+          <h3 id="stocksModalTitle" class="panel-heading" style="margin:0;">Current Stocks</h3>
+          <p class="cell-sub" style="margin:0;">Current inventory levels &amp; reorder points</p>
+        </div>
+        <button type="button" onclick="closeStocksModal()" class="btn btn-ghost btn-sm" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <input id="modalStockSearch" type="search" class="form-input" placeholder="Search item name..." oninput="filterModalStocks()">
+      </div>
+
+      <div class="data-table-wrapper scroll-region" style="flex:1 1 auto;overflow-y:auto;max-height:380px;">
+        <table class="clean">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th class="num">In Stock</th>
+              <th class="text-center">Status</th>
+              <th class="num">Reorder Point</th>
+            </tr>
+          </thead>
+          <tbody id="modalStockBody">
+            <tr><td colspan="5" class="text-center empty-cell" style="padding:1.5rem;color:var(--text-muted,#64748b);">Loading stocks...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex-between" style="margin-top:14px;border-top:1px solid var(--border-line);padding-top:10px;">
+        <a href="{{ url('/cashier/stocks') }}" class="btn btn-ghost btn-sm">Open Full Stocks Page &rarr;</a>
+        <button type="button" onclick="closeStocksModal()" class="btn btn-primary btn-sm">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   {{-- Thermal receipt modal --}}
   @include('partials.receipt-modal', ['closeAction' => 'closeReceipt()', 'closeLabel' => 'New Sale'])
 @endsection
+
+@push('scripts')
+<script>
+let terminalStockList = [];
+
+async function openStocksModal() {
+  const modal = document.getElementById('stocksModal');
+  if (!modal) return;
+  modal.showModal();
+  const tbody = document.getElementById('modalStockBody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center empty-cell" style="padding:1.5rem;">Loading stocks...</td></tr>';
+  try {
+    const data = await API.inventory();
+    terminalStockList = data.inventory || [];
+    renderModalStocks();
+  } catch (err) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center empty-cell" style="padding:1.5rem;color:var(--danger,#dc2626);">Failed to load stocks.</td></tr>';
+  }
+}
+
+function closeStocksModal() {
+  const modal = document.getElementById('stocksModal');
+  if (modal) modal.close();
+}
+
+function filterModalStocks() {
+  renderModalStocks();
+}
+
+function renderModalStocks() {
+  const tbody = document.getElementById('modalStockBody');
+  if (!tbody) return;
+  const q = (document.getElementById('modalStockSearch')?.value || '').trim().toLowerCase();
+  const list = terminalStockList.filter(i => !q || (i.item || '').toLowerCase().includes(q));
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center empty-cell" style="padding:1.5rem;color:var(--text-muted,#64748b);">No stock items found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(item => {
+    const isLow = item.needs_reorder || item.status === 'Critical' || item.status === 'Reorder';
+    const pill = isLow
+      ? '<span class="pill pill-bad">Reorder</span>'
+      : '<span class="pill pill-ok">OK</span>';
+    const unitText = esc(item.unit || 'pcs');
+    const onHand = Number(item.on ?? 0).toLocaleString();
+    const ropVal = (item.rop !== null && item.rop !== undefined)
+      ? '<b>' + Number(item.rop).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span>'
+      : '—';
+    return `<tr>
+      <td><b>${esc(item.item)}</b></td>
+      <td>${esc(item.cat || '—')}</td>
+      <td class="num"><b>${onHand}</b><span class="num-unit">${unitText}</span></td>
+      <td class="text-center">${pill}</td>
+      <td class="num">${ropVal}</td>
+    </tr>`;
+  }).join('');
+}
+</script>
+@endpush
 
 @component('partials.page-startup', ['portal' => 'cashier'])
 renderProducts();

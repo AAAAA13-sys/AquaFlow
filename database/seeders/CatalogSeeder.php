@@ -32,8 +32,11 @@ class CatalogSeeder extends Seeder
             foreach (Product::whereIn('id', ['slim', 'round', 'newS', 'newR'])->get() as $product) {
                 if (in_array($product->id, ['newS', 'newR'], true)) {
                     $name = $product->id === 'newS' ? '5 Gallon Slim Jug' : '5 Gallon Round Jug';
-                    $product->inventory_item_id = InventoryItem::current()->where('item_name', $name)->firstOrFail()->id;
-                    $product->save();
+                    $item = InventoryItem::current()->where('item_name', $name)->first();
+                    if ($item) {
+                        $product->inventory_item_id = $item->id;
+                        $product->save();
+                    }
                 }
                 app(RecipeService::class)->ensureConsumables($product);
             }

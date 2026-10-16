@@ -11,10 +11,6 @@
 @section('admin-content')
   <section id="s-dash">
 
-    <header class="overview-header">
-      <div><p class="overview-eyebrow">STATION OVERVIEW</p><h2>Your station at a glance</h2><p>Today's sales, upcoming demand, and the work that needs your attention.</p></div>
-      <div class="overview-shortcuts"><a href="{{ url('/admin/sales') }}" class="btn btn-secondary">View sales</a><a href="{{ url('/cashier') }}" class="btn btn-primary">Open POS &rarr;</a></div>
-    </header>
 
     <section class="card onboarding-checklist-card" id="onboardingChecklist">
       <div class="onboarding-card-head">

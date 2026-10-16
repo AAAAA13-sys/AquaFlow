@@ -1,3 +1,4 @@
+require('./frontend-forecast.cjs');
 require('./frontend-release-readiness.cjs');
 require('./frontend-users.cjs');
 require('./frontend-csv.cjs');
@@ -56,7 +57,7 @@ ctx.togglePassword('generatedPassword',passwordToggle);
 assert.equal(elements.generatedPassword.type,'password');
 
 const same = (actual,expected) => assert.equal(JSON.stringify(actual),JSON.stringify(expected));
-for (const [replace,remove,key] of [['replaceCustomer',null,'customers'],['replaceInventory','removeInventory','inventory'],['replaceUser','removeUser','users']]) {
+for (const [replace,remove,key] of [['replaceCustomer',null,'customers'],['replaceInventory','removeInventory','inventory'],['replaceUser','removeUser','users'],['replaceProduct','removeProduct','products']]) {
   delete ctx.DB[key];
   API[replace]({id:1,value:'old'}); API[replace]({id:1,value:'new'}); API[replace]({id:'1',value:'string id'});
   same(ctx.DB[key],[{id:1,value:'new'},{id:'1',value:'string id'}]);
@@ -150,6 +151,11 @@ ctx.toggleAddForm(addButton);
 assert.equal(addButton['aria-expanded'],'true');assert.equal(focused,true);assert.equal(classes.has('hidden'),false);
 ctx.toggleAddForm(addButton);
 assert.equal(addButton['aria-expanded'],'false');assert.equal(classes.has('hidden'),true);
+const textBtn={textContent:'Add item for sale',dataset:{defaultLabel:'Add item for sale'},getAttribute(){return 'addPanel';},setAttribute(k,v){this[k]=v;},classList:{add(){},remove(){}}};
+ctx.toggleAddForm(textBtn);
+assert.equal(textBtn.textContent,'Cancel');
+ctx.toggleAddForm(textBtn);
+assert.equal(textBtn.textContent,'Add item for sale');
 elements.invBody={innerHTML:''};
 elements.invBodySearch={value:'caps'};elements.invBodyOrder={value:'newest'};
 ctx.DB.inventory=catalog.map(row=>({...row,cat:'Consumable',supplier:'Supplier',on:5,unit:'pcs',ss:1,rop:2,lead:2}));

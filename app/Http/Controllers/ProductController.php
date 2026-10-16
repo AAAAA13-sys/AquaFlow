@@ -20,8 +20,9 @@ use Illuminate\Validation\ValidationException;
  *
  * Two rules shape it. First, checkout and availability are recipe-driven, so a
  * product with no consumables is a button that cannot be sold - creation is
- * refused rather than publishing a broken tile. Second, products are referenced
- * by transaction history, so nothing is ever deleted: items are hidden instead.
+ * refused rather than publishing a broken tile. Second, products with historical
+ * sales transactions cannot be deleted to preserve audit trails, while unreferenced
+ * products can be removed.
  */
 class ProductController extends Controller
 {
@@ -57,7 +58,9 @@ class ProductController extends Controller
                 'sort_order' => ((int) Product::query()->max('sort_order')) + 10,
             ]);
 
-            if (! $recipes->ensureConsumables($product)) {
+            if (! empty($data['consumables'])) {
+                $recipes->replace($product, $data['consumables']);
+            } elseif (! $recipes->ensureConsumables($product)) {
                 // Thrown inside the transaction so no half-created product survives.
                 throw ValidationException::withMessages([
                     'category' => 'This item would consume nothing, so the till could not sell it. Pick a category that consumes stock, or link a stock item.',
@@ -80,6 +83,22 @@ class ProductController extends Controller
         return response()->json([
             'product' => new ProductResource($product->fresh()->load('inventoryItem')),
         ]);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        if ($product->items()->exists()) {
+            throw ValidationException::withMessages([
+                'product' => 'Cannot remove "' . $product->name . '" because it has recorded sales transactions. You can hide it from the till instead.',
+            ]);
+        }
+
+        DB::transaction(function () use ($product): void {
+            DB::table('product_consumables')->where('product_id', $product->id)->delete();
+            $product->delete();
+        });
+
+        return response()->json(['ok' => true]);
     }
 
     /**

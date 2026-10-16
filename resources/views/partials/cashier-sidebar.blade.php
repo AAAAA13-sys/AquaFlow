@@ -2,6 +2,7 @@
     ['url' => '/cashier', 'icon' => 'i-terminal', 'label' => 'POS Terminal', 'match' => 'cashier.index'],
     ['url' => '/cashier/queue', 'icon' => 'i-orders', 'label' => 'Orders in Progress', 'match' => 'cashier.queue'],
     ['url' => '/cashier/history', 'icon' => 'i-receipt', 'label' => 'Sales & Transactions', 'match' => 'cashier.history'],
+    ['url' => '/cashier/stocks', 'icon' => 'i-package', 'label' => 'Current Stocks', 'match' => 'cashier.stocks'],
 ])
 
 <aside class="admin-sidebar no-print" id="adminSidebar">

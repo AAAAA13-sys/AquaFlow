@@ -23,6 +23,9 @@ class DemandForecastResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $validated = ! str_starts_with((string) $this->method, 'naive')
+            && ($this->model_diagnostics['validation_available'] ?? ((float) $this->mape_score > 0));
+
         return [
             'id' => $this->id,
             'series' => $this->series_name,
@@ -37,9 +40,9 @@ class DemandForecastResource extends JsonResource
                 'method' => $this->method,
                 'differencing' => (int) $this->differencing,
                 'aic' => (float) $this->aic_score,
-                'mape' => (float) $this->mape_score,
-                'mae' => (float) $this->mae_score,
-                'rmse' => (float) $this->rmse_score,
+                'mape' => $validated ? (float) $this->mape_score : null,
+                'mae' => $validated ? (float) $this->mae_score : null,
+                'rmse' => $validated ? (float) $this->rmse_score : null,
                 'adf_statistic' => (float) $this->adf_statistic,
                 'adf_pvalue' => (float) $this->adf_pvalue,
                 'ljung_box_pvalue' => (float) $this->ljung_box_pvalue,

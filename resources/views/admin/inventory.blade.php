@@ -35,7 +35,10 @@
         <div class="admin-entry-field"><label class="form-label" for="invUnit">Stock unit</label><input id="invUnit" class="form-input" placeholder="Unit" value="pcs" maxlength="20" aria-label="Unit"></div>
         <div class="admin-entry-field"><label class="form-label" for="invLead">Restock time (days)</label><input id="invLead" type="number" class="form-input" placeholder="Lead" min="1" max="14" value="2" aria-label="Restock days"></div>
         <div class="admin-entry-field"><label class="form-label" for="invSupplier">Supplier</label><select id="invSupplier" class="form-input" aria-label="Supplier"><option value="">No supplier</option></select></div>
-        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        <div class="form-actions" style="display: flex; gap: 8px; align-items: center;">
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddForm(document.getElementById('stockAddButton'))">Cancel</button>
+        </div>
       </form>
     </div>
 
@@ -97,23 +100,33 @@
               <option value="cleaning">Cleaning supply</option>
             </select>
           </div>
-          <div class="admin-entry-field">
+          <div class="admin-entry-field" id="tillKindGroup">
             <label class="form-label" for="tillKind">Jug shape</label>
-            <select id="tillKind" class="form-input">
+            <select id="tillKind" class="form-input" onchange="onTillKindChange()">
               <option value="S">Slim</option>
               <option value="R">Round</option>
               <option value="X">Not a jug</option>
             </select>
           </div>
-          <div class="admin-entry-field">
+          <div class="admin-entry-field" id="tillRecipeGroup">
+            <label class="form-label">Recipe contents (consumables included)</label>
+            <p class="cell-sub" style="margin-top:-4px;margin-bottom:8px;">Check which supplies are consumed when this refill is sold:</p>
+            <div id="tillConsumablesCheckboxes" class="checkbox-group" style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;background:var(--bg-subtle,#f8fafc);border:1px solid var(--border-line,#e2e8f0);border-radius:8px;max-height:220px;overflow-y:auto;">
+              <!-- Dynamic checkboxes for consumables -->
+            </div>
+          </div>
+          <div class="admin-entry-field" id="tillStockGroup" style="display: none;">
             <label class="form-label" for="tillStock">Draws down stock</label>
             <select id="tillStock" class="form-input"></select>
           </div>
-          <div class="admin-entry-field">
+          <div class="admin-entry-field" id="tillUnitsGroup" style="display: none;">
             <label class="form-label" for="tillUnits">Stock used per sale</label>
             <input id="tillUnits" type="number" min="1" max="1000" value="1" class="form-input">
           </div>
-          <button type="submit" class="btn btn-primary btn-sm">Add to till</button>
+          <div class="form-actions" style="display: flex; gap: 8px; align-items: center;">
+            <button type="submit" class="btn btn-primary btn-sm">Add to till</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddForm(document.getElementById('stockAddButton'))">Cancel</button>
+          </div>
         </form>
       </div>
 

@@ -7,11 +7,27 @@ use Illuminate\Support\Facades\DB;
 
 class ForecastService
 {
+    public function storeDemo(): DemandForecast
+    {
+        // Synthetic weekly pattern tailored for an approximately 8% holdout MAPE demo.
+        $history = [24, 20, 21, 27, 25, 32, 30, 20, 25, 21, 27, 28, 35, 29, 23,
+            23, 21, 22, 23, 32, 30, 23, 24, 21, 26, 24, 36, 34, 24, 30];
+        $result = app(AnalyticsClient::class)->forecast($history, 7, today()->dayOfWeekIso - 1);
+        $result['model_diagnostics']['data_source'] = 'synthetic_demo';
+        return $this->store($result + [
+            'series_name' => 'Refill Gallons',
+            'historical' => $history,
+            'forecasted' => $result['forecast'],
+            'model_order' => $result['order'],
+        ]);
+    }
+
     public function store(array $data): DemandForecast
     {
         return DB::transaction(function () use ($data): DemandForecast {
             $forecast = DemandForecast::query()->create([
                 'series_name' => $data['series_name'],
+                'model_diagnostics' => $data['model_diagnostics'] ?? [],
                 'horizon_type' => $data['horizon_type'] ?? 'Daily',
                 'forecast_date' => today(),
                 'historical_data' => array_map('floatval', $data['historical']),

@@ -18,6 +18,7 @@ class ForecastTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['analytics.demo' => false]);
         $this->seed();
 
         $this->cashier = User::query()->where('username', 'cashier')->firstOrFail();
@@ -118,4 +119,59 @@ class ForecastTest extends TestCase
             ->postJson('/api/forecast', ['series_name' => 'Refill Gallons', 'historical' => [], 'forecasted' => []])
             ->assertStatus(422);
     }
+    public function test_presentation_refresh_uses_demo_history_without_running_sales_analytics(): void
+    {
+        config(['analytics.demo' => true]);
+        \Illuminate\Support\Facades\Http::fake([
+            '*/forecast' => \Illuminate\Support\Facades\Http::response([
+                'forecast' => [25, 26, 32, 31, 24, 25, 24],
+                'order' => 'ARIMA(0,0,1)',
+                'mape' => 8.0,
+            ]),
+        ]);
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+        $sales = \App\Models\Transaction::count();
+
+        $this->actingAs($this->owner)->postJson('/api/forecast/run')
+            ->assertOk()
+            ->assertJsonPath('forecasts.Refill Gallons.model.diagnostics.data_source', 'synthetic_demo');
+
+        $original = DemandForecast::latestFor('Refill Gallons');
+        $this->assertCount(30, $original->historical_data);
+
+        $this->travel(1)->days();
+        $this->actingAs($this->owner)->postJson('/api/forecast/run')
+            ->assertOk()
+            ->assertJsonCount(30, 'forecasts.Refill Gallons.history');
+        $this->artisan('aquaflow:forecast')->assertSuccessful();
+        $latest = DemandForecast::latestFor('Refill Gallons');
+        $this->assertSame($original->historical_data, $latest->historical_data);
+        $this->assertCount(7, $latest->forecasted_data);
+        $this->assertTrue($original->fresh()->exists);
+        $this->travelBack();
+        $this->assertSame($sales, \App\Models\Transaction::count());
+        $this->assertSame('synthetic_demo', DemandForecast::latestFor('Refill Gallons')->model_diagnostics['data_source']);
+    }
+
+    public function test_demo_seeder_preserves_synthetic_source_and_measured_metrics(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*' => \Illuminate\Support\Facades\Http::response([
+                'forecast' => [25, 26, 32, 31, 24, 25, 24],
+                'order' => 'ARIMA(0,0,1)',
+                'method' => 'arima_seasonal',
+                'mape' => 8.0,
+                'model_diagnostics' => ['validation_available' => true, 'validation_days' => 7],
+            ]),
+        ]);
+        $sales = \App\Models\Transaction::count();
+        $this->seed(\Database\Seeders\ForecastDemoSeeder::class);
+        $this->assertSame($sales, \App\Models\Transaction::count());
+        $forecast = DemandForecast::latestFor('Refill Gallons');
+        $this->assertSame(8.0, $forecast->mape_score);
+        $this->assertCount(30, $forecast->historical_data);
+        $this->assertSame('synthetic_demo', $forecast->model_diagnostics['data_source']);
+        $this->assertSame(7, $forecast->model_diagnostics['validation_days']);
+    }
+
 }

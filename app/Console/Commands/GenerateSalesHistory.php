@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
 class GenerateSalesHistory extends Command
 {
     protected $signature = 'aquaflow:generate-history
-        {--days=90 : Days of history to generate}
+        {--days=30 : Days of history to generate}
         {--fresh : Delete the existing generated history first}';
 
     protected $description = 'Generate a realistic sales history for dashboards and forecasting';
@@ -89,10 +89,11 @@ class GenerateSalesHistory extends Command
                 $date = now()->subDays($offset);
                 $isWeekend = in_array((int) $date->dayOfWeekIso, [6, 7], true);
 
-                $remaining = $isWeekend ? mt_rand(360, 470) : mt_rand(170, 260);
+                // 15-40 jugs a day across the past month: weekdays 15-30, weekends 26-40
+                $remaining = $isWeekend ? mt_rand(26, 40) : mt_rand(15, 30);
 
                 while ($remaining > 0) {
-                    $saleGallons = min($remaining, mt_rand(5, 45));
+                    $saleGallons = min($remaining, mt_rand(1, 5));
                     $remaining -= $saleGallons;
 
                     $slim = mt_rand(0, $saleGallons);
@@ -102,12 +103,13 @@ class GenerateSalesHistory extends Command
                         continue;
                     }
 
-                    $isWalkIn = mt_rand(1, 100) <= 18;
+                    $isWalkIn = mt_rand(1, 100) <= 25;
                     $customerId = $isWalkIn ? $walkInId : $registered[array_rand($registered)];
                     $orderType = (! $isWalkIn && mt_rand(1, 100) <= 45) ? 'Delivery' : 'Walk-in';
                     $payment = $this->pickPayment($orderType);
 
                     $total = round($saleGallons * 35.0, 2);
+                    $receiptNo = 'OR-' . $this->receipt;
 
                     $this->insertSale(
                         cashierId: $cashierId,
@@ -121,6 +123,24 @@ class GenerateSalesHistory extends Command
                         items: $this->refillItems($slim, $round),
                         walkIn: $isWalkIn,
                     );
+
+                    // Place today's uncompleted deliveries on the production queue
+                    if ($offset === 0 && $orderType === 'Delivery' && $sales % 2 === 0) {
+                        $custName = DB::table('customers')->where('id', $customerId)->value('name') ?? 'Customer';
+                        DB::table('production_queue')->updateOrInsert(
+                            ['receipt_number' => $receiptNo],
+                            [
+                                'customer_name' => $custName,
+                                'stage' => $sales % 4,
+                                'elapsed_minutes' => mt_rand(5, 35),
+                                'items_description' => CheckoutService::volumeLabel($slim, $round),
+                                'order_type' => $orderType,
+                                'is_completed' => false,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]
+                        );
+                    }
 
                     $sales++;
                     $gallons += $saleGallons;
@@ -357,6 +377,8 @@ class GenerateSalesHistory extends Command
 
         DB::table('transaction_items')->whereIn('transaction_id', $ids)->delete();
         DB::table('container_custody_logs')->whereIn('transaction_id', $ids)->delete();
+        DB::table('production_queue')->delete();
+        DB::table('customers')->update(['debt_balance' => 0]);
 
         return DB::table('transactions')->whereIn('id', $ids)->delete();
     }

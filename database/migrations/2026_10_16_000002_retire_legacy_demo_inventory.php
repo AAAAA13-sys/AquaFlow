@@ -9,9 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('inventory', function (Blueprint $table): void {
-            $table->timestamp('retired_at')->nullable();
-        });
+        if (! Schema::hasColumn('inventory', 'retired_at')) {
+            Schema::table('inventory', function (Blueprint $table): void {
+                $table->timestamp('retired_at')->nullable();
+            });
+        }
         (new CatalogSeeder)->retireLegacyInventory();
     }
 

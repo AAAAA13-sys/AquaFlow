@@ -28,19 +28,20 @@ def test_batch_contract(
 
     assert result["ok"] is True
     assert (result["days"], result["horizon"]) == expected
-    assert [entry["series"] for entry in result["series"]] == list(runner.db.SERIES_DEFINITIONS)
-    assert [entry["id"] for entry in result["series"]] == list(range(1, len(runner.db.SERIES_DEFINITIONS) + 1))
-    for index, name in enumerate(runner.db.SERIES_DEFINITIONS):
+    assert [entry["series"] for entry in result["series"]] == ["Refill Gallons"]
+    assert [entry["id"] for entry in result["series"]] == [1]
+    for index, name in enumerate(["Refill Gallons"]):
         assert series.call_args_list[index].args == (connection, name, expected[0])
         args = save.call_args_list[index].args
         assert args[:4] == (connection, name, [10.0, 20.0], [15.0] * expected[1])
         assert result["series"][index] == {
             "id": index + 1, "series": name, "method": "naive_insufficient_data",
             "seasonal": False, "order": "ARIMA(0, 0, 0)", "differencing": 0,
-            "aic": 0.0, "mape": 0.0, "mae": 0.0, "rmse": 0.0,
+            "aic": 0.0, "mape": None, "mae": None, "rmse": None,
             "adf_pvalue": 1.0, "ljung_box_pvalue": 1.0,
             "history_points": 2, "forecast": [15.0] * expected[1],
         }
+    assert series.call_count == save.call_count == 1
     connection.close.assert_called_once_with()
 
 

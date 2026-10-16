@@ -20,6 +20,17 @@ class AnalyticsClient
      */
     public function run(int $days, int $horizon): array
     {
+        if (config('analytics.demo')) {
+            $forecast = app(ForecastService::class)->storeDemo();
+
+            return ['series' => [[
+                'series' => $forecast->series_name,
+                'order' => $forecast->model_order,
+                'mape' => $forecast->mape_score,
+                'ljung_box_pvalue' => $forecast->ljung_box_pvalue,
+            ]]];
+        }
+
         return $this->request('post', '/run', [
             'days' => $days,
             'horizon' => $horizon,

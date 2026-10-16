@@ -31,9 +31,18 @@ class CustomerSeeder extends Seeder
             $daysAgo = $customer['days_ago'];
             unset($customer['days_ago']);
 
+            $isWalkIn = $customer['name'] === 'Walk-in Guest';
+            $match = $isWalkIn
+                ? ['system_key' => 'walk-in']
+                : ['name' => $customer['name']];
+
+            if ($isWalkIn && ! Customer::query()->where('system_key', 'walk-in')->exists()) {
+                $match = ['name' => 'Walk-in Guest'];
+            }
+
             Customer::query()->updateOrCreate(
-                ['name' => $customer['name']],
-                $customer + ['system_key' => $customer['name'] === 'Walk-in Guest' ? 'walk-in' : null, 'last_visit' => $daysAgo === null ? null : now()->subDays($daysAgo)]
+                $match,
+                $customer + ['system_key' => $isWalkIn ? 'walk-in' : null, 'last_visit' => $daysAgo === null ? null : now()->subDays($daysAgo)]
             );
         }
     }

@@ -11,15 +11,19 @@
   // feeds rather than trailing behind them as an equal-weight list item.
   $tabs = [
       'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null, 'featured' => false],
+      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => false],
       'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null, 'featured' => false],
-      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => true],
-      'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
       'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances', 'featured' => false],
+      'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
-  $groups = ['Station' => ['dashboard', 'sales', 'customers'], 'Stock & planning' => ['arima', 'inventory', 'suppliers'], 'Team & administration' => ['users', 'settings']];
+  $groups = [
+      'Operations' => ['dashboard', 'arima', 'sales', 'customers'],
+      'Stock & Supply' => ['inventory', 'suppliers'],
+      'Administration' => ['users', 'settings'],
+  ];
 @endphp
 @php($active = request()->route('tab') ?? 'dashboard')
 

@@ -148,6 +148,7 @@ const API = {
   products() { return this.get('products'); },
   createProduct(product) { return this.post('products', product); },
   updateProduct(id, payload) { return this.patch('products/' + id, payload); },
+  deleteProduct(id) { return this.del('products/' + id); },
 
   // Sales
   transactions(params) { return this.getWithQuery('transactions', params); },
@@ -195,6 +196,7 @@ const API = {
   replaceSupplier(supplier) { this.replaceSnapshot('suppliers', supplier, this.supplierId); },
   removeSupplier(idOrName) { this.removeSnapshot('suppliers', idOrName, this.supplierId); },
   replaceProduct(product) { this.replaceSnapshot('products', product); },
+  removeProduct(id) { this.removeSnapshot('products', id); },
   replaceUser(user) { this.replaceSnapshot('users', user); },
   removeUser(id) { this.removeSnapshot('users', id); }
 };

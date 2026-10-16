@@ -55,12 +55,14 @@ function renderForecast() {
   const meta = document.getElementById('fcMeta');
   const table = document.getElementById('fcTable');
   const metaDash = document.getElementById('fcMetaDash');
+  const insights = document.getElementById('forecastInsights');
 
   if (!record || !record.forecast || !record.forecast.length) {
     const message = 'No forecast stored yet. Use "Update Forecast" to run the ARIMA service.';
     if (meta) meta.innerHTML = '<span class="pill pill-warn">' + message + '</span>';
     if (table) table.innerHTML = '<p class="insight-note">' + message + '</p>';
     if (metaDash) metaDash.innerHTML = meta ? meta.innerHTML : '';
+    if (insights) insights.innerHTML = '';
     return;
   }
 
@@ -77,9 +79,10 @@ function renderForecast() {
   // Pill labels are written for a station owner, not a statistician. The exact
   // figures stay in the tooltip and in the explanation below, so a reviewer can
   // still read ARIMA order, MAPE and the Ljung-Box result.
-  const mapeNum = model.mape == null ? NaN : Number(model.mape);
+  const mapeNum = model.mape == null || String(model.method).startsWith('naive') ? NaN : Number(model.mape);
+  const accuracy = Number.isFinite(mapeNum) ? Math.max(0, 100 - mapeNum) : null;
   const mapePill = Number.isFinite(mapeNum)
-    ? '<span class="pill ' + (mapeNum <= 10 ? 'pill-ok' : mapeNum <= 20 ? 'pill-warn' : 'pill-bad') +
+    ? '<span class="pill ' + (mapeNum < 10 ? 'pill-ok' : mapeNum <= 20 ? 'pill-warn' : 'pill-bad') +
       '" title="MAPE ' + mapeNum + '% — average error when the model was tested on days it had not seen">Average test error: ' +
       mapeNum.toFixed(1) + '%</span>'
     : '';
@@ -105,25 +108,24 @@ function renderForecast() {
 
     table.innerHTML = rows.map(r =>
       '<div class="insight-row"><span>' + r[0] + '</span><b>' + Math.round(r[1]).toLocaleString() + ' ' + unit + '</b></div>'
-    ).join('') +
-    '<div class="arima-insights-box">' +
+    ).join('');
+    if (insights) insights.innerHTML =
       '<div class="arima-insight-item">' +
         '<div class="arima-insight-badge arima-badge--means">What this means</div>' +
         '<div class="arima-insight-body">About <strong>' + next3.toLocaleString() + ' ' + unit + '</strong> are projected for the next 3 days.</div>' +
       '</div>' +
       '<div class="arima-insight-item">' +
         '<div class="arima-insight-badge arima-badge--action">What to do</div>' +
-        '<div class="arima-insight-body">' + actionFormatted + '.</div>' +
+        '<div class="arima-insight-body">' + esc(actionFormatted) + '.</div>' +
       '</div>' +
       '<div class="arima-insight-item">' +
         '<div class="arima-insight-badge arima-badge--reliability">How reliable is this?</div>' +
-        '<div class="arima-insight-body">When AquaFlow was tested on days it had not seen before, its answer was off by about <strong>' + (model.mape ?? '-') + '%</strong> on average' +
-        (model.ljung_box_pvalue !== undefined
-          ? ', and its residual test ' + (residOk ? 'found no significant remaining pattern' : 'found a remaining pattern') +
-            ' (Ljung-Box p = ' + model.ljung_box_pvalue + ')'
-          : '') + '. Treat it as a good guide, not an exact number.</div>' +
-      '</div>' +
-    '</div>';
+        '<div class="arima-insight-body">' + (accuracy === null
+          ? 'Not validated yet. More usable history or a successful validation run is needed.'
+          : 'Held-out MAPE: <strong>' + mapeNum.toFixed(2) + '%</strong>. Implied accuracy: <strong>' + accuracy.toFixed(2) + '%</strong> (100% minus MAPE; not a guarantee). ' +
+            (mapeNum < 10 ? 'Target met.' : 'Target not met.') +
+            ' Target: MAPE &lt;10% and implied accuracy &gt;90%.') + '</div>' +
+      '</div>';
   }
 }
 
@@ -273,6 +275,7 @@ async function exportReport() {
     '# Series,' + csvCell(record.series) + '\n' +
     '# Model,' + csvCell(model.order) + '\n' +
     '# Method,' + csvCell(model.method) + '\n' +
+    '# Data source,' + csvCell(model.diagnostics?.data_source === 'synthetic_demo' ? 'Synthetic demo data' : 'Recorded sales') + '\n' +
     '# MAPE,' + csvCell(model.mape) + '\n' +
     '# MAE,' + csvCell(model.mae) + '\n' +
     '# RMSE,' + csvCell(model.rmse) + '\n' +
@@ -298,12 +301,35 @@ function restoreForecastView() {
   try { const value = localStorage.getItem('aquaflow.forecastView'); if (['Daily','Weekly','Monthly'].includes(value)) select.value = value; } catch (_) {}
 }
 async function exportReportPDF() {
+  const record = currentSeriesRecord();
+  if (!record || !record.forecast?.length) { appNotice('No forecast available to print.'); return; }
   const popup = window.open('', '_blank');
   if (!popup) { appNotice('Allow popups to open the printable report.'); return; }
-  let sales;
-  try { sales = await reportSales(); } catch (error) { popup.close(); appNotice(error.message); return; }
-  const table = (title, headers, rows) => '<h2>' + esc(title) + '</h2><table><thead><tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(cell => '<td>' + esc(String(cell ?? '')) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
-  const forecasts = Object.entries(DB.forecasts || {}).flatMap(([name, record]) => (record.forecast || []).map((value, index) => [name, index + 1, value, record.model?.mape]));
-  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AquaFlow report ' + new Date().toISOString().slice(0,10) + '</title><style>body{font:12px sans-serif}table{border-collapse:collapse;width:100%;margin-bottom:20px}th,td{border:1px solid #ccc;padding:6px;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><h1>AquaFlow Report</h1><p>Generated ' + esc(new Date().toLocaleString()) + '</p>' + table('Sales', ['Receipt','Date','Customer','Total','Payment'], sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) + table('Inventory', ['Item','On hand','Unit','Safety stock','Reorder point','Supplier'], DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) + table('Forecasts',['Series','Day','Demand','MAPE'],forecasts) + table('Advisories',['Item','Supplier','Order quantity'],(DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_qty])) + '</body></html>');
-  popup.document.close(); popup.focus(); popup.print();
+  try {
+    const sales = await reportSales();
+    const model = record.model || {};
+    const table = (title, headers, rows) => '<h2>' + esc(title) + '</h2><table><thead><tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(cell => '<td>' + esc(String(cell ?? '')) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+    const chart = document.getElementById('chArima');
+    const chartImage = chart ? '<img class="demand-chart" alt="Demand history and forecast chart" src="' + chart.toDataURL('image/png') + '">' : '<p>Chart unavailable.</p>';
+    const mape = model.mape == null ? null : Number(model.mape);
+    const accuracy = mape !== null && Number.isFinite(mape) ? Math.max(0, 100 - mape).toFixed(2) + '%' : 'Not validated';
+    const source = model.diagnostics?.data_source === 'synthetic_demo' ? 'Presentation dataset' : 'Source: recorded station sales.';
+    const forecasts = Object.entries(DB.forecasts || {}).flatMap(([name, entry]) => (entry.forecast || []).map((value, index) => [name, index + 1, value, entry.model?.mape]));
+    popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AquaFlow Forecast Report</title><style>@page{size:A4;margin:14mm}body{font:12px Arial,sans-serif;color:#172033;line-height:1.5}h1{margin-bottom:4px}h2{margin:22px 0 8px;font-size:17px}table{border-collapse:collapse;width:100%;margin-bottom:18px}th,td{border:1px solid #ccd3df;padding:6px;text-align:left}th{background:#eef3fa}thead{display:table-header-group}tr,.arima-insight-item{break-inside:avoid}.demand-chart{display:block;width:100%;height:auto}.insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.arima-insight-item{padding:10px;border:1px solid #ccd3df;border-radius:6px}.arima-insight-badge{font-weight:bold;margin-bottom:6px}.forecast-demo-note{grid-column:1/-1;padding:8px;background:#fff5d6}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><h1>AquaFlow Forecast Report</h1><p>' + esc(source) + '<br>Generated ' + esc(new Date().toLocaleString()) + '</p>' +
+      table('Model validation', ['Measure', 'Result'], [['Series', record.series], ['Model', model.order], ['Method', model.method], ['Held-out MAPE', mape == null ? 'Not validated' : mape.toFixed(2) + '%'], ['Implied accuracy (100% minus MAPE)', accuracy], ['Target', 'MAPE <10%; implied accuracy >90%'], ['MAE', model.mae], ['RMSE', model.rmse]]) +
+      '<h2>Demand outlook</h2>' + chartImage + '<h2>Insights and actions</h2><div class="insights">' + (document.getElementById('forecastInsights')?.innerHTML || '') + '</div>' +
+      table('Seven-day forecast', ['Day', 'Refill gallons'], (record.forecast || []).map((value,index)=>[index+1,value])) +
+      table('Historical demand', ['Day', 'Refill gallons'], (record.history || []).map((value,index)=>[index+1,value])) +
+      table('Inventory', ['Item','On hand','Unit','Safety stock','Reorder point','Supplier'], DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) +
+      table('Restock advisories', ['Item','Supplier','Order quantity'], (DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_quantity ?? a.order_qty])) +
+      table('All stored forecasts', ['Series','Day','Demand','MAPE'], forecasts) +
+      table('Sales', ['Receipt','Date','Customer','Total','Payment'], sales.map(t=>[t.no,t.date,t.cust,t.total,t.pay])) + '</body></html>');
+    popup.document.close();
+    await Promise.all(Array.from(popup.document.images).map(image => image.decode()));
+    popup.focus();
+    popup.print();
+  } catch (error) {
+    popup.close();
+    appNotice(error.message || 'Could not prepare the full report.');
+  }
 }

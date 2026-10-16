@@ -291,3 +291,9 @@ git push origin v1.0.0
 ```
 
 Each image is tagged with the release tag and `latest`.
+
+## Presentation forecasts
+
+Set `ANALYTICS_DEMO=true` in `.env` to keep manual and scheduled forecast refreshes on the synthetic history used by `ForecastDemoSeeder`. Run `php artisan aquaflow:forecast` once to populate it. The analytics service must be running; scores are calculated by the model and the UI labels the result as synthetic demo data. Sales records are preserved, but inventory thresholds use demo demand.
+
+Set `ANALYTICS_DEMO=false` and refresh forecasts to return to sales history. Run `php artisan config:clear` after changing this setting if configuration was cached.

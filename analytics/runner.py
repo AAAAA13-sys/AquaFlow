@@ -36,14 +36,9 @@ def run_all(days: int | None = None, horizon: int | None = None) -> dict[str, An
     results: list[dict[str, Any]] = []
 
     with closing(db.connect(settings)) as connection:
-        refill_result = None
-        for name in db.SERIES_DEFINITIONS:
+        for name in ("Refill Gallons",):
             values = db.daily_series_for(connection, name, history_days)
             result = arima_engine.analyze(values, forecast_horizon, end_weekday=end_weekday)
-            if name == "Refill Gallons":
-                refill_result = result
-            elif refill_result is not None:
-                result = project_consumables(refill_result, result)
             logger.info("ADF %s: statistic=%.4f p=%.4f d=%s", name, result.adf_statistic, result.adf_pvalue, result.differencing)
             row_id = db.save_forecast(connection, name, result.history, result.forecast, result.as_dict())
 
@@ -65,7 +60,7 @@ def run_all(days: int | None = None, horizon: int | None = None) -> dict[str, An
             }
             results.append(entry)
             logger.info(
-                "forecast %s: method=%s order=%s MAPE=%.2f%% (Ljung-Box p=%.3f)",
+                "forecast %s: method=%s order=%s MAPE=%s%% (Ljung-Box p=%.3f)",
                 name,
                 result.method,
                 entry["order"],
