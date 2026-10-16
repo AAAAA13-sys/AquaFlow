@@ -8,7 +8,7 @@ const DB = {
   // offline fallback for the Users & Access table.
   users: [
     { u: 'cashier', role: 'cashier', name: 'Juan Dela Cruz (Cashier #01)' },
-    { u: 'admin', role: 'admin', name: 'Yuri Soliven (Station Owner)' }
+    { u: 'admin', role: 'super_admin', name: 'Yuri Soliven (Station Owner)' }
   ],
   products: [
     { id: 'slim', name: 'Slim 5-Gal Refill', price: 35, group: 'refill', kind: 'S', cat: 'refill' },

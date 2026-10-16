@@ -13,7 +13,7 @@ class ReleaseReadinessTest extends TestCase
 
     private function owner(): User
     {
-        return User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass123', 'role' => 'admin']);
+        return User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass123', 'role' => 'super_admin']);
     }
 
     public function test_customer_requires_a_deliverable_mobile_number(): void
@@ -72,7 +72,7 @@ class ReleaseReadinessTest extends TestCase
     public function test_unsupported_roles_cannot_be_created_or_signed_in(): void
     {
         $owner = $this->owner();
-        foreach (['rider', 'refiller', 'manager'] as $role) {
+        foreach (['manager'] as $role) {
             $this->actingAs($owner)->postJson('/api/users', ['name' => 'Staff', 'username' => $role, 'role' => $role, 'password' => 'StrongPass123'])
                 ->assertUnprocessable()->assertJsonValidationErrors('role');
             if ($role === 'manager') {

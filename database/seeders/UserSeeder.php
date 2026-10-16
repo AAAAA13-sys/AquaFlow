@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
             [
                 'email' => 'kmikaelim11@gmail.com',
                 'password' => Hash::make('1234'),
-                'role' => User::ROLE_ADMIN,
+                'role' => User::ROLE_SUPER_ADMIN,
                 'name' => 'Admin (kmikaelim11)',
                 'is_active' => true,
                 'is_bootstrap' => false,

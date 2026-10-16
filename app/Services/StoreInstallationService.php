@@ -67,7 +67,7 @@ class StoreInstallationService
                 'name' => $details['name'], 'username' => $details['username'],
                 'password' => $details['password'],
                 'email' => $details['email'] ?? null,
-                'role' => User::ROLE_ADMIN, 'is_active' => true,
+                'role' => User::ROLE_SUPER_ADMIN, 'is_active' => true,
             ]);
             (new CatalogSeeder)->run(false);
             Customer::firstOrCreate(['system_key' => 'walk-in'], ['name' => 'Walk-in Guest', 'address' => '-', 'contact' => '-']);
@@ -98,7 +98,7 @@ class StoreInstallationService
                 return null;
             }
 
-            if (User::query()->where('role', User::ROLE_ADMIN)->where('is_bootstrap', false)->exists()) {
+            if (User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('is_bootstrap', false)->exists()) {
                 return null;
             }
 

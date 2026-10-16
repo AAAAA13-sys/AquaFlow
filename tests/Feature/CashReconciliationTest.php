@@ -12,7 +12,7 @@ class CashReconciliationTest extends TestCase
 
     public function test_cash_reconciliation_page_and_endpoints_are_removed(): void
     {
-        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass123', 'role' => 'admin']);
+        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass123', 'role' => 'super_admin']);
         $this->actingAs($owner)->get('/admin/cash')->assertNotFound();
         $this->getJson('/api/cash-shift')->assertNotFound();
         $this->getJson('/api/cash-shift/overview')->assertNotFound();

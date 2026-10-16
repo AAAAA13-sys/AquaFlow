@@ -23,7 +23,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_owner_login_renders_forgot_password_and_embedded_eye_toggles(): void
     {
-        $response = $this->get('/owner/login');
+        $response = $this->get('/');
 
         $response->assertOk();
         $response->assertSee('Forgot password?');
@@ -78,7 +78,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_admin_can_reset_password_with_valid_otp(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         // Seed an OTP record
@@ -116,7 +116,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_verify_otp_endpoint_validates_and_confirms_code(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         PasswordResetOtp::updateOrCreate(
@@ -145,7 +145,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_verify_otp_endpoint_rejects_invalid_code(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         PasswordResetOtp::updateOrCreate(
@@ -173,7 +173,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_wrong_otp_increments_attempts_and_rejects(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         PasswordResetOtp::updateOrCreate(
@@ -203,7 +203,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_five_failed_otp_attempts_burns_the_token(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         PasswordResetOtp::updateOrCreate(
@@ -231,7 +231,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_expired_otp_is_rejected(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         PasswordResetOtp::updateOrCreate(
@@ -256,7 +256,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_weak_password_fails_validation(): void
     {
-        $admin = User::query()->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()->where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         $email = $admin->email;
 
         $response = $this->postJson('/api/auth/forgot-password/verify-reset', [
@@ -271,7 +271,7 @@ class AdminForgotPasswordTest extends TestCase
     }
     public function test_consumed_code_cannot_reset_password_again(): void
     {
-        $admin = User::where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         PasswordResetOtp::create([
             'email' => $admin->email,
             'otp_hash' => Hash::make('123456'),
@@ -296,7 +296,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_inactive_admin_cannot_redeem_an_existing_code(): void
     {
-        $admin = User::where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         PasswordResetOtp::create([
             'email' => $admin->email, 'otp_hash' => Hash::make('123456'),
             'expires_at' => now()->addMinutes(15), 'attempts' => 0,
@@ -317,7 +317,7 @@ class AdminForgotPasswordTest extends TestCase
 
     public function test_reset_removes_existing_database_sessions(): void
     {
-        $admin = User::where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
         \Illuminate\Support\Facades\DB::table('sessions')->insert([
             'id' => 'reset-session-test', 'user_id' => $admin->id,
             'payload' => '', 'last_activity' => now()->timestamp,

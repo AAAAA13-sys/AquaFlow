@@ -10,7 +10,7 @@ use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Users and access (owner only).
+ * Team accounts; managers can change subordinate staff only.
  */
 class UserController extends Controller
 {
@@ -18,14 +18,14 @@ class UserController extends Controller
     {
         return response()->json([
             'users' => UserResource::collection(
-                User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_CASHIER])->orderBy('id')->get()
+                User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES)->orderBy('id')->get()
             ),
         ]);
     }
 
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = app(UserService::class)->create($request->validated());
+        $user = app(UserService::class)->create($request->validated(), $request->user());
 
         return response()->json(['user' => new UserResource($user)], 201);
     }

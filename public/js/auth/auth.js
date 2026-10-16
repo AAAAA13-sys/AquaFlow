@@ -5,13 +5,21 @@
 // localStorage only to route users to the right portal; every API call is
 // authorised server-side, so tampering with the mirror grants nothing.
 
+function roleHome(role) {
+  return ['super_admin', 'admin'].includes(role) ? '/admin' : ['refiller', 'rider'].includes(role) ? '/employee' : '/cashier';
+}
+
+function roleLabel(role) {
+  return {super_admin: 'Super Admin', admin: 'Admin (manager)', cashier: 'Cashier', refiller: 'Refiller', rider: 'Delivery Rider'}[role] || role;
+}
+
 function getSession() {
   try { return JSON.parse(localStorage.getItem('session') || 'null'); }
   catch (e) { return null; }
 }
 
 function setSession(user) {
-  if (getSession()?.u !== user.u) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
+  if (getSession()?.u !== user.u || getSession()?.role !== user.role) { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); }
   localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, must_change_password: !!user.must_change_password, t: Date.now() }));
 }
 
@@ -24,24 +32,9 @@ function showLoginError(message) {
   loginErrorTimer = setTimeout(() => error.classList.add('hidden'), 5000);
 }
 
-// Cashier login (server-verified)
-async function apiLogin(username, password) {
-  const result = await API.login(username, password);
-  if (result.user) setSession(result.user);
-  return result;
-}
-
-// Admin sign-in. Same credentials as any other account; the role decides the
-// portal, so a successful result already carries the session.
-async function apiLoginOwner(username, password) {
-  const result = await API.loginOwner(username, password);
-  if (result.user) setSession(result.user);
-  return result;
-}
-
 // Clears both the session and the local mirror, then returns to login.
 function logout() {
-  const loginUrl = getSession()?.role === 'admin' ? '/owner/login' : '/';
+  const loginUrl = '/';
   const finish = () => {
     try { localStorage.removeItem('aquaflow_db'); localStorage.removeItem('aquaflow_pos'); localStorage.removeItem('session'); } catch (e) { /* ignore */ }
     window.location.href = loginUrl;
@@ -57,14 +50,15 @@ function logout() {
 function guardCashier() {
   const s = getSession();
   if (!s) { window.location.href = '/'; return null; }
+  if (['refiller', 'rider'].includes(s.role)) { window.location.href = '/employee'; return null; }
   return s;
 }
 
 // Guard for owner portal: requires admin role, sends others to the cashier terminal
 function guardAdmin() {
   const s = getSession();
-  if (!s) { window.location.href = '/owner/login'; return null; }
-  if (s.role !== 'admin') { window.location.href = '/cashier'; return null; }
+  if (!s) { window.location.href = '/'; return null; }
+  if (!['super_admin', 'admin'].includes(s.role)) { window.location.href = roleHome(s.role); return null; }
   return s;
 }
 

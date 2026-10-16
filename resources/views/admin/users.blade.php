@@ -19,7 +19,12 @@
         <div class="admin-entry-field"><label class="form-label" for="usrUsername">Username</label><input id="usrUsername" class="form-input field-min-140" placeholder="Username *" required maxlength="50" pattern="[A-Za-z0-9_-]+" title="Letters, numbers, dash and underscore only" aria-label="Username"></div>
         <div class="admin-entry-field"><label class="form-label" for="usrRole">Access role</label><select id="usrRole" onchange="updateUserRoleFields()" class="form-input"  aria-label="Access role">
           <option value="cashier">Cashier (POS only)</option>
-          <option value="admin">Owner / Admin (Full + Analytics)</option>
+          <option value="refiller">Refiller (Production)</option>
+          <option value="rider">Delivery Rider (Delivery)</option>
+          @if(auth()->user()?->isSuperAdmin())
+          <option value="admin">Admin (manager)</option>
+          <option value="super_admin">Super Admin (owner)</option>
+          @endif
         </select></div>
         <div class="admin-entry-field"><label for="usrEmail">Recovery email</label><input id="usrEmail" type="email" required autocomplete="email" class="form-input" maxlength="255"></div>
         <div id="usrPasswordField" class="admin-entry-field hidden">
@@ -53,7 +58,7 @@
         <tbody id="usersBody"></tbody>
       </table>
     </div>
-    <p class="auth-footer-text text-center">Cashiers use the cashier portal. Owners manage the station and analytics.</p>
+    <p class="auth-footer-text text-center">One sign-in for all roles. Managers manage staff; Super Admins control manager and owner access.</p>
   </section>
 
   @include('partials.editor-drawer', ['drawerId' => 'userEditWrap', 'bodyId' => 'userEditBody', 'title' => 'Edit user', 'closeAction' => 'closeUserEditor()'])

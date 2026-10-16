@@ -13,7 +13,7 @@ function loadSettings() {
 
   const brand = document.getElementById('brandName');
   if (brand) brand.textContent = station;
-  document.title = station + ' - Owner Portal';
+  document.title = station + ' - Management';
 }
 
 async function saveSettings() {
@@ -42,7 +42,7 @@ async function saveSettings() {
 
     const brand = document.getElementById('brandName');
     if (brand) brand.textContent = payload.station_name;
-    document.title = payload.station_name + ' - Owner Portal';
+    document.title = payload.station_name + ' - Management';
     if (status) status.textContent = 'Changes saved.';
   } catch (error) {
     if (status) status.textContent = error.message || 'Could not save the settings.';
@@ -65,13 +65,13 @@ function renderUsers() {
   const body = document.getElementById('usersBody');
   if (!body) return;
   const summary = document.getElementById('teamSummary');
-  if (summary) summary.innerHTML = '<article><span>Active staff</span><strong>' + DB.users.filter(u => ['admin', 'cashier'].includes(u.role) && u.active !== false).length + '</strong><small>Accounts with station access</small></article><article><span>Cashiers</span><strong>' + DB.users.filter(u => u.role === 'cashier').length + '</strong><small>POS access</small></article><article><span>Owners</span><strong>' + DB.users.filter(u => u.role === 'admin').length + '</strong><small>Station management access</small></article>';
-  body.innerHTML = filterTableRows(DB.users.filter(u => ['admin', 'cashier'].includes(u.role)), 'usersBody').map(u => {
+  if (summary) summary.innerHTML = '<article><span>Active staff</span><strong>' + DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role) && u.active !== false).length + '</strong><small>Accounts with station access</small></article><article><span>Cashiers</span><strong>' + DB.users.filter(u => u.role === 'cashier').length + '</strong><small>POS access</small></article><article><span>Owners</span><strong>' + DB.users.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>';
+  body.innerHTML = filterTableRows(DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role)), 'usersBody').map(u => {
     const active = u.active !== false;
-    const canManage = u.id !== undefined && u.id !== null;
+    const canManage = u.can_manage === true;
     return '<tr><td>' + escUser(u.u) + '</td><td>' + escUser(u.name) + '</td>' +
-      '<td><span class="pill ' + (u.role === 'admin' ? 'pill-ok' : 'pill-info') + '">' + escUser(u.role) + '</span></td>' +
-      '<td>' + escUser(u.access || (u.role === 'admin' ? 'Full + Analytics' : 'POS only')) + '</td>' +
+      '<td><span class="pill ' + (u.role === 'admin' ? 'pill-ok' : 'pill-info') + '">' + escUser(roleLabel(u.role)) + '</span></td>' +
+      '<td>' + escUser(u.access || (['super_admin', 'admin'].includes(u.role) ? 'Management' : 'Staff workspace')) + '</td>' +
       '<td><span class="pill ' + (active ? 'pill-ok' : 'pill-bad') + '">' + (active ? 'Active' : 'Inactive') + '</span></td>' +
       '<td style="white-space:nowrap;">' + (canManage
         ? '<button onclick="openUserEditor(' + u.id + ')" class="btn btn-ghost btn-sm">Edit</button> ' +
@@ -86,7 +86,7 @@ let userCreatePending = false;
 let userSavePending = false;
 
 function updateUserRoleFields() {
-  const admin = document.getElementById('usrRole')?.value === 'admin';
+  const admin = ['super_admin', 'admin'].includes(document.getElementById('usrRole')?.value);
   const password = document.getElementById('usrPassword');
   document.getElementById('usrPasswordField')?.classList.toggle('hidden', !admin);
   document.getElementById('usrTemporaryHint')?.classList.toggle('hidden', admin);
@@ -113,7 +113,7 @@ async function createUser(event) {
 
   if (payload.name.length > 20) { showError('Use a name of at most 20 characters.'); return false; }
   if (!payload.email) { showError('A recovery email is required for every account.'); return false; }
-  if (role === 'admin') {
+  if (['super_admin', 'admin'].includes(role)) {
     payload.password = document.getElementById('usrPassword')?.value || '';
     if (!validNewPassword(payload.password)) { showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.'); return false; }
   }
@@ -151,8 +151,7 @@ async function openUserEditor(id) {
     '<p class="cell-sub">Editing <b>' + escUser(u.u) + '</b></p>' +
     '<label class="cell-sub">Full name</label><input id="usrEditName" class="form-input" value="' + escUser(u.name) + '" maxlength="20">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Role</label><select id="usrEditRole" class="form-input">' +
-    '<option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Cashier (POS only)</option>' +
-    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Owner (Full + Analytics)</option></select>' +
+    (getSession()?.role === 'super_admin' ? ['cashier', 'refiller', 'rider', 'admin', 'super_admin'] : ['cashier', 'refiller', 'rider']).map(role => '<option value="' + role + '"' + (u.role === role ? ' selected' : '') + '>' + roleLabel(role) + '</option>').join('') + '</select>' +
     '<div style="height:.5rem"></div><label class="cell-sub">New password (blank = keep)</label><div class="credential-control"><input id="usrEditPassword" type="password" class="form-input" minlength="8" maxlength="64" autocomplete="new-password"><button id="usrEditPasswordToggle" type="button" class="password-toggle-btn" onclick="togglePassword(\'usrEditPassword\', this)" aria-controls="usrEditPassword" aria-pressed="false" aria-label="Show password" title="Show password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button></div>' +
     '<p class="credential-hint">8–64 characters, uppercase, lowercase and a number. Leave blank to keep the current password.</p>' +
     '<p id="userEditError" class="auth-error hidden" role="alert"></p>' +
@@ -179,7 +178,7 @@ async function saveUserEdit(id) {
   if (!payload.name || payload.name.length > 20) { showError('Use a name from 1 to 20 characters.'); return; }
   if (!payload.email) { showError('A recovery email is required.'); return; }
   if (!document.getElementById('usrEditEmail').reportValidity()) return;
-  const pw = document.getElementById('usrEditPassword').value;  if (payload.role === 'admin' && findUser(id)?.role !== 'admin' && !pw) { showError('Set a strong password when promoting an account to admin.'); return; }
+  const pw = document.getElementById('usrEditPassword').value;  if (['super_admin', 'admin'].includes(payload.role) && findUser(id)?.role !== payload.role && !pw) { showError('Set a strong password when promoting an account to admin.'); return; }
   if (pw && !validNewPassword(pw)) { showError('Use 8–64 characters with uppercase, lowercase and a number, without spaces.'); return; }
   if (pw) payload.password = pw;
   const button = document.getElementById('userSaveButton');

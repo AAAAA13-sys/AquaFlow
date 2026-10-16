@@ -102,7 +102,7 @@ class BootstrapController extends Controller
 
         if ($request->user()?->isAdmin()) {
             $payload['users'] = UserResource::collection(
-                User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_CASHIER])->orderBy('id')->get()
+                User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES)->orderBy('id')->get()
             );
         }
 

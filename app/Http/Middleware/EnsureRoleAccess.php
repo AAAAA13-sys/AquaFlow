@@ -14,14 +14,17 @@ class EnsureRoleAccess
             && ! $request->is('api/profile', 'api/auth/session', 'api/auth/logout')) {
             return response()->json(['message' => 'Change your password before starting work.', 'code' => 'password_change_required'], 403);
         }
+        if ($user) {
+            abort_unless(in_array($user->role, \App\Models\User::ROLES, true) && ! $user->is_bootstrap, 403);
+        }
         if ($user && $user->isEmployee()) {
             $user->load('employee');
             abort_unless($user->employee && $user->employee->is_active, 403, 'Employee access is inactive.');
-            abort_unless($request->is('employee', 'api/employee/*', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/'), 403);
+            abort_unless($request->is('employee', 'api/employee/*', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/', 'owner/login'), 403);
         }
         if ($user && $request->is('employee', 'api/employee/*')) {
             if (! $request->is('api/employee/profile*')) {
-                abort_unless($user->isEmployee(), 403);
+                abort_unless($user->isEmployee() || $user->isAdmin(), 403);
             }
         }
 

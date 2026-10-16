@@ -36,8 +36,8 @@ class PageTest extends TestCase
         $this->get('/cashier/customer-custody')->assertRedirect('/');
         $this->get('/cashier/queue')->assertRedirect('/');
         $this->get('/cashier/history')->assertRedirect('/');
-        $this->get('/admin')->assertRedirect('/owner/login');
-        $this->get('/admin/dashboard')->assertRedirect('/owner/login');
+        $this->get('/admin')->assertRedirect('/');
+        $this->get('/admin/dashboard')->assertRedirect('/');
     }
 
     // ---------- The terminal is a three-stage POS ----------
@@ -449,7 +449,7 @@ class PageTest extends TestCase
         // The sidebar and CSRF token come from the layout, not the page.
         $response->assertSee('sidebar-nav', false);
         $response->assertSee('csrf-token', false);
-        $response->assertSee('Owner Portal');
+        $response->assertSee('Super Admin');
     }
 
     public function test_the_health_endpoint_reports_the_database(): void

@@ -35,7 +35,7 @@ class AdminSetupService
             }
 
             // Once a real owner account exists, setup can never reopen.
-            if (User::query()->where('role', 'admin')->where('is_bootstrap', false)->exists()) {
+            if (User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('is_bootstrap', false)->exists()) {
                 return null;
             }
 
@@ -63,7 +63,7 @@ class AdminSetupService
     {
         return DB::transaction(function () use ($id, $details, $stationName) {
             $bootstrap = User::whereKey($id)->where('is_bootstrap', true)->lockForUpdate()->first();
-            if (! $bootstrap || User::where('role', 'admin')->where('is_bootstrap', false)->exists()) {
+            if (! $bootstrap || User::where('role', User::ROLE_SUPER_ADMIN)->where('is_bootstrap', false)->exists()) {
                 return null;
             }
 
@@ -76,7 +76,7 @@ class AdminSetupService
                 'name' => $details['name'],
                 'username' => $details['username'],
                 'password' => $details['password'],
-                'role' => User::ROLE_ADMIN,
+                'role' => User::ROLE_SUPER_ADMIN,
                 'email' => $details['email'] ?? null,
                 'is_active' => true,
             ]);

@@ -12,7 +12,7 @@ class CredentialValidationTest extends TestCase
 
     public function test_new_and_changed_passwords_require_strength(): void
     {
-        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'admin']);
+        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'super_admin']);
         $this->actingAs($owner);
         foreach (['1234', 'Abc1234', 'abcdefghijkl', 'ABCDEFGHIJK1', str_repeat('Aa1', 25)] as $password) {
             $this->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'email' => 'staff@example.com', 'role' => 'cashier', 'password' => $password])->assertUnprocessable()->assertJsonValidationErrors('password');
@@ -22,7 +22,7 @@ class CredentialValidationTest extends TestCase
 
     public function test_valid_credentials_are_hashed_and_never_returned(): void
     {
-        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'admin']);
+        $owner = User::create(['name' => 'Owner', 'username' => 'owner', 'password' => 'StrongPass12345', 'role' => 'super_admin']);
         $this->actingAs($owner)->postJson('/api/users', ['name' => 'New Staff', 'username' => 'new_staff', 'email' => 'staff@example.com', 'role' => 'cashier', 'password' => 'Abcd1234'])->assertCreated()->assertJsonMissingPath('user.password');
         $staff = User::where('username', 'new_staff')->firstOrFail();
         $this->assertTrue(Hash::check('Abcd1234', $staff->password));
@@ -43,11 +43,11 @@ class CredentialValidationTest extends TestCase
         // Owner sign-in is username + password. There is no email field and no
         // third factor, so a request carrying either must not be accepted: a
         // stale client that still sends them should be told, not quietly ignored.
-        User::create(['name' => 'Owner', 'username' => 'owner', 'role' => 'admin', 'password' => 'StrongPass12345']);
+        User::create(['name' => 'Owner', 'username' => 'owner', 'role' => 'super_admin', 'password' => 'StrongPass12345']);
 
         $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'StrongPass12345'])
             ->assertOk()
-            ->assertJsonPath('user.role', 'admin');
+            ->assertJsonPath('user.role', 'super_admin');
 
         $this->postJson('/api/auth/logout');
 
@@ -57,19 +57,16 @@ class CredentialValidationTest extends TestCase
         // only with a correct password.
         $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'StrongPass12345', 'pin' => '2468'])
             ->assertOk()
-            ->assertJsonPath('user.role', 'admin');
+            ->assertJsonPath('user.role', 'super_admin');
         $this->postJson('/api/auth/logout');
 
         // The pin cannot stand in for the password.
         $this->postJson('/api/auth/login-owner', ['username' => 'owner', 'password' => 'wrong', 'pin' => '2468'])
             ->assertStatus(401);
 
-        // An email cannot even be submitted as a username: the format rule
-        // rejects it before any lookup, so there is no path where an address on
-        // the account authenticates the owner portal.
+        // Recovery email does not substitute for the stored username.
         $this->postJson('/api/auth/login-owner', ['username' => 'owner@example.com', 'password' => 'StrongPass12345'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('username');
+            ->assertUnauthorized();
 
         $this->assertGuest();
     }

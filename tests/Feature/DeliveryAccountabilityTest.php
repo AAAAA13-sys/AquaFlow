@@ -202,7 +202,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
         $this->travel(10)->days();
-        $owner = User::where('role', 'admin')->firstOrFail();
+        $owner = User::where('role', 'super_admin')->firstOrFail();
         $this->actingAs($owner)->getJson('/api/deliveries/'.$this->job->id)->assertOk()->assertJsonPath('order.proof.reported_cash', 100)->assertJsonCount(0, 'order.proof.remittances');
         $this->deleteJson('/api/users/'.$this->rider->id)->assertUnprocessable()->assertJsonValidationErrors('user');
         $this->deleteJson('/api/users/'.$this->cashier->id)->assertUnprocessable()->assertJsonValidationErrors('user');
@@ -244,7 +244,7 @@ class DeliveryAccountabilityTest extends TestCase
         $this->deliver()->assertOk();
         $this->actingAs($this->cashier);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 40, 'submission_key' => (string) Str::uuid(), 'note' => 'First cash handover of forty'])->assertOk();
-        $owner = User::where('role', 'admin')->firstOrFail();
+        $owner = User::where('role', 'super_admin')->firstOrFail();
         $this->actingAs($owner);
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 60, 'submission_key' => (string) Str::uuid()])->assertOk();

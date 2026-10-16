@@ -14,7 +14,7 @@ class BladeIntegrityTest extends TestCase
     public function test_portal_pages_render_with_unique_ids_and_existing_local_assets(): void
     {
         $this->seed();
-        $owner = User::where('role', 'admin')->firstOrFail();
+        $owner = User::where('role', 'super_admin')->firstOrFail();
         $cashier = User::where('role', 'cashier')->firstOrFail();
         $pages = array_map(fn ($page) => ['/admin/'.$page, $owner], ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings']);
         $pages = [...$pages, ['/cashier', $cashier], ['/cashier/queue', $cashier], ['/cashier/history', $cashier], ['/cashier/stocks', $cashier]];
@@ -38,7 +38,7 @@ class BladeIntegrityTest extends TestCase
 
     public function test_admin_login_keeps_removed_controls_absent_and_versions_its_script(): void
     {
-        $this->get('/owner/login')->assertOk()->assertDontSee('Use a recovery code')->assertDontSee('Start again with different details')->assertSee('admin-login.js?v=', false);
+        $this->get('/')->assertOk()->assertDontSee('Use a recovery code')->assertDontSee('Start again with different details')->assertSee('admin-login.js?v=', false);
     }
 
     public function test_pos_has_a_native_customer_dialog_stock_retry_and_read_only_steps(): void

@@ -25,9 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Guests hitting a protected page go to the correct login screen.
         $middleware->redirectGuestsTo(
-            fn (Request $request): string => $request->is('admin*')
-                ? route('owner.login')
-                : route('cashier.login')
+            fn (Request $request): string => route('cashier.login')
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

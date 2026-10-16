@@ -38,7 +38,7 @@ class BootstrapOwnerTest extends TestCase
         $this->postJson('/api/auth/setup-login', ['secret' => $secret])->assertOk();
         $this->assertGuest();
         $this->withCookie(config('session.cookie'), session()->getId())->withCredentials();
-        $this->get('/admin')->assertRedirect('/owner/login');
+        $this->get('/admin')->assertRedirect('/');
 
         $this->postJson('/api/auth/setup-owner', [
             'station_name' => 'My Water Station',

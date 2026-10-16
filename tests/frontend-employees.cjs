@@ -132,6 +132,12 @@ module.exports = async root => {
   await vm.runInContext("API.request('fulfillment/20', {method:'POST', body:{action:'handover'}})", apiContext);
   assert.equal(sent.headers['Content-Type'], 'application/json');
   assert.equal(sent.body, '{"action":"handover"}');
+  let onboarding = 0;
+  ctx.getSession = () => ({must_change_password:true});
+  ctx.openProfileModal = async () => { onboarding++; };
+  ctx.API.request = async () => { assert.fail('Employee onboarding must precede business API reads'); };
+  await ctx.refreshEmployee();
+  assert.equal(onboarding, 1);
   console.log('PASS: employee confirmation lock, role/FIFO guards, issue validation, uncertain-action/photo recovery, multipart CSRF and stale-order protection.');
 };
 if(require.main===module)module.exports(path.resolve(__dirname,'..')).catch(error=>{console.error(error);process.exitCode=1;});

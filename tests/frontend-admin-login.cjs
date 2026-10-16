@@ -39,7 +39,7 @@ function page(firstRun, employee = false) {
   const visibility = new Set(['hidden']);
   failed.element('err').classList = {add:value=>visibility.add(value), remove:value=>visibility.delete(value)};
   failed.ctx.API.post = async () => { throw new Error('Invalid username or password.'); };
-  await failed.ctx.sendAdminOtp();
+  await failed.ctx.submitLogin();
   assert.equal(failed.element('err').textContent, 'Invalid username or password.');
   assert.equal(visibility.has('hidden'), false);
   assert.equal([...failed.timers.values()][0].delay, 5000);
@@ -51,9 +51,9 @@ function page(firstRun, employee = false) {
   const normal = page(false);
   normal.element('adminEmail').value = 'owner';
   normal.element('p').value = 'MyPassword123';
-  await normal.ctx.sendAdminOtp();
+  await normal.ctx.submitLogin();
 
-  assert.equal(normal.calls[0].path, 'auth/login-owner');
+  assert.equal(normal.calls[0].path, 'auth/login');
   assert.equal(normal.calls[0].body.username, 'owner');
   assert.equal(normal.calls[0].body.password, 'MyPassword123');
   // No email, and no second call for a code: the session opens on the response.
@@ -61,6 +61,17 @@ function page(firstRun, employee = false) {
   assert.equal(normal.calls.length, 1);
   assert.equal(normal.ctx.user.role, 'admin');
   assert.equal(normal.ctx.window.location.href, '/admin');
+
+  for (const [role, destination] of [['super_admin', '/admin'], ['admin', '/admin'], ['cashier', '/cashier'], ['refiller', '/employee'], ['rider', '/employee']]) {
+    const login = page(false);
+    login.ctx.API.post = async (path, body) => {
+      login.calls.push({path, body});
+      return {user: {role}};
+    };
+    await login.ctx.submitLogin();
+    assert.equal(login.calls[0].path, 'auth/login');
+    assert.equal(login.ctx.window.location.href, destination, role + ' reaches its own workspace');
+  }
 
   // ---- First run: setup code, then the owner's own details -------------------
   const setup = page(true);

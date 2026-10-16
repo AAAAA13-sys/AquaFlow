@@ -54,7 +54,7 @@ async function openProfileModal() {
     if (nameEl) nameEl.textContent = user.name || 'User';
     if (userEl) userEl.textContent = user.u || user.username || '--';
     if (roleEl) {
-      const roleName = user.role === 'admin' ? 'Store Owner / Admin' : 'Cashier';
+      const roleName = roleLabel(user.role);
       roleEl.textContent = roleName;
     }
     if (badgeEl) badgeEl.textContent = computeInitials(user.name);

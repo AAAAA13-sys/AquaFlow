@@ -19,21 +19,23 @@
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
+  if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
       'Operations' => ['dashboard', 'arima', 'sales', 'customers'],
       'Stock & Supply' => ['inventory', 'suppliers'],
       'Administration' => ['users', 'settings'],
   ];
 @endphp
-@php($active = request()->route('tab') ?? 'dashboard')
+@php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  @include('partials.sidebar-header', ['subtitle' => 'Station Owner Portal'])
+  @include('partials.sidebar-header', ['subtitle' => auth()->user()?->isSuperAdmin() ? 'Super Admin' : 'Admin (manager)'])
 
   <nav class="sidebar-nav" id="sideNav" aria-label="Owner page catalog">
     @foreach ($groups as $title => $slugs)
       <p class="sidebar-section-title">{{ $title }}</p>
       @foreach ($slugs as $slug)
+      @continue(! isset($tabs[$slug]))
       @php($label = $tabs[$slug])
       <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
          class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"

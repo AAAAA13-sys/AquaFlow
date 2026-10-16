@@ -11,7 +11,7 @@ class QueueService
     public function deliver(ProductionQueueItem $item, int $userId): ProductionQueueItem
     {
         abort_if(
-            auth()->check() && ! in_array(auth()->user()->role, [User::ROLE_CASHIER, User::ROLE_ADMIN], true),
+            auth()->check() && ! in_array(auth()->user()->role, [User::ROLE_CASHIER, User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN], true),
             403,
             'Only cashiers and administrators can confirm order delivery.'
         );

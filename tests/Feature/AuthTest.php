@@ -22,17 +22,13 @@ class AuthTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertSee('Employee Login')->assertDontSee('id="otpForm"', false)->assertSee('/owner/login', false);
+        $response->assertSee('Sign in')->assertDontSee('id="otpForm"', false);
         $response->assertSee('csrf-token', false);
     }
 
     public function test_owner_login_page_renders(): void
     {
-        $this->get('/owner/login')
-            ->assertOk()
-            ->assertSee('Admin Login')->assertSee('Admin username')
-            ->assertDontSee('Email verification code')
-            ->assertDontSee('id="pin"', false);
+        $this->get('/owner/login')->assertRedirect('/');
     }
 
     public function test_owner_signs_in_with_username_and_password(): void
@@ -42,7 +38,7 @@ class AuthTest extends TestCase
             'password' => '1234',
         ]);
 
-        $response->assertOk()->assertJsonPath('user.role', 'admin');
+        $response->assertOk()->assertJsonPath('user.role', 'super_admin');
         // No code step: the session is open the moment the credentials check out.
         $response->assertJsonMissingPath('recovery_codes');
 
@@ -59,14 +55,14 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_cashier_is_rejected_on_the_owner_login(): void
+    public function test_legacy_login_endpoint_accepts_cashier_and_routes_by_role(): void
     {
         $this->postJson('/api/auth/login-owner', [
             'username' => 'cashier',
             'password' => '1234',
-        ])->assertUnauthorized()->assertExactJson(['message' => 'Invalid username or password.']);
+        ])->assertOk();
 
-        $this->assertGuest();
+        $this->assertAuthenticated();
     }
 
     public function test_owner_portal_routes_reject_a_cashier_session(): void
@@ -101,14 +97,14 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_owner_is_rejected_on_the_cashier_login(): void
+    public function test_shared_login_accepts_owner_and_routes_by_role(): void
     {
         $this->postJson('/api/auth/login', [
             'username' => 'admin',
             'password' => '1234',
-        ])->assertUnauthorized()->assertExactJson(['message' => 'Invalid username or password.']);
+        ])->assertOk();
 
-        $this->assertGuest();
+        $this->assertAuthenticated();
     }
 
     public function test_protected_endpoints_require_a_session(): void

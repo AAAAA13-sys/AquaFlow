@@ -2,6 +2,16 @@
 
 Baseline: 16 October 2026. Planning only: no application behavior is implemented by this document.
 
+## Implementation status - Super Admin and shared login (16 October 2026)
+
+Implemented the owner/manager role split, migration of legacy owners, shared login and old-login redirect, five-role Team & Access, manager/subordinate API restrictions, linked operational staff provisioning and password onboarding. Existing cashier/stock/customer/delivery history is preserved. Reports, approval tickets, spoilage workflow and forecast changes remain future phases.
+
+Local upgrade: backed up the application database to `C:/Users/PLP/aquaflow-backups/before-super-admin-20261016-153129.sql`, then applied only `2026_10_16_000004_add_super_admin_role.php`. Three legacy owners became Super Admins. No reseeding or password reset was performed. Migration rollback refuses while Super Admin rows remain, avoiding silent hierarchy loss.
+
+Verification: the full feature run covered 240 cases (238 passed; two fixture/teardown errors were corrected). Focused reruns then passed all affected Super Admin and delivery behavior cases (12 cases) and the isolated migration case (1 case, 5 assertions). The full feature suite was not repeated after the final test-isolation-only change. Unit suite: 8 passed, 15 assertions. Frontend suite and standalone employee/onboarding contracts passed. Changed PHP/JavaScript syntax, encoding and Git whitespace checks passed. The migration test uses database truncation because an unrelated historical full rollback fails on the transactions submission-key foreign-key index; no historical migration was rewritten. Live guest HTTP checks passed for `/`, legacy `/owner/login` redirect and `/api/health`. Visual browser verification is unavailable because no browser provider is connected. Existing tests were retained after the earlier deletion was blocked; only affected contracts/fixtures and focused role regressions were updated.
+
+Cleanup before commit: removed the unused cashier login template, empty OwnerLoginRequest subclass and unused browser login wrappers. The legacy login-owner API URL now points directly to the shared login handler. Existing regression checks remain available.
+
 ## Working with a small context budget
 
 - [ ] Read the role table and current phase, then open only its listed files and direct consumers.
@@ -104,17 +114,17 @@ The source scan covered application, UI, schema, analytics, configuration, deplo
 
 Files: User model; EnsureUserIsOwner, EnsureRoleAccess and EnsureAccountIsActive middleware; bootstrap/app.php; routes/web.php; Form Requests; UserService; setup/install services and seeders.
 
-- [ ] Add super_admin with an additive migration if schema constraints require it.
-- [ ] Map existing owner accounts deliberately; do not silently downgrade all old admins to manager.
-- [ ] Preserve IDs, password hashes, employee links and historical transaction attribution.
-- [ ] Fresh installation creates Super Admin; bootstrap access never becomes an ordinary role.
-- [ ] Separate owner-only authority from operational management in the smallest explicit checks.
-- [ ] Trace every isAdmin, isEmployee, canHandleCash, ROLE_ADMIN and owner middleware consumer.
-- [ ] Update request authorization, route middleware and service action checks together.
-- [ ] Reject crafted manager requests creating/promoting/deactivating managers or owners.
-- [ ] Protect last active Super Admin and prevent self-demotion/deactivation lockout.
+- [x] Add super_admin with an additive migration if schema constraints require it.
+- [x] Map existing owner accounts deliberately; do not silently downgrade all old admins to manager.
+- [x] Preserve IDs, password hashes, employee links and historical transaction attribution.
+- [x] Fresh installation creates Super Admin; bootstrap access never becomes an ordinary role.
+- [x] Separate owner-only authority from operational management in the smallest explicit checks.
+- [x] Trace every isAdmin, isEmployee, canHandleCash, ROLE_ADMIN and owner middleware consumer.
+- [x] Update request authorization, route middleware and service action checks together.
+- [x] Reject crafted manager requests creating/promoting/deactivating managers or owners.
+- [x] Protect last active Super Admin and prevent self-demotion/deactivation lockout.
 - [ ] Enforce changed roles/inactive accounts on existing sessions.
-- [ ] Preserve mandatory password replacement and OTP recovery protections.
+- [x] Preserve mandatory password replacement and OTP recovery protections.
 - [ ] Let managers/owners inspect staff operations without employee-only route rejection.
 - [ ] Keep self-approval forbidden even when a superior can perform the underlying operation.
 
@@ -124,16 +134,16 @@ Acceptance: direct API requests demonstrate every allowed and denied role action
 
 Files: AuthService/AuthController/login requests/LoginResult; auth views and JS; shell/profile code; UserService/UserController/UserResource; Team & Access view/settings JS.
 
-- [ ] One username/password form; role comes exclusively from stored account data.
-- [ ] Route owners/managers to permitted dashboard, cashier to POS, refiller/rider to work surfaces.
-- [ ] Redirect old owner login URL to shared UI with setup/recovery preserved.
-- [ ] Preserve CSRF, session regeneration, throttling and generic credential failures.
-- [ ] Restore Refiller/Rider account validation and login without bulk-reactivating legacy users.
-- [ ] Maintain required employee links atomically through one staff management workflow.
-- [ ] Display five roles and three hierarchy levels with accurate access descriptions.
-- [ ] Restrict manager UI and server writes to subordinate staff.
-- [ ] Clear account-scoped browser state on logout/account switch.
-- [ ] Verify password onboarding and recovery for every supported role.
+- [x] One username/password form; role comes exclusively from stored account data.
+- [x] Route owners/managers to permitted dashboard, cashier to POS, refiller/rider to work surfaces.
+- [x] Redirect old owner login URL to shared UI with setup/recovery preserved.
+- [x] Preserve CSRF, session regeneration, throttling and generic credential failures.
+- [x] Restore Refiller/Rider account validation and login without bulk-reactivating legacy users.
+- [x] Maintain required employee links atomically through one staff management workflow.
+- [x] Display five roles and three hierarchy levels with accurate access descriptions.
+- [x] Restrict manager UI and server writes to subordinate staff.
+- [x] Clear account-scoped browser state on logout/account switch.
+- [x] Verify password onboarding and recovery for every supported role.
 
 Acceptance: all five roles use one screen, land correctly and cannot reach unauthorized pages/APIs.
 

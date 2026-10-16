@@ -22,7 +22,7 @@ class SettingsTest extends TestCase
         $before = SystemSetting::allValues();
         $description = SystemSetting::query()->findOrFail('restock_lead_days')->description;
 
-        $this->actingAs(User::query()->where('role', 'admin')->firstOrFail())
+        $this->actingAs(User::query()->where('role', 'super_admin')->firstOrFail())
             ->putJson('/api/settings', ['restock_lead_days' => 5, 'ignored' => 'value'])
             ->assertOk()->assertExactJson(['settings' => array_replace($before, ['restock_lead_days' => '5'])]);
 
@@ -33,7 +33,7 @@ class SettingsTest extends TestCase
     public function test_owner_can_update_all_settings_or_send_an_empty_update(): void
     {
         $settings = ['station_name' => 'Test Station', 'restock_lead_days' => '1', 'sus_target' => 'Grade A'];
-        $this->actingAs(User::query()->where('role', 'admin')->firstOrFail())
+        $this->actingAs(User::query()->where('role', 'super_admin')->firstOrFail())
             ->putJson('/api/settings', $settings)->assertOk()->assertExactJson(['settings' => $settings]);
         $this->putJson('/api/settings', [])->assertOk()->assertExactJson(['settings' => $settings]);
     }
@@ -43,7 +43,7 @@ class SettingsTest extends TestCase
         $this->putJson('/api/settings', ['station_name' => 'Forbidden'])->assertUnauthorized();
         $this->actingAs(User::query()->where('role', 'cashier')->firstOrFail())
             ->putJson('/api/settings', ['station_name' => 'Forbidden'])->assertForbidden();
-        $this->actingAs(User::query()->where('role', 'admin')->firstOrFail())
+        $this->actingAs(User::query()->where('role', 'super_admin')->firstOrFail())
             ->putJson('/api/settings', ['restock_lead_days' => 0])->assertUnprocessable()
             ->assertJsonValidationErrors('restock_lead_days');
     }

@@ -46,7 +46,7 @@ class FulfillmentTest extends TestCase
         $this->assertDatabaseCount('transactions', 1);
         $this->assertSame($stock, StockMovement::count());
         $this->assertDatabaseCount('fulfillment_events', 2);
-        foreach (['admin', 'cashier'] as $role) {
+        foreach (['super_admin', 'cashier'] as $role) {
             $this->actingAs(User::where('role', $role)->firstOrFail())
                 ->getJson('/api/queue?status=delivered')->assertOk()
                 ->assertJsonFragment(['id' => $job->id, 'completed' => true]);
@@ -142,7 +142,7 @@ class FulfillmentTest extends TestCase
         $refiller = User::where('role', 'refiller')->firstOrFail();
         $rider = User::where('role', 'rider')->firstOrFail();
         $cashier = User::where('role', 'cashier')->firstOrFail();
-        $owner = User::where('role', 'admin')->firstOrFail();
+        $owner = User::where('role', 'super_admin')->firstOrFail();
         $job = ProductionQueueItem::create(['receipt_number' => 'ACCESS-QA', 'customer_name' => 'Customer', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
         $payload = ['action' => 'ready', 'version' => 0, 'submission_key' => (string) Str::uuid()];
         $this->actingAs($cashier)->postJson('/api/employee/orders/'.$job->id, $payload)->assertForbidden();

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 /**
- * Staff authenticate by username; admins use email, password and email OTP.
+ * All roles authenticate with a username and password.
  */
 class User extends Authenticatable
 {
@@ -20,6 +20,12 @@ class User extends Authenticatable
     public const ROLE_CASHIER = 'cashier';
 
     public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+
+    public const ROLES = [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN, self::ROLE_CASHIER, self::ROLE_REFILLER, self::ROLE_RIDER];
+
+    public const STAFF_ROLES = [self::ROLE_CASHIER, self::ROLE_REFILLER, self::ROLE_RIDER];
 
     /** Operational staff who work a station floor rather than a till. */
     public const ROLE_REFILLER = 'refiller';
@@ -55,14 +61,30 @@ class User extends Authenticatable
         ];
     }
 
+    /** Operational management shared by owners and managers. */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    public function canManageUser(self $user): bool
+    {
+        return ! $user->is_bootstrap && ($this->isSuperAdmin() || ($this->isAdmin() && in_array($user->role, self::STAFF_ROLES, true)));
+    }
+
+    public function homeUrl(): string
+    {
+        return $this->isAdmin() ? '/admin' : ($this->isEmployee() ? '/employee' : '/cashier');
     }
 
     public function canHandleCash(): bool
     {
-        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_CASHIER], true);
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN, self::ROLE_CASHIER], true);
     }
 
     /** The employee record a rider or refiller is attached to, when one is. */

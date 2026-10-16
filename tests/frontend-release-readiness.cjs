@@ -34,7 +34,7 @@ console.log('PASS: editable product cart, read-only payment summary, readable ju
   const el = id => elements[id] ||= {value:'', textContent:'', classList:classes(), focus(){}, reset(){}};
   let posted, writes = 0, changed = false;
   const flow = vm.createContext({console, document:{getElementById:el, querySelectorAll:()=>[], addEventListener(){}},
-    getSession:()=>({must_change_password:true}), DB:{customers:[], users:[]}, POS:{}, window:{location:{reload(){changed=true;}}},
+    roleLabel:role=>role, getSession:()=>({must_change_password:true}), DB:{customers:[], users:[]}, POS:{}, window:{location:{reload(){changed=true;}}},
     API:{createCustomer:async data=>{writes++; posted=data; return {customer:{id:2,name:data.name}};}, replaceCustomer(){},
       createUser:async data=>{posted=data; return {user:{}};}, replaceUser(){}, get:async()=>({user:{name:'New Cashier',must_change_password:true}})},
     appConfirm:async()=>true, pickCust:async()=>{}, saveDB(){}, renderPOS(){}, showStageError(){}, validNewPassword:()=>true,

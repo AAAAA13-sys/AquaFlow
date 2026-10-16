@@ -16,7 +16,7 @@ class AccountRecoveryTest extends TestCase
     public function test_accounts_require_email_and_admin_requires_a_strong_password(): void
     {
         $this->seed();
-        $this->actingAs(User::where('role', 'admin')->firstOrFail());
+        $this->actingAs(User::where('role', 'super_admin')->firstOrFail());
         $base = ['name' => 'New User', 'username' => 'newuser', 'role' => 'cashier'];
         $this->postJson('/api/users', $base)->assertUnprocessable()->assertJsonValidationErrors('email');
         $base['role'] = 'admin';
@@ -53,7 +53,7 @@ class AccountRecoveryTest extends TestCase
     {
         $this->seed();
         $cashier = User::where('role', 'cashier')->firstOrFail();
-        $this->actingAs(User::where('role', 'admin')->firstOrFail());
+        $this->actingAs(User::where('role', 'super_admin')->firstOrFail());
         $this->patchJson('/api/users/'.$cashier->id, ['role' => 'admin'])
             ->assertUnprocessable()->assertJsonValidationErrors('password');
         $this->patchJson('/api/users/'.$cashier->id, ['email' => null])

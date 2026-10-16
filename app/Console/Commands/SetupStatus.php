@@ -23,7 +23,7 @@ class SetupStatus extends Command
     public function handle(): int
     {
         $pending = User::query()->where('is_bootstrap', true)->exists()
-            && ! User::query()->where('role', User::ROLE_ADMIN)->where('is_bootstrap', false)->exists();
+            && ! User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('is_bootstrap', false)->exists();
 
         $this->line($pending ? 'pending' : 'complete');
 

@@ -7,36 +7,24 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
-/** Verify credentials and the selected login portal before creating a session. */
+/** Verify credentials and active role access before creating a session. */
 class AuthService
 {
     public const INVALID_CREDENTIALS = 'Invalid username or password.';
 
-    public function attemptCashier(array $credentials, ?string $ip = null): LoginResult
-    {
-        return $this->attempt($credentials, false, $ip);
-    }
-
-    public function attemptOwner(array $credentials, ?string $ip = null): LoginResult
-    {
-        return $this->attempt($credentials, true, $ip);
-    }
-
-    private function attempt(array $credentials, bool $owner, ?string $ip): LoginResult
+    public function attempt(array $credentials, ?string $ip = null): LoginResult
     {
         $username = trim((string) ($credentials['username'] ?? ''));
 
-        // Both portals authenticate the same way. The page decides only where a
-        // successful sign-in lands; the role decides whether it is allowed at all,
-        // so neither page can be used to reach the other role's workspace.
         $user = User::query()
             ->where('username', $username)
-            ->where('role', $owner ? User::ROLE_ADMIN : User::ROLE_CASHIER)
+            ->whereIn('role', User::ROLES)
             ->where('is_active', true)
             ->where('is_bootstrap', false)
             ->first();
 
-        if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
+        if ($user === null || ! Hash::check($credentials['password'], $user->password)
+            || ($user->isEmployee() && ! $user->employee?->is_active)) {
             $this->reject('Login failed: bad credentials.', $username, $ip);
 
             return LoginResult::failed(self::INVALID_CREDENTIALS);

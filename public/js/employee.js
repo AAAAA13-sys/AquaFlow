@@ -43,6 +43,9 @@ function showEmployeeError(message) {
 }
 
 async function refreshEmployee() {
+  const profile = document.getElementById('profileModal');
+  if (profile && !profile.classList.contains('hidden')) return;
+  if (getSession()?.must_change_password) { await openProfileModal(); return; }
   if (employeeBusy) return;
   if (employeeFlight) return employeeFlight;
   employeeFlight = (async () => {
@@ -56,6 +59,7 @@ async function refreshEmployee() {
       document.getElementById('pulseDot')?.classList.remove('offline');
       document.getElementById('connection').textContent = 'Updated ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
     } catch (error) {
+      if (error.data?.code === 'password_change_required') { await openProfileModal(); return; }
       employeeFresh = false;
       employeeRefreshFailed = true;
       document.getElementById('pulseDot')?.classList.add('offline');

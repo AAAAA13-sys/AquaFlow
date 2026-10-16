@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::view('/', 'auth.cashier-login')->name('cashier.login');
-Route::view('/owner/login', 'auth.owner-login')->name('owner.login');
+Route::view('/', 'auth.owner-login')->name('cashier.login');
+Route::redirect('/owner/login', '/')->name('owner.login');
 Route::view('/employee', 'employee.home')->middleware('auth');
 
 Route::middleware('auth')->group(function (): void {
@@ -43,15 +43,17 @@ Route::middleware('auth')->group(function (): void {
         ->whereIn('step', ['customer-custody', 'products-intake', 'payment-print'])
         ->name('cashier.step');
 
-    Route::middleware('owner')->group(function (): void {
+    Route::middleware('owner:management')->group(function (): void {
         Route::redirect('/admin', '/admin/dashboard')->name('admin.index');
 
         // Till & Prices is now a view onto the stock screen, not a tab of its own.
         Route::get('/admin/till', fn () => redirect('/admin/inventory?view=prices'))
             ->name('admin.till');
 
+        Route::view('/admin/settings', 'admin.settings')->middleware('owner');
+
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings'])
+            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users'])
             ->name('admin.tab');
     });
 });
@@ -70,7 +72,7 @@ Route::prefix('api')->group(function (): void {
         Route::post('auth/setup-login', [AdminSetupController::class, 'login']);
         Route::post('auth/setup-owner', [AdminSetupController::class, 'complete']);
         Route::post('auth/login', [AuthController::class, 'login'])->name('api.login');
-        Route::post('auth/login-owner', [AuthController::class, 'loginOwner'])->name('api.login.owner');
+        Route::post('auth/login-owner', [AuthController::class, 'login'])->name('api.login.owner');
         Route::post('auth/forgot-password/send-otp', [AuthController::class, 'sendPasswordResetOtp'])->middleware('throttle:password-reset-mail')->name('api.forgot-password.send-otp');
         Route::post('auth/forgot-password/verify-otp', [AuthController::class, 'verifyPasswordResetOtp'])->name('api.forgot-password.verify-otp');
         Route::post('auth/forgot-password/verify-reset', [AuthController::class, 'resetPasswordWithOtp'])->name('api.forgot-password.verify-reset');
@@ -94,27 +96,27 @@ Route::prefix('api')->group(function (): void {
         // Inventory and dynamic thresholds
         Route::get('inventory', [InventoryController::class, 'index'])->name('api.inventory.index');
         Route::post('inventory', [InventoryController::class, 'store'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.inventory.store');
-        Route::patch('inventory/{inventory}', [InventoryController::class, 'update'])->middleware('owner')->name('api.inventory.update');
+        Route::patch('inventory/{inventory}', [InventoryController::class, 'update'])->middleware('owner:management')->name('api.inventory.update');
         Route::delete('inventory/{inventory}', [InventoryController::class, 'destroy'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.inventory.destroy');
         Route::post('inventory/recalculate', [InventoryController::class, 'recalculate'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.inventory.recalculate');
 
-        Route::middleware('owner')->group(function (): void {
+        Route::middleware('owner:management')->group(function (): void {
             // Which stock row a sale consumes - the same shape the POS needs.
             Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
             Route::post('products', [ProductController::class, 'store'])
-                ->middleware('owner')
+                ->middleware('owner:management')
                 ->name('api.products.store');
             Route::patch('products/{product}', [ProductController::class, 'update'])
-                ->middleware('owner')
+                ->middleware('owner:management')
                 ->name('api.products.update');
             Route::delete('products/{product}', [ProductController::class, 'destroy'])
-                ->middleware('owner')
+                ->middleware('owner:management')
                 ->name('api.products.destroy');
 
             Route::get('products/recipes', [RecipeController::class, 'index']);
@@ -126,13 +128,13 @@ Route::prefix('api')->group(function (): void {
         // Suppliers directory
         Route::get('suppliers', [SupplierController::class, 'index'])->name('api.suppliers.index');
         Route::post('suppliers', [SupplierController::class, 'store'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.suppliers.store');
         Route::patch('suppliers/{supplier}', [SupplierController::class, 'update'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.suppliers.update');
         Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.suppliers.destroy');
 
         Route::post('cart/availability', CartAvailabilityController::class);
@@ -144,7 +146,7 @@ Route::prefix('api')->group(function (): void {
         // Riders and refillers are attached to an employee record, which the
         // fulfillment history attributes work to. There is no employee screen:
         // staff are managed on the single Team & Access tab.
-        Route::middleware('owner')->group(function (): void {
+        Route::middleware('owner:management')->group(function (): void {
             Route::get('employees', [EmployeeController::class, 'index']);
             Route::post('employees', [EmployeeController::class, 'store']);
             Route::patch('employees/{employee}', [EmployeeController::class, 'update']);
@@ -172,7 +174,7 @@ Route::prefix('api')->group(function (): void {
 
         // Production queue
         Route::get('queue', [QueueController::class, 'index'])->name('api.queue.index');
-        Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->middleware('owner')->name('api.queue.advance');
+        Route::post('queue/{queueItem}/advance', [QueueController::class, 'advance'])->middleware('owner:management')->name('api.queue.advance');
 
         // Settings
         Route::get('settings', [SettingsController::class, 'index'])->name('api.settings.index');
@@ -183,10 +185,10 @@ Route::prefix('api')->group(function (): void {
         // Forecasting (Tier 3 output)
         Route::get('forecast', [ForecastController::class, 'index'])->name('api.forecast.index');
         Route::post('forecast', [ForecastController::class, 'store'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.forecast.store');
         Route::post('forecast/run', [ForecastController::class, 'run'])
-            ->middleware(['owner', 'throttle:forecast'])
+            ->middleware(['owner:management', 'throttle:forecast'])
             ->name('api.forecast.run');
 
         // Replenishment advisories
@@ -194,16 +196,16 @@ Route::prefix('api')->group(function (): void {
 
         // Users and access
         Route::get('users', [UserController::class, 'index'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.users.index');
         Route::post('users', [UserController::class, 'store'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.users.store');
         Route::patch('users/{user}', [UserController::class, 'update'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])
-            ->middleware('owner')
+            ->middleware('owner:management')
             ->name('api.users.destroy');
     });
 });

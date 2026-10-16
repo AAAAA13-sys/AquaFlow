@@ -1,4 +1,4 @@
-// Admin sign-in, first-run setup and email OTP password recovery.
+// Shared sign-in, first-run owner setup and email OTP password recovery.
 const firstRun = document.getElementById('adminLogin').dataset.firstRun === '1';
 let adminBusy = false;
 const field = id => document.getElementById(id);
@@ -27,14 +27,14 @@ function finishAdmin(result) {
   ['adminForm', 'setupForm'].forEach(id => field(id)?.classList.add('hidden'));
   ['p', 'setupPassword', 'setupConfirm', 'otp'].forEach(id => { if (field(id)) field(id).value = ''; });
   field('loginDescription').classList.add('hidden');
-  window.location.href = '/admin';
+  window.location.href = result.redirect || result.user.home_url || roleHome(result.user.role);
 }
 
-/** Ordinary owner sign-in: post the credentials and go. */
-async function sendAdminOtp() {
+/** Shared sign-in: the server determines the workspace. */
+async function submitLogin() {
   if (!validFields(['adminEmail', 'p'])) return;
   return adminAction(async () => {
-    finishAdmin(await API.post('auth/login-owner', adminCredentials()));
+    finishAdmin(await API.post('auth/login', adminCredentials()));
   }, 'Could not sign in. Please try again.');
 }
 
