@@ -64,6 +64,7 @@ class BootstrapController extends Controller
             ),
             'transactions' => TransactionResource::collection(
                 Transaction::query()
+                    ->visibleTo($request->user())
                     ->with(['customer', 'cashier'])
                     ->newestFirst()
                     ->limit(50)
@@ -104,6 +105,11 @@ class BootstrapController extends Controller
             $payload['users'] = UserResource::collection(
                 User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES)->orderBy('id')->get()
             );
+        }
+
+        if (! $request->user()->isAdmin()) {
+            unset($payload['forecasts'], $payload['history'], $payload['history30'], $payload['forecast7'], $payload['model']);
+            unset($payload['meta']['sales_today_total'], $payload['meta']['sales_today_count'], $payload['meta']['daily_revenue']);
         }
 
         return response()->json($payload);

@@ -40,6 +40,7 @@ function showStockView(view) {
     const isExpanded = activePanel && !activePanel.classList.contains('hidden');
     const defaultLabel = showPrices ? 'Add item for sale' : 'Add consumable';
     if (!addButton.dataset) addButton.dataset = {};
+    addButton.hidden = showPrices && getSession()?.role !== 'super_admin';
     addButton.dataset.defaultLabel = defaultLabel;
     addButton.setAttribute('aria-controls', showPrices ? 'tillFormPanel' : 'invFormPanel');
     addButton.setAttribute('aria-expanded', String(Boolean(isExpanded)));
@@ -73,6 +74,7 @@ function renderTill() {
 
   fillTillStockOptions();
 
+  const canEdit = getSession()?.role === 'super_admin';
   const items = tillItems();
   const onTill = items.filter(p => p.sold_at_pos !== false);
 
@@ -97,18 +99,18 @@ function renderTill() {
       '<p class="cell-sub">' + esc(product.id) + ' &middot; ' + (on ? 'On the till' : 'Hidden') +
         (walkIn ? ' &middot; Walk-in only' : '') + '</p>' +
       '<div class="insight-row"><span>Price (VAT inclusive)</span>' +
-        '<input type="number" step="0.01" min="0.01" max="999999.99" class="form-input till-price" ' +
+        (canEdit ? '<input type="number" step="0.01" min="0.01" max="999999.99" class="form-input till-price" ' +
           'value="' + Number(product.price).toFixed(2) + '" ' +
           'aria-label="Price for ' + esc(product.name) + '" ' +
-          'onchange="saveTillPrice(\'' + id + '\', this)"></div>' +
+          'onchange="saveTillPrice(\'' + id + '\', this)">' : '<b>' + Number(product.price).toFixed(2) + '</b>') + '</div>' +
       '<div class="insight-row"><span>Stock on hand</span><b>' + esc(String(stock)) + '</b></div>' +
-      '<div class="drawer-actions">' +
+      (canEdit ? '<div class="drawer-actions">' +
         '<button type="button" class="btn btn-ghost btn-sm" onclick="toggleTill(\'' + id + '\', ' + (on ? 'false' : 'true') + ')">' +
           (on ? 'Hide from till' : 'Show on till') + '</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" onclick="toggleTillWalkIn(\'' + id + '\', ' + (walkIn ? 'false' : 'true') + ')">' +
           (walkIn ? 'Allow delivery' : 'Walk-in only') + '</button>' +
         '<button type="button" class="btn btn-secondary btn-sm btn-del" onclick="deleteTillItem(\'' + id + '\')" title="Remove item from till">Remove</button>' +
-      '</div>' +
+      '</div>' : '') +
     '</div>';
   }).join('') || '<p class="empty-cell">No till items match.</p>';
 }

@@ -1,15 +1,15 @@
 @extends('layouts.cashier')
 
-@section('title', 'Sales & Transactions | ' . ($stationName ?? 'AquaFlow'))
-@section('topbar-title', 'Sales & Transaction History')
+@section('title', 'Sales & Receipts | ' . ($stationName ?? 'AquaFlow'))
+@section('topbar-title', 'Sales & Receipts')
 
 @section('cashier-body')
   <main class="admin-main-content cashier-page">
     <header class="cashier-page-header">
       <div>
         <p class="cashier-eyebrow">TRANSACTION RECORDS</p>
-        <h2>Sales history</h2>
-        <p>Review completed sales, account charges, and recorded payments.</p>
+        <h2>Sales &amp; receipts</h2>
+        <p>{{ auth()->user()?->isAdmin() ? 'Review station sales, account charges, and recorded payments.' : 'Review sales, account charges, and payments recorded by your account.' }}</p>
       </div>
       <button type="button" onclick="exportHistoryCsv()" class="btn btn-primary">Export CSV</button>
     </header>

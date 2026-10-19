@@ -55,7 +55,8 @@ class EmployeeAndDeliveryTest extends TestCase
     {
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $this->actingAs($cashier);
-        $item = ProductionQueueItem::create(['receipt_number' => 'TEST-DELIVERY', 'customer_name' => 'Ana', 'items_description' => '2 refills', 'order_type' => 'Delivery', 'stage' => 0, 'is_completed' => false]);
+        $item = ProductionQueueItem::create(['receipt_number' => 'TEST-DELIVERY', 'customer_name' => 'Ana', 'items_description' => '2 refills', 'order_type' => 'Walk-in', 'stage' => 0, 'is_completed' => false]);
+        $item->forceFill(['fulfillment_status' => 'ready'])->save();
         $this->postJson('/api/queue/'.$item->id.'/deliver')->assertOk()->assertJsonPath('item.status', 'delivered');
         $this->postJson('/api/queue/'.$item->id.'/advance')->assertForbidden();
         $item->refresh();

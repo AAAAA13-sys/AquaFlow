@@ -420,3 +420,14 @@
   #s-dash #advisoryRail .panel-heading, #s-dash .overview-purchase { flex-shrink: 0; }
   #s-dash .overview-advisories { flex: 1; min-height: 0; overflow-y: auto; }
 }
+
+.workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:20px; }
+.workspace-heading h1 { margin:4px 0 8px; font-size:clamp(24px, 3vw, 32px); }
+.workspace-heading p, .owner-controls p { margin:0; color:var(--text-muted, #64748b); }
+.owner-controls { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:20px; }
+.owner-controls h2 { margin:0 0 6px; font-size:18px; }
+.owner-control-links { display:flex; flex-wrap:wrap; gap:10px; }
+@media (max-width: 760px) {
+  .workspace-heading, .owner-controls { align-items:stretch; flex-direction:column; }
+  .owner-control-links { display:grid; grid-template-columns:1fr; }
+}

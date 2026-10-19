@@ -10,8 +10,28 @@
 
 @section('admin-content')
   <section id="s-dash">
+    <header class="workspace-heading">
+      <div>
+        <p class="cashier-eyebrow">{{ auth()->user()?->isSuperAdmin() ? 'BUSINESS OVERSIGHT' : 'DAILY OPERATIONS' }}</p>
+        <h1>{{ auth()->user()?->isSuperAdmin() ? 'Owner overview' : 'Station overview' }}</h1>
+        <p>Review sales, customer balances and stock needs, then open the task that needs attention.</p>
+      </div>
+      <a href="{{ url('/cashier/queue') }}" class="btn btn-secondary">View active orders</a>
+    </header>
+    @if(auth()->user()?->isSuperAdmin())
+    <nav class="owner-controls card" aria-label="Business controls">
+      <div><h2>Business controls</h2><p>Manage access, selling prices and your station settings.</p></div>
+      <div class="owner-control-links">
+        <a class="btn btn-secondary" href="{{ url('/admin/users') }}">Team &amp; access</a>
+        <a class="btn btn-secondary" href="{{ url('/admin/inventory?view=prices') }}">Catalog &amp; prices</a>
+        <a class="btn btn-secondary" href="{{ url('/admin/settings') }}">Station settings</a>
+      </div>
+    </nav>
+    @endif
 
 
+
+    @if(auth()->user()?->isSuperAdmin())
     <section class="card onboarding-checklist-card" id="onboardingChecklist">
       <div class="onboarding-card-head">
         <div>
@@ -42,7 +62,7 @@
           <div class="onboarding-step-icon" aria-hidden="true">3</div>
           <div class="onboarding-step-text">
             <span class="onboarding-step-label">Staff & Access</span>
-            <span class="onboarding-step-sub">Create admin and cashier accounts.</span>
+            <span class="onboarding-step-sub">Assign managers, cashiers, refillers and riders.</span>
           </div>
         </a>
         <a href="{{ url('/admin/settings') }}" class="onboarding-step-item" id="stepSettings">
@@ -56,11 +76,13 @@
           <div class="onboarding-step-icon" aria-hidden="true">5</div>
           <div class="onboarding-step-text">
             <span class="onboarding-step-label">Open POS Terminal</span>
-            <span class="onboarding-step-sub">Run a test walk-in refill or customer transaction.</span>
+            <span class="onboarding-step-sub">Open the counter workspace when you need to serve a customer.</span>
           </div>
         </a>
       </div>
     </section>
+
+    @endif
 
     {{-- KPI values start as skeletons rather than a literal "-". A dash reads as
              a real zero to an owner glancing at the screen; a shimmer reads as

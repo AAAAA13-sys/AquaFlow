@@ -1,3 +1,4 @@
+require('./frontend-role-workspaces.cjs');
 require('./frontend-forecast.cjs');
 require('./frontend-release-readiness.cjs');
 require('./frontend-users.cjs');
@@ -7,6 +8,7 @@ require('./frontend-pos.cjs');
 require('./frontend-pos-confirmations.cjs');
 require('./frontend-queue.cjs');
 require('./frontend-refresh.cjs');
+require('./frontend-cashier-stocks.cjs');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');

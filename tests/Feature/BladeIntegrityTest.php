@@ -16,7 +16,7 @@ class BladeIntegrityTest extends TestCase
         $this->seed();
         $owner = User::where('role', 'super_admin')->firstOrFail();
         $cashier = User::where('role', 'cashier')->firstOrFail();
-        $pages = array_map(fn ($page) => ['/admin/'.$page, $owner], ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings']);
+        $pages = array_map(fn ($page) => ['/admin/'.$page, $owner], ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'settings']);
         $pages = [...$pages, ['/cashier', $cashier], ['/cashier/queue', $cashier], ['/cashier/history', $cashier], ['/cashier/stocks', $cashier]];
         foreach ($pages as [$url, $user]) {
             $html = $this->actingAs($user)->get($url)->assertOk()->getContent();

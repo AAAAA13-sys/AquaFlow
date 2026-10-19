@@ -77,7 +77,7 @@ function renderUsers() {
         ? '<button onclick="openUserEditor(' + u.id + ')" class="btn btn-ghost btn-sm">Edit</button> ' +
           '<button onclick="toggleUserActive(' + u.id + ')" class="btn btn-ghost btn-sm">' + (active ? 'Deactivate' : 'Activate') + '</button> ' +
           '<button onclick="deleteUser(' + u.id + ')" class="btn btn-ghost btn-sm">Delete</button>'
-        : '<span class="cell-sub">offline</span>') + '</td></tr>';
+        : '<span class="cell-sub">Protected account</span>') + '</td></tr>';
   }).join('');
   showTableEmpty(body, 6);
 }

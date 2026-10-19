@@ -11,9 +11,10 @@
   // feeds rather than trailing behind them as an equal-weight list item.
   $tabs = [
       'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null, 'featured' => false],
+      'orders' => ['label' => 'Orders & Deliveries', 'hint' => 'Handover & remittances', 'badge' => null, 'featured' => false],
       'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => false],
       'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null, 'featured' => false],
-      'customers'  => ['label' => 'Customer Balances','hint' => 'Liabilities',   'badge' => 'badgeBalances', 'featured' => false],
+      'customers'  => ['label' => 'Customer Balances','hint' => 'Customer accounts',   'badge' => 'badgeBalances', 'featured' => false],
       'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
@@ -21,7 +22,7 @@
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
-      'Operations' => ['dashboard', 'arima', 'sales', 'customers'],
+      'Operations' => ['dashboard', 'orders', 'arima', 'sales', 'customers'],
       'Stock & Supply' => ['inventory', 'suppliers'],
       'Administration' => ['users', 'settings'],
   ];
@@ -29,9 +30,9 @@
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  @include('partials.sidebar-header', ['subtitle' => auth()->user()?->isSuperAdmin() ? 'Super Admin' : 'Admin (manager)'])
+  @include('partials.sidebar-header', ['subtitle' => auth()->user()?->isSuperAdmin() ? 'Owner / Super Admin' : 'Station Manager'])
 
-  <nav class="sidebar-nav" id="sideNav" aria-label="Owner page catalog">
+  <nav class="sidebar-nav" id="sideNav" aria-label="{{ auth()->user()?->isSuperAdmin() ? 'Owner' : 'Manager' }} page catalog">
     @foreach ($groups as $title => $slugs)
       <p class="sidebar-section-title">{{ $title }}</p>
       @foreach ($slugs as $slug)

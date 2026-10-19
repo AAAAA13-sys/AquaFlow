@@ -18,9 +18,11 @@ class QueueService
 
         DB::transaction(function () use ($item, $userId): void {
             $locked = ProductionQueueItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            abort_if($locked->order_type !== 'Walk-in', 409, 'Delivery must be confirmed by the assigned rider.');
             if ($locked->is_completed) {
                 return;
             }
+            abort_unless($locked->fulfillment_status === 'ready', 409, 'The refiller must mark this order ready before handover.');
             $locked->fulfillment_status = 'delivered';
             $locked->version++;
             $locked->is_completed = true;

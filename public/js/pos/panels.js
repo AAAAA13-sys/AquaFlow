@@ -22,8 +22,8 @@ function queueWaitLabel(minutes) {
 function renderQueuePage() {
  const list = document.getElementById('queue'); if (!list) return;
  list.innerHTML = (DB.queue || []).map(q => {
-  const ready = !q.completed;
-  const note = q.completed ? 'Customer received this order' : (q.orderType === 'Delivery' ? 'Ready for delivery' : 'Ready for customer pickup');
+  const ready = !q.completed && q.fulfillment_status === 'ready' && q.orderType === 'Walk-in';
+  const note = q.completed ? 'Customer received this order' : (q.fulfillment_status === 'ready' ? (q.orderType === 'Delivery' ? 'Ready for rider dispatch' : 'Ready for customer pickup') : q.fulfillment_status === 'out_for_delivery' ? 'With the delivery rider' : 'Waiting for preparation');
   const time = q.completed ? (q.delivered_at ? 'Delivered ' + new Date(q.delivered_at).toLocaleString() : 'Handover time unavailable') : 'Waiting ' + queueWaitLabel(q.mins);
   return '<article class="queue-card' + (ready ? ' queue-card--ready' : '') + '"><div class="queue-card-heading"><span class="queue-receipt">' + esc(q.no) + '</span><span class="pill ' + (q.completed ? 'pill-ok' : 'pill-info') + '">' + (q.completed ? 'Delivered' : 'Active order') + '</span></div>' +
    '<h3>' + esc(q.cust) + '</h3><div class="queue-order-detail"><span class="queue-channel">' + esc(q.orderType) + '</span><span>' + esc(q.items) + '</span></div>' +

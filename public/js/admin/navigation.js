@@ -1,6 +1,7 @@
 // Route & Section Mappings
 const SECTION_URLS = {
   dash: '/admin/dashboard',
+  orders: '/admin/orders',
   sales: '/admin/sales',
   arima: '/admin/arima',
   inv: '/admin/inventory',

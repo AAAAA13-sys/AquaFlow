@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users'])
             ->name('admin.tab');
     });
 });
@@ -110,17 +110,17 @@ Route::prefix('api')->group(function (): void {
             // Which stock row a sale consumes - the same shape the POS needs.
             Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
             Route::post('products', [ProductController::class, 'store'])
-                ->middleware('owner:management')
+                ->middleware('owner')
                 ->name('api.products.store');
             Route::patch('products/{product}', [ProductController::class, 'update'])
-                ->middleware('owner:management')
+                ->middleware('owner')
                 ->name('api.products.update');
             Route::delete('products/{product}', [ProductController::class, 'destroy'])
-                ->middleware('owner:management')
+                ->middleware('owner')
                 ->name('api.products.destroy');
 
             Route::get('products/recipes', [RecipeController::class, 'index']);
-            Route::put('products/{product}/recipe', [RecipeController::class, 'update']);
+            Route::put('products/{product}/recipe', [RecipeController::class, 'update'])->middleware('owner');
             Route::get('inventory/{inventory}/movements', [StockMovementController::class, 'index']);
             Route::post('inventory/{inventory}/movements', [StockMovementController::class, 'store']);
         });

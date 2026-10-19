@@ -6,9 +6,6 @@
 @section('admin-content')
   <section id="s-cust" class="admin-page">
     @include('partials.admin-page-header', ['eyebrow' => 'CUSTOMER ACCOUNTS', 'heading' => 'Customer Balances', 'description' => 'Review outstanding balances and open a customer account to record a payment.'])
-
-    <button type="button" class="btn btn-primary" onclick="toggleAddCustomerForm(this)">Add customer</button>
-
     <div id="customerSummary" class="admin-summary" aria-label="customers summary"></div>
     <div class="filter-toolbar no-print table-filters">
       <div class="filter-group">

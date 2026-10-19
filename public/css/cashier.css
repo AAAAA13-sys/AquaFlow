@@ -143,3 +143,7 @@
 .cashier-viewport .pos-stage, .cashier-viewport .pos-step-wizard { max-width: none; }
 .cashier-viewport .mobile-action-bar { max-width: none; margin-top: auto; border-radius: 0; }
 .cashier-shell .cart-header-row, .cashier-shell .summary-row { grid-template-columns: minmax(0, 1fr) 60px minmax(90px, auto); gap: .25rem; }
+
+/* Four stock columns do not need the receipt ledger's wide layout. */
+.cashier-stock-ledger table { min-width: 520px; }
+.cashier-stock-ledger th:nth-child(4), .cashier-stock-ledger td:nth-child(4) { min-width: 110px; }

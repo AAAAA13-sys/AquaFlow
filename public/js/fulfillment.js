@@ -52,11 +52,28 @@ async function refreshFulfillment(force = false) {
     if (sessionStorage.getItem(fulfillmentKey())) {
       const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn btn-primary'; retry.textContent = 'Retry saved handover'; retry.onclick = () => sendFulfillmentAction(); container.append(retry);
     }
+    if (!data.orders.length) {
+      const empty = document.createElement('p'); empty.className = 'empty-cell'; empty.textContent = 'No active orders or outstanding delivery remittances. New orders will appear here automatically.'; container.append(empty);
+    }
     for (const job of data.orders) {
       const row = document.createElement('div'); row.style.cssText = 'padding:12px 0;border-bottom:1px solid #ddd;overflow-wrap:anywhere';
       const text = document.createElement('p'); text.textContent = job.receipt + ' | ' + job.customer + ' | ' + job.status.replaceAll('_', ' ') + ' | ' + job.description + (job.issues.length ? ' | Reported issue: ' + job.issues.join('; ') : '');
       row.append(text);
-      if (job.order_type === 'Delivery' && ['ready', 'out_for_delivery'].includes(job.status) && job.rider_id && !job.handed_over_at) {
+      if (job.order_type === 'Delivery' && ['preparing', 'ready'].includes(job.status) && !job.handed_over_at && data.riders?.length) {
+        const form = document.createElement('form');
+        const label = document.createElement('label'); label.textContent = 'Assigned rider';
+        const select = document.createElement('select'); select.className = 'form-input'; select.required = true;
+        const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Select an active rider'; select.append(placeholder);
+        for (const rider of data.riders) {
+          const option = document.createElement('option'); option.value = String(rider.id); option.textContent = rider.name; select.append(option);
+        }
+        select.value = job.rider_id ? String(job.rider_id) : '';
+        const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'btn btn-ghost'; submit.textContent = 'Assign rider';
+        label.append(select); form.append(label, submit);
+        form.onsubmit = event => { event.preventDefault(); if (form.reportValidity()) sendFulfillmentAction(job, 'assign', {rider_id:Number(select.value)}); };
+        row.append(form);
+      }
+      if (job.order_type === 'Delivery' && job.status === 'ready' && !job.handed_over_at) {
         const form = document.createElement('form');
         form.innerHTML = '<label>Count all receipt items handed to the rider<input name="quantity" class="form-input" type="number" min="1" max="1000" step="1" required></label><button class="btn btn-primary" type="submit">Confirm prepared order handover</button>';
         form.onsubmit = event => { event.preventDefault(); if (form.reportValidity()) sendFulfillmentAction(job, 'handover', {handover_quantity:Number(form.elements.quantity.value)}); };

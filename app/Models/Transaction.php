@@ -79,6 +79,11 @@ class Transaction extends Model
         return $query->orderByDesc('transaction_date')->orderByDesc('transaction_time')->orderByDesc('id');
     }
 
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return $user->isAdmin() ? $query : $query->where('cashier_id', $user->id);
+    }
+
     /**
      * Count the refill containers recorded in a volume label.
      *

@@ -79,6 +79,7 @@
     <div id="stockViewPricesPanel" class="hidden">
       <div id="tillSummary" class="admin-summary" aria-label="till summary"></div>
 
+      @if(auth()->user()?->isSuperAdmin())
       <div id="tillFormPanel" class="card form-card hidden">
         <h3 class="panel-heading">Add an item for sale</h3>
         <p class="cell-sub">It appears on the cashier terminal straight away. The consumption recipe is worked out from the category - there is nothing else to configure.</p>
@@ -130,9 +131,10 @@
         </form>
       </div>
 
+      @endif
+
       <div class="admin-summary" id="tillLegend" aria-label="till legend">
         <article><span>On the till</span><strong id="tillOnCount">0</strong><small>Buttons the cashier sees</small></article>
-        <article><span>Hidden</span><strong id="tillOffCount">0</strong><small>Kept for records, not sold</small></article>
         <article><span>Walk-in only</span><strong id="tillWalkInCount">0</strong><small>Cannot be put on a delivery</small></article>
       </div>
 
@@ -151,5 +153,5 @@
 fillInventorySupplierOptions();
 renderInvTable();
 showStockView(new URLSearchParams(window.location.search).get('view') === 'prices' ? 'prices' : 'supplies');
-startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderSidebarBadges(); renderStamp(); });
+startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderTill(); renderSidebarBadges(); renderStamp(); });
 @endcomponent

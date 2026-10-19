@@ -146,15 +146,18 @@ class FulfillmentTest extends TestCase
         $job = ProductionQueueItem::create(['receipt_number' => 'ACCESS-QA', 'customer_name' => 'Customer', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
         $payload = ['action' => 'ready', 'version' => 0, 'submission_key' => (string) Str::uuid()];
         $this->actingAs($cashier)->postJson('/api/employee/orders/'.$job->id, $payload)->assertForbidden();
+        $this->assertDatabaseCount('fulfillment_events', 0);
         $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, $payload)->assertForbidden();
         $this->actingAs($refiller)->getJson('/api/transactions')->assertForbidden();
         $this->postJson('/api/queue/'.$job->id.'/deliver')->assertForbidden();
-        $this->postJson('/api/employee/orders/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertUnprocessable();
-        $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertUnprocessable();
+        $this->postJson('/api/employee/orders/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertForbidden();
+        $this->assertDatabaseCount('fulfillment_events', 0);
+        $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertOk();
+        $this->assertEquals($rider->id, $job->fresh()->rider_id);
         $rider->employee->update(['is_active' => false]);
         $this->actingAs($rider)->getJson('/api/employee/orders')->assertForbidden();
         $refiller->update(['is_active' => false]);
         $this->actingAs($refiller)->getJson('/api/employee/orders')->assertUnauthorized();
-        $this->assertDatabaseCount('fulfillment_events', 0);
+        $this->assertDatabaseCount('fulfillment_events', 1);
     }
 }

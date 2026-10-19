@@ -195,8 +195,8 @@ class PageTest extends TestCase
         $response->assertOk()
             ->assertSee('POS Terminal', false)
             ->assertSee('Orders in Progress', false)
-            ->assertSee('Sales &amp; Transactions', false)
-            ->assertSee('Current Stocks', false)
+            ->assertSee('Sales &amp; Receipts', false)
+            ->assertSee('Stock Availability', false)
             ->assertSee('/cashier/queue', false)
             ->assertSee('/cashier/history', false)
             ->assertSee('/cashier/stocks', false);
@@ -220,7 +220,7 @@ class PageTest extends TestCase
     {
         $this->actingAs($this->cashier)->get('/cashier/history')
             ->assertOk()
-            ->assertSee('Sales &amp; Transaction History', false)
+            ->assertSee('Sales &amp; Receipts', false)
             ->assertSee('Vatable', false)
             ->assertSee('VAT', false)
             ->assertSee('id="hBody"', false)
@@ -233,8 +233,8 @@ class PageTest extends TestCase
         $pages = [
             '/cashier' => 'POS Terminal',
             '/cashier/queue' => 'Orders in Progress',
-            '/cashier/history' => 'Sales &amp; Transaction History',
-            '/cashier/stocks' => 'Current stocks',
+            '/cashier/history' => 'Sales &amp; Receipts',
+            '/cashier/stocks' => 'Stock availability',
         ];
 
         foreach ($pages as $url => $marker) {
