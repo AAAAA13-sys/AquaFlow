@@ -10,7 +10,9 @@ class StoreProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isSuperAdmin() ?? false;
+        // A manager may propose a new till item; the owner approves it. The
+        // owner still writes directly. ApprovalService decides which path runs.
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -35,6 +37,8 @@ class StoreProductRequest extends FormRequest
             'consumables' => ['sometimes', 'array', 'min:1', 'max:50'],
             'consumables.*.inventory_item_id' => ['required_with:consumables', 'integer', 'distinct', Rule::exists('inventory', 'id')->whereNull('retired_at')],
             'consumables.*.qty_per_sale' => ['sometimes', 'integer', 'min:1', 'max:1000'],
+            // Optional note carried onto the manager's approval request.
+            'reason' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
     }
 }

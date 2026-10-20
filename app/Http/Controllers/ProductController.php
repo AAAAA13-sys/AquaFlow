@@ -6,11 +6,13 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use App\Services\RecipeService;
+use App\Services\ApprovalService;
+use App\Services\AuditLogService;
+use App\Services\ProductService;
+use App\Support\ApprovalTypes;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Owner-facing management of what the till sells.
@@ -35,90 +37,77 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(StoreProductRequest $request, RecipeService $recipes): JsonResponse
+    public function store(StoreProductRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $user = $request->user();
 
-        $product = DB::transaction(function () use ($data, $recipes): Product {
-            $category = (string) $data['category'];
+        // A manager proposes a new till item; the owner writes it directly.
+        if (! $user->isSuperAdmin()) {
+            return app(ApprovalService::class)->stage($user, ApprovalTypes::PRODUCT_CREATE, $data,
+                $request->string('reason')->toString() ?: null);
+        }
 
-            $product = Product::query()->create([
-                'id' => $this->uniqueSlug((string) $data['name']),
-                'name' => $data['name'],
-                'price' => $data['price'],
-                'category' => $category,
-                'container_kind' => $data['container_kind'],
-                'is_active' => true,
-                'sold_at_pos' => $data['sold_at_pos'] ?? true,
-                // Supplies are counter sales; refills and containers can be delivered.
-                'walk_in_only' => $data['walk_in_only']
-                    ?? in_array($category, [Product::CATEGORY_CONSUMABLE, Product::CATEGORY_CLEANING], true),
-                'inventory_item_id' => $data['inventory_item_id'] ?? null,
-                'inventory_units_per_sale' => $data['inventory_units_per_sale'] ?? 1,
-                'sort_order' => ((int) Product::query()->max('sort_order')) + 10,
-            ]);
+        $product = DB::transaction(function () use ($data, $user): Product {
+            $product = app(ProductService::class)->create($data);
 
-            if (! empty($data['consumables'])) {
-                $recipes->replace($product, $data['consumables']);
-            } elseif (! $recipes->ensureConsumables($product)) {
-                // Thrown inside the transaction so no half-created product survives.
-                throw ValidationException::withMessages([
-                    'category' => 'This item would consume nothing, so the till could not sell it. Pick a category that consumes stock, or link a stock item.',
-                ]);
-            }
+            app(AuditLogService::class)->record($user, 'create', $product, null,
+                ['name' => $product->name, 'price' => (float) $product->price, 'category' => $product->category]);
 
             return $product;
         });
 
         return response()->json(
-            ['product' => new ProductResource($product->load('inventoryItem'))],
+            ['product' => new ProductResource($product->load('inventoryItem')), 'pending_approval' => false],
             201
         );
     }
 
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        $product->fill($request->validated())->save();
+        $data = $request->validated();
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin()) {
+            return app(ApprovalService::class)->stage($user, ApprovalTypes::PRODUCT_UPDATE, $data,
+                $request->string('reason')->toString() ?: null, (string) $product->id);
+        }
+
+        DB::transaction(function () use ($product, $data, $user): void {
+            /** @var Product $product */
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $before = [];
+            foreach (array_keys($data) as $key) {
+                $before[$key] = $product->getAttribute($key);
+            }
+
+            $product->fill($data)->save();
+
+            app(AuditLogService::class)->record($user, 'update', $product, $before,
+                array_intersect_key($product->getAttributes(), $before));
+        });
 
         return response()->json([
             'product' => new ProductResource($product->fresh()->load('inventoryItem')),
+            'pending_approval' => false,
         ]);
     }
 
-    public function destroy(Product $product): JsonResponse
+    public function destroy(Request $request, Product $product): JsonResponse
     {
-        if ($product->items()->exists()) {
-            throw ValidationException::withMessages([
-                'product' => 'Cannot remove "' . $product->name . '" because it has recorded sales transactions. You can hide it from the till instead.',
-            ]);
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin()) {
+            return app(ApprovalService::class)->stage($user, ApprovalTypes::PRODUCT_DELETE,
+                ['name' => $product->name], $request->string('reason')->toString() ?: null, (string) $product->id);
         }
 
-        DB::transaction(function () use ($product): void {
-            DB::table('product_consumables')->where('product_id', $product->id)->delete();
-            $product->delete();
+        DB::transaction(function () use ($product, $user): void {
+            app(AuditLogService::class)->record($user, 'delete', $product,
+                ['name' => $product->name, 'price' => (float) $product->price], null);
+            app(ProductService::class)->delete($product);
         });
 
         return response()->json(['ok' => true]);
-    }
-
-    /**
-     * A URL- and receipt-safe identifier. The primary key is a short string that
-     * transaction history points at, so it is generated once and never changed.
-     */
-    private function uniqueSlug(string $name): string
-    {
-        $base = trim(Str::slug($name), '-');
-        $base = $base === '' ? 'item' : Str::limit($base, 30, '');
-
-        $slug = $base;
-        $attempt = 1;
-
-        while (Product::query()->whereKey($slug)->exists()) {
-            $suffix = '-'.$attempt;
-            $slug = Str::limit($base, 30 - strlen($suffix), '').$suffix;
-            $attempt++;
-        }
-
-        return $slug;
     }
 }

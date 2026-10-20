@@ -29,6 +29,8 @@ class Customer extends Model
     {
         return [
             'debt_balance' => 'float',
+            'settlement_pending_amount' => 'float',
+            'settlement_pending_at' => 'datetime',
             'issued_slim' => 'integer',
             'returned_slim' => 'integer',
             'issued_round' => 'integer',

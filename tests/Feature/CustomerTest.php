@@ -75,7 +75,7 @@ class CustomerTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_a_partial_debt_payment_reduces_the_balance(): void
+    public function test_a_partial_debt_payment_is_queued_for_approval_when_a_cashier_records_it(): void
     {
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $before = (float) $customer->debt_balance; // 150.00
@@ -83,8 +83,32 @@ class CustomerTest extends TestCase
         $response = $this->actingAs($this->cashier)
             ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 100]);
 
-        $response->assertOk()
-            ->assertJsonPath('applied', 100);
+        // A cashier's collection waits for a manager: the ledger has not moved.
+        $response->assertStatus(202)
+            ->assertJsonPath('pending_approval', true)
+            ->assertJsonPath('applied', 0);
+
+        $this->assertEqualsWithDelta($before, (float) $customer->fresh()->debt_balance, 0.001);
+        // The cash is held so it cannot be collected twice.
+        $this->assertEqualsWithDelta(100, (float) $customer->fresh()->settlement_pending_amount, 0.001);
+        $this->assertDatabaseHas('approval_requests', ['type' => 'settlement.create', 'state' => 'pending']);
+    }
+
+    public function test_a_partial_debt_payment_reduces_the_balance_when_a_manager_collects_it(): void
+    {
+        $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
+        $before = (float) $customer->debt_balance; // 150.00
+        $manager = User::create([
+            'name' => 'Station Manager', 'username' => 'settle_manager',
+            'email' => 'settle_manager@example.com', 'password' => 'Private123!',
+            'role' => User::ROLE_ADMIN, 'is_active' => true,
+        ]);
+
+        // A manager holds cash authority, so this posts directly.
+        $response = $this->actingAs($manager)
+            ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 100]);
+
+        $response->assertOk()->assertJsonPath('applied', 100)->assertJsonPath('pending_approval', false);
 
         // Whole-number floats serialise as JSON integers, so compare numerically.
         $this->assertEqualsWithDelta($before - 100, (float) $response->json('customer.debt'), 0.001);

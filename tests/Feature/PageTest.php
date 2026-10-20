@@ -16,6 +16,8 @@ class PageTest extends TestCase
 
     private User $owner;
 
+    private User $manager;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -23,6 +25,14 @@ class PageTest extends TestCase
 
         $this->cashier = User::query()->where('username', 'cashier')->firstOrFail();
         $this->owner = User::query()->where('username', 'admin')->firstOrFail();
+        // The seeder ships no manager account, so the manager-level checks
+        // create one rather than assuming a fixture that does not exist.
+        $this->manager = User::query()->where('role', User::ROLE_ADMIN)->first()
+            ?? User::query()->create([
+                'name' => 'Manager', 'username' => 'manager',
+                'email' => 'manager@example.com', 'password' => 'Manager123!',
+                'role' => User::ROLE_ADMIN, 'is_active' => true,
+            ]);
     }
 
     private function js(string $relative): string
@@ -458,6 +468,30 @@ class PageTest extends TestCase
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonPath('db', true);
+    }
+
+    public function test_the_approval_and_audit_pages_render_for_a_manager(): void
+    {
+        // A manager must reach both screens: the approval list is how a manager
+        // settles a cashier's collection, and the audit log is how they review
+        // changes and see who approved what. The owner sees the same pages.
+        foreach ([$this->manager, $this->owner] as $viewer) {
+            $approvals = $this->actingAs($viewer)->get('/admin/approvals')->assertOk();
+            $approvals->assertSee('id="approvalList"', false)
+                ->assertSee('Approval Requests')
+                ->assertSee('js/admin/approvals.js', false);
+
+            $audit = $this->actingAs($viewer)->get('/admin/audit-logs')->assertOk();
+            $audit->assertSee('id="auditList"', false)
+                ->assertSee('Audit Log')
+                ->assertSee('js/admin/audit-logs.js', false);
+        }
+
+        // The sidebar carries both entries.
+        $this->actingAs($this->manager)->get('/admin/dashboard')
+            ->assertOk()
+            ->assertSee('/admin/approvals', false)
+            ->assertSee('/admin/audit-logs', false);
     }
 
     public function test_tables_have_search_and_chronological_sort_controls(): void

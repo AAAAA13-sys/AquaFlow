@@ -16,7 +16,8 @@ class UpdateProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isSuperAdmin() ?? false;
+        // A manager proposes the edit; the owner approves it or writes directly.
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -29,6 +30,8 @@ class UpdateProductRequest extends FormRequest
             'price' => ['sometimes', 'numeric', 'min:0.01', 'max:999999.99'],
             'walk_in_only' => ['sometimes', 'boolean'],
             'sold_at_pos' => ['sometimes', 'boolean'],
+            // Optional note carried onto the manager's approval request.
+            'reason' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
     }
 }

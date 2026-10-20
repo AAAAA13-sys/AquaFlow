@@ -16,6 +16,16 @@ class InventoryItem extends Model
 {
     protected $table = 'inventory';
 
+    /**
+     * The descriptive stock fields a maker-checker proposal may carry.
+     *
+     * Deliberately excludes `stock_on_hand`: a quantity change is a stock
+     * movement with its own reason and audit trail, not a silent edit that
+     * approval would post. `UpdateInventoryRequest` still allows it on the
+     * direct path, where the engine records the movement.
+     */
+    public const PROPOSABLE_FIELDS = ['item_name', 'category', 'unit', 'lead_time_days', 'supplier_id'];
+
     protected $fillable = [
         'item_name',
         'category',

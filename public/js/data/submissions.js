@@ -37,6 +37,14 @@ const Submissions = {
   async perform(entry) {
     try {
       const result = await API.post(entry.path, entry.body);
+      // A settlement recorded by a cashier is a proposal, not a receipt: it
+      // carries `pending_approval` and no transaction. That is a definite
+      // success, so the key is released rather than kept for recovery.
+      if (result && result.pending_approval) {
+        entry.result = result;
+        this.clear();
+        return result;
+      }
       if (!result || !result.transaction) throw new Error('Receipt response was incomplete. Recover the receipt before taking another payment.');
       entry.result = result;
       this.save(entry);
@@ -57,6 +65,13 @@ const Submissions = {
     try {
       const [, payload] = JSON.parse(entry.signature);
       const result = await this.send(entry.path, payload);
+      if (result.pending_approval) {
+        if (result.customer) API.replaceCustomer(result.customer);
+        if (typeof saveDB === 'function') saveDB();
+        this.clear();
+        appNotice('Collection recorded. A manager must approve it before the balance changes.');
+        return;
+      }
       if (result.customer) API.replaceCustomer(result.customer);
       API.replaceSnapshot('transactions', result.transaction, row => row.no);
       if (typeof saveDB === 'function') saveDB();

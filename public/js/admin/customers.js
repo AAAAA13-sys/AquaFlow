@@ -165,17 +165,22 @@ async function payDebt(id) {
       appNotice('Enter an amount greater than zero.');
       return;
     }
-    if (amount > owed + 0.005) {
-      appNotice('That is more than the ' + money(owed) + ' outstanding. Enter ' + money(owed) + ' or less.');
+    // Cash a cashier has already recorded but a manager has not approved is not
+    // collectible again, and neither is cash a rider is still carrying.
+    const collectible = Number(c.collectible !== undefined ? c.collectible : owed);
+    if (amount > collectible + 0.005) {
+      appNotice(Number(c.settlement_pending) > 0
+        ? 'Part of this balance is a collection waiting for approval. Approve it before collecting again.'
+        : 'That is more than the ' + money(collectible) + ' collectible. Enter ' + money(collectible) + ' or less.');
       return;
     }
 
-    const partial = amount < owed - 0.005;
+    const partial = amount < collectible - 0.005;
     const confirmed = await appConfirm(
       'Record ' + money(amount) + ' from ' + c.name + '?\n\n' +
       (partial
-        ? money(owed - amount) + ' will still be outstanding.'
-        : 'This settles the balance in full.'),
+        ? money(collectible - amount) + ' will still be outstanding.'
+        : 'This settles the collectible balance in full.'),
       partial ? 'Record partial payment' : 'Settle in full'
     );
     if (!confirmed) return;

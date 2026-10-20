@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AdminSetupController;
 use App\Http\Controllers\AdvisoryController;
+use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
@@ -53,7 +55,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'approvals', 'audit-logs'])
             ->name('admin.tab');
     });
 });
@@ -109,18 +111,14 @@ Route::prefix('api')->group(function (): void {
         Route::middleware('owner:management')->group(function (): void {
             // Which stock row a sale consumes - the same shape the POS needs.
             Route::get('products', [ProductController::class, 'index'])->name('api.products.index');
-            Route::post('products', [ProductController::class, 'store'])
-                ->middleware('owner')
-                ->name('api.products.store');
-            Route::patch('products/{product}', [ProductController::class, 'update'])
-                ->middleware('owner')
-                ->name('api.products.update');
-            Route::delete('products/{product}', [ProductController::class, 'destroy'])
-                ->middleware('owner')
-                ->name('api.products.destroy');
+            // A manager may reach these: the controller turns a manager's write
+            // into a pending approval request, while the owner writes directly.
+            Route::post('products', [ProductController::class, 'store'])->name('api.products.store');
+            Route::patch('products/{product}', [ProductController::class, 'update'])->name('api.products.update');
+            Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('api.products.destroy');
 
             Route::get('products/recipes', [RecipeController::class, 'index']);
-            Route::put('products/{product}/recipe', [RecipeController::class, 'update'])->middleware('owner');
+            Route::put('products/{product}/recipe', [RecipeController::class, 'update']);
             Route::get('inventory/{inventory}/movements', [StockMovementController::class, 'index']);
             Route::post('inventory/{inventory}/movements', [StockMovementController::class, 'store']);
         });
@@ -207,6 +205,26 @@ Route::prefix('api')->group(function (): void {
         Route::delete('users/{user}', [UserController::class, 'destroy'])
             ->middleware('owner:management')
             ->name('api.users.destroy');
+
+        // Approval requests. Any manager or owner may list; the service scopes
+        // the result to the requests routed to their rank, and the decision
+        // endpoint re-checks self-approval and the live role.
+        Route::middleware('owner:management')->group(function (): void {
+            Route::get('approvals', [ApprovalController::class, 'index'])->name('api.approvals.index');
+            Route::get('approvals/{approvalRequest}', [ApprovalController::class, 'show'])
+                ->whereNumber('approvalRequest')->name('api.approvals.show');
+            Route::post('approvals/{approvalRequest}/decision', [ApprovalController::class, 'decide'])
+                ->middleware('throttle:api')->whereNumber('approvalRequest')->name('api.approvals.decide');
+            Route::post('approvals/{approvalRequest}/cancel', [ApprovalController::class, 'cancel'])
+                ->whereNumber('approvalRequest')->name('api.approvals.cancel');
+        });
+
+        // Query-change audit trail. Open to any authenticated account, because
+        // the rank filter is applied by AuditLogService: a manager reads the
+        // changes below their rank, the owner reads everything, and everyone
+        // else reads only their own. Access is decided by the scope, not by
+        // whether the page is reachable.
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.audit-logs.index');
     });
 });
 

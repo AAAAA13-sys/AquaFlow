@@ -158,9 +158,12 @@ class ConsumableStoriesTest extends TestCase
 
     public function test_u_s22_settlement_receipt_keeps_remaining_balance(): void
     {
+        // A manager holds cash authority, so the settlement posts and issues a
+        // receipt directly. A cashier's collection would instead wait for
+        // approval and produce no receipt yet.
         $customer = Customer::where('name', '!=', 'Walk-in Guest')->firstOrFail();
         $customer->update(['debt_balance' => 100]);
-        $this->actingAs(User::where('username', 'cashier')->firstOrFail())
+        $this->actingAs(User::where('username', 'admin')->firstOrFail())
             ->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => (string) Str::uuid(), 'amount' => 30])
             ->assertOk()->assertJsonPath('transaction.balance_after', 70);
     }

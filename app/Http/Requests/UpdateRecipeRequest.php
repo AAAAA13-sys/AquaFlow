@@ -9,7 +9,8 @@ class UpdateRecipeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isSuperAdmin() ?? false;
+        // A manager proposes a recipe change; the owner approves it.
+        return $this->user()?->isAdmin() ?? false;
     }
 
     public function rules(): array
@@ -18,6 +19,8 @@ class UpdateRecipeRequest extends FormRequest
             'consumables' => ['required', 'array', 'min:1', 'max:100'],
             'consumables.*.inventory_item_id' => ['required', 'integer', 'distinct', Rule::exists('inventory', 'id')->whereNull('retired_at')],
             'consumables.*.qty_per_sale' => ['required', 'integer', 'min:1', 'max:1000000'],
+            // Optional note carried onto the manager's approval request.
+            'reason' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
     }
 }

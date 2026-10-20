@@ -26,6 +26,8 @@ class UpdateInventoryRequest extends FormRequest
             'stock_on_hand' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
             'unit' => ['sometimes', 'string', 'max:20'],
             'supplier_id' => ['sometimes', 'nullable', 'integer', 'exists:suppliers,id'],
+            // Optional note carried onto the manager's approval request.
+            'reason_note' => ['sometimes', 'nullable', 'string', 'max:500'],
         ];
     }
 }

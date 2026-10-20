@@ -45,6 +45,11 @@ class StockMovementService
     {
         return DB::transaction(function () use ($data, $user): InventoryItem {
             $item = InventoryItem::create($data);
+            // Pull the database defaults (lead time, safety stock, ...) onto the
+            // instance before recalculating: the engine reads lead_time_days and
+            // would otherwise see the model's null rather than the column's 2.
+            $item->refresh();
+
             if ($item->stock_on_hand > 0) {
                 StockMovement::create(['inventory_item_id' => $item->id, 'type' => 'restock',
                     'qty' => $item->stock_on_hand, 'user_id' => $user->id, 'supplier_id' => $item->supplier_id, 'notes' => 'Opening stock']);

@@ -27,6 +27,23 @@ class CatalogSeeder extends Seeder
     public function retireLegacyInventory(): void
     {
         \Illuminate\Support\Facades\DB::transaction(function (): void {
+            // Upgrade-safe: stores created before the new catalog lack the
+            // replacement rows, so create them with zero opening stock instead
+            // of failing on firstOrFail() below.
+            InventoryItem::firstOrCreate(
+                ['item_name' => '5 Gallon Slim Jug'],
+                ['category' => 'Asset', 'unit' => 'units', 'stock_on_hand' => 0, 'lead_time_days' => 4]
+            );
+            InventoryItem::firstOrCreate(
+                ['item_name' => '5 Gallon Round Jug'],
+                ['category' => 'Asset', 'unit' => 'units', 'stock_on_hand' => 0, 'lead_time_days' => 4]
+            );
+            foreach (RecipeService::CONSUMABLE_ITEMS as $name) {
+                InventoryItem::firstOrCreate(
+                    ['item_name' => $name],
+                    ['category' => 'Consumable', 'unit' => 'pcs', 'stock_on_hand' => 0, 'lead_time_days' => 2]
+                );
+            }
             InventoryItem::query()->whereIn('item_name', self::LEGACY_STOCK_NAMES)
                 ->whereNull('retired_at')->update(['retired_at' => now()]);
             foreach (Product::whereIn('id', ['slim', 'round', 'newS', 'newR'])->get() as $product) {

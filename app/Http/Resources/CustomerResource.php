@@ -28,6 +28,12 @@ class CustomerResource extends JsonResource
             'issuedR' => (int) $this->issued_round,
             'returnedR' => (int) $this->returned_round,
             'debt' => (float) $this->debt_balance,
+            // Cash already handed over but not yet approved. The counter must
+            // see this so it does not collect the same pesos twice.
+            'settlement_pending' => (float) $this->settlement_pending_amount,
+            'settlement_pending_at' => $this->settlement_pending_at?->toISOString(),
+            // What can still be collected right now.
+            'collectible' => round(max(0, (float) $this->debt_balance - (float) $this->settlement_pending_amount), 2),
             'tx' => (int) $this->total_transactions,
             'last' => $this->last_visit?->format('Y-m-d') ?? '-',
             'pending' => [

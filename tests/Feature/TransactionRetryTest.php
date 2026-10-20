@@ -46,8 +46,11 @@ class TransactionRetryTest extends TestCase
         $this->postJson('/api/transactions', $payload)->assertStatus(409);
     }
 
-    public function test_payment_retry_does_not_collect_twice_even_after_balance_is_cleared(): void
+    public function test_a_manager_payment_retry_does_not_collect_twice_even_after_balance_is_cleared(): void
     {
+        // A manager holds cash authority, so this stays the direct ledger path.
+        $this->actingAs(User::where('username', 'admin')->firstOrFail());
+
         $c = Customer::where('name', 'Santos Family')->firstOrFail();
         $c->update(['debt_balance' => 150]);
         $data = ['submission_key' => (string) Str::uuid(), 'amount' => 150];
@@ -58,6 +61,27 @@ class TransactionRetryTest extends TestCase
         $this->assertEquals(0, $c->fresh()->debt_balance);
         $data['amount'] = 100;
         $this->postJson('/api/customers/'.$c->id.'/settle', $data)->assertStatus(409);
+    }
+
+    public function test_a_cashier_payment_retry_returns_the_same_request_without_collecting_again(): void
+    {
+        // A cashier's collection is a proposal. Re-sending the same key must
+        // return the request already raised rather than filing a second one.
+        $c = Customer::where('name', 'Santos Family')->firstOrFail();
+        $c->update(['debt_balance' => 150]);
+        $data = ['submission_key' => (string) Str::uuid(), 'amount' => 150];
+
+        $this->postJson('/api/customers/'.$c->id.'/settle', $data)
+            ->assertStatus(202)->assertJsonPath('replayed', false);
+        $this->postJson('/api/customers/'.$c->id.'/settle', $data)
+            ->assertStatus(202)->assertJsonPath('replayed', true)
+            ->assertJsonPath('request.id', \App\Models\ApprovalRequest::firstOrFail()->id);
+
+        $this->assertSame(1, \App\Models\ApprovalRequest::count());
+        // Nothing has posted, and the cash stays reserved.
+        $this->assertSame(0, Transaction::where('order_type', 'Debt Payment')->count());
+        $this->assertEquals(150, $c->fresh()->debt_balance);
+        $this->assertEquals(150, $c->fresh()->settlement_pending_amount);
     }
 
     public function test_failed_sale_can_be_retried_without_a_partial_submission(): void
@@ -85,15 +109,26 @@ class TransactionRetryTest extends TestCase
 
     public function test_delivery_retry_preserves_ledger_balance_and_operator_keys_are_isolated(): void
     {
+        // A cashier makes a delivery sale.
         $customer = Customer::where('name', 'Santos Family')->firstOrFail();
         $payload = array_replace($this->sale(), ['customer_id' => $customer->id, 'order_type' => 'Delivery', 'cash_tendered' => 0]);
         $first = $this->postJson('/api/transactions', $payload)->assertCreated();
         $balance = $customer->fresh()->debt_balance;
         $this->postJson('/api/transactions', $payload)->assertCreated()->assertJsonPath('replayed', true);
         $this->assertEquals($balance, $customer->fresh()->debt_balance);
-        $this->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => $payload['submission_key'], 'amount' => 10])->assertStatus(409);
+
+        // A cashier's collection with that key is a proposal, not a direct
+        // write, so it is recorded rather than conflicting with the sale.
+        $this->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => $payload['submission_key'], 'amount' => 10])->assertStatus(202);
+        $this->assertEquals(0, Transaction::where('order_type', 'Debt Payment')->count());
+
+        // A *different* operator reusing the key makes a genuinely separate
+        // sale: the keys are scoped per account.
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $second = $this->postJson('/api/transactions', $payload)->assertCreated()->assertJsonPath('replayed', false);
         $this->assertNotSame($first->json('transaction.id'), $second->json('transaction.id'));
+
+        // And that operator's own direct settlement cannot reuse the key.
+        $this->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => $payload['submission_key'], 'amount' => 10])->assertStatus(409);
     }
 }
