@@ -201,7 +201,20 @@ class ApprovalTest extends TestCase
         ])->assertStatus(202);
 
         $request = ApprovalRequest::where('type', 'product.create')->firstOrFail();
-        $this->assertSame([['inventory_item_id' => $item->id, 'qty_per_sale' => 7]], $request->payload['consumables']);
+
+        // `payload` is a MySQL JSON column, and its binary form normalizes
+        // object key order on the way in. The proposal must carry the right
+        // fields and values, not the accidental order the request sent, so
+        // compare the recipe with both sides sorted by key.
+        $expected = [['inventory_item_id' => $item->id, 'qty_per_sale' => 7]];
+        $stored = $request->payload['consumables'];
+        foreach ($expected as $index => $line) {
+            ksort($expected[$index]);
+        }
+        foreach ($stored as $index => $line) {
+            ksort($stored[$index]);
+        }
+        $this->assertSame($expected, $stored);
 
         $this->actingAs($this->owner)
             ->postJson('/api/approvals/'.$request->id.'/decision', [
