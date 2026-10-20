@@ -53,5 +53,10 @@ async function bootAdminPortal(pageTitle) {
   if (typeof renderSidebarBadges === 'function') renderSidebarBadges();
   if (typeof renderStamp === 'function') renderStamp();
 
+  // The approval badge counts viewer-scoped server state, so it is fetched
+  // rather than read from the snapshot. It must not block the page, and the
+  // boot above has already filled the rest of the sidebar by now.
+  if (typeof SidebarApprovals !== 'undefined') SidebarApprovals.refresh();
+
   return session;
 }

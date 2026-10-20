@@ -18,13 +18,15 @@
       'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
+      'approvals'  => ['label' => 'Approval Requests','hint' => 'Changes awaiting a decision', 'badge' => 'badgeApprovals', 'featured' => false],
+      'audit-logs' => ['label' => 'Audit Log',       'hint' => 'Who changed what', 'badge' => null, 'featured' => false],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
       'Operations' => ['dashboard', 'orders', 'arima', 'sales', 'customers'],
       'Stock & Supply' => ['inventory', 'suppliers'],
-      'Administration' => ['users', 'settings'],
+      'Administration' => ['users', 'approvals', 'audit-logs', 'settings'],
   ];
 @endphp
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))

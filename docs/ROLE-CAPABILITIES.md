@@ -43,7 +43,7 @@ Inspected User, EnsureRoleAccess, EnsureUserIsOwner, StoreUserRequest, UpdateUse
 - isAdmin() includes super_admin and admin; isSuperAdmin() identifies the owner.
 - Manager account creation is limited to staff roles; manager account updates are restricted to staff targets.
 - Station settings writes and the settings page are owner-only.
-- Product creation, price/catalog updates, deletion and recipe changes require the owner at both routing and request validation. Managers retain read access.
+- Product creation, price/catalog updates, deletion and recipe changes are written directly by the owner; a manager's attempt becomes an approval request for the owner instead of a write. Managers retain read access.
 - Owners and managers share operational pages with role-specific navigation and owner-only business controls. Orders & Deliveries has a dedicated management page.
 - Cashier history and bootstrap transactions use the same server-side scope. Station-wide revenue summaries are excluded from cashier bootstrap responses.
 
@@ -56,7 +56,29 @@ Inspected User, EnsureRoleAccess, EnsureUserIsOwner, StoreUserRequest, UpdateUse
 5. Refiller readiness and rider delivery updates reach the cashier and manager views without duplicate financial writes.
 6. Test desktop/mobile layouts, keyboard access, pending requests, failed requests, empty results and session expiry.
 
-No attendance, jug lending, payroll, multi-store hosting or new approval workflow is included in this scope. Refiller issue reporting is not added; the existing issue action remains rider-only.
+No attendance, jug lending, payroll or multi-store hosting is included in this scope. Refiller issue reporting is not added; the existing issue action remains rider-only.
+
+## Approval (maker-checker) workflow — 20 October 2026
+
+Catalog, stock and supplier changes made by a **manager** now require **owner** approval. A counter debt collection taken by a **cashier** requires **manager** approval. The owner and manager still write directly; approval only gates the roles below them.
+
+- A proposal records the full set of proposed values. Nothing outside `approval_requests` and `approval_events` is written until a decision is approved, so a rejected or withdrawn request changes no product, recipe, stock row, supplier or customer ledger.
+- Approving applies the change for **every** type, including create and delete: a new till item, a new stock item, a new supplier and a removal are written when the owner approves, not left as a manual follow-up. Till-item create and delete share one implementation with the owner's direct write (`ProductService`), so recipe derivation and the "cannot delete an item with recorded sales" guard behave identically on both paths.
+- A removal is re-checked when it is approved. If the item gained sales history while the request waited, approval refuses and the request stays pending rather than destroying evidence.
+- A manager cannot decide their own request and cannot decide as another account. The decision endpoint re-checks the viewer's live role, the no-self-approval rule and the request hash, so a tampered page or a replayed retry gains nothing.
+- A retry of the same submission key, with the same payload, returns the original result instead of filing a second request or applying twice.
+- A rejected or withdrawn settlement writes **no** ledger row. The cashier is told the money must be returned or the collection re-submitted.
+- A settlement stores the balance **before** the collection. The customer's `debt_balance` drops only when a manager approves, and approval calls the existing `CustomerLedgerService::settle()` unchanged, so the Debt Payment transaction, receipt number and payment status stay intact.
+- While a counter collection waits for approval the cash is reserved on the customer (`settlement_pending_amount`), the reserve is subtracted from what is still collectible, and the reserve is released on rejection or withdrawal. A rider-carried delivery collection still blocks a counter collection of the same balance.
+- Delivery remittance stays a direct ledger write: it carries its own rider-evidence trail and is a different action from a counter collection.
+- A manager sees every debt-collection request whoever raised or decided it, including one the owner approved, so counter cash is accountable to the manager on duty.
+
+## Audit log — 20 October 2026
+
+- Every data change in the scoped areas — till items, recipes, stock, suppliers, customers and collections — is recorded with the actor, the action, the entity and a before/after snapshot of the changed fields.
+- The audit log is readable in full by **both** management ranks: the owner and the manager each see every recorded change, so either can see who made or approved what. Seeing who approved which request is part of the control, so the manager accountable for the station can inspect it just as the owner can.
+- The trail only covers catalog, stock, supplier and collection changes. It never records account credentials, team-access changes or settings, so opening it to the manager exposes nothing the manager cannot already act on. Every role below management still reads only their own changes, enforced by `AuditLogService` when the rows are read.
+- Changes made by approving a request carry the approval context, so an audit row shows whether a change was written directly or through an approved request, and the snapshot says what actually changed rather than only that a decision was made.
 
 ## Design tooling
 

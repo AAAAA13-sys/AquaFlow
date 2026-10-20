@@ -6,6 +6,7 @@ require('./frontend-csv.cjs');
 require('./frontend-admin-login.cjs');
 require('./frontend-pos.cjs');
 require('./frontend-pos-confirmations.cjs');
+require('./frontend-pos-settlement-request.cjs');
 require('./frontend-queue.cjs');
 require('./frontend-refresh.cjs');
 require('./frontend-cashier-stocks.cjs');

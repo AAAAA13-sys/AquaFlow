@@ -398,3 +398,41 @@
 @media (max-width: 650px) { #userForm.user-account-form { grid-template-columns: 1fr; } }
 
 #s-arima .forecast-demo-note { grid-column: 1 / -1; margin: 0; padding: 12px 14px; background: #fff5d6; border: 1px solid #e8cc77; border-radius: 8px; }
+
+/* Approval Requests and Audit Log.
+   Both screens are lists of cards rather than tables: each row carries several
+   labelled fields and one decision, which reads better stacked than columned. */
+.approval-filters, .audit-filters { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.approval-filters .admin-entry-field, .audit-filters .admin-entry-field { flex: 0 1 200px; }
+.approval-filters > .btn, .audit-filters > .btn { margin: 0; }
+.approval-list, .audit-list { display: grid; gap: 16px; }
+.approval-card, .audit-card { padding: 20px 22px; background: #fff; border: 1px solid var(--border-line); border-left: 4px solid #1D4ED8; border-radius: 14px; }
+.approval-card[data-state="approved"] { border-left-color: #15803d; }
+.approval-card[data-state="rejected"] { border-left-color: #b91c1c; }
+.approval-card[data-state="cancelled"] { border-left-color: #64748b; }
+.approval-head, .audit-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.approval-head > div, .audit-head > div { display: grid; gap: 4px; min-width: 0; }
+.approval-kind, .audit-kind { color: #1D4ED8; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.audit-kind { color: #64748b; }
+.approval-title, .audit-title { color: #0f172a; font-size: 17px; }
+.approval-status { flex-shrink: 0; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #EDF1F7; color: #334155; }
+.approval-status--pending { background: #fef3c7; color: #92400e; }
+.approval-status--approved { background: #dcfce7; color: #166534; }
+.approval-status--rejected { background: #fee2e2; color: #991b1b; }
+.approval-status--cancelled { background: #e2e8f0; color: #475569; }
+.approval-warning { margin: 14px 0 0; padding: 12px 14px; border-radius: 10px; background: #fff7ed; color: #9a3412; font-size: 14px; }
+.approval-fields, .audit-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 0; }
+.approval-field, .audit-change { display: grid; gap: 2px; padding: 10px 12px; background: #F7F9FC; border-radius: 10px; }
+.approval-field span, .audit-change span { color: #475569; font-size: 12px; }
+.approval-field b, .audit-change b { color: #0f172a; font-size: 15px; }
+.approval-meta, .audit-meta { margin: 14px 0 0; color: #475569; font-size: 13px; }
+.approval-decision { margin: 12px 0 0; color: #334155; font-size: 14px; }
+.approval-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.approval-actions > .btn { margin: 0; }
+.approval-wait { align-self: center; color: #64748b; font-size: 13px; }
+.audit-when { flex-shrink: 0; color: #64748b; font-size: 13px; white-space: nowrap; }
+@media(max-width: 650px) {
+  .approval-filters, .audit-filters { flex-direction: column; align-items: stretch; }
+  .approval-filters .admin-entry-field, .audit-filters .admin-entry-field { flex: 1 1 auto; }
+  .approval-head, .audit-head { flex-direction: column; }
+}

@@ -11,6 +11,50 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerLedgerService
 {
+    /**
+     * The amount that can be collected from a customer right now.
+     *
+     * Two things hold money that must not be collected again:
+     *   - a delivery collection the rider is still carrying (pending proof)
+     *   - a counter collection already recorded but not yet approved, which the
+     *     caller tracks separately as `settlement_pending_amount`
+     *
+     * `$reservedForApproval` is the amount the caller is itself about to hold,
+     * so a submission that has not yet written its reservation can still check
+     * against the balance as it stands.
+     */
+    public function collectible(Customer $customer, float $reservedForApproval = 0.0): float
+    {
+        $pending = DeliveryProof::pendingForCustomer($customer->id);
+        $held = (float) $customer->settlement_pending_amount - $reservedForApproval;
+
+        return round(max(0, (float) $customer->debt_balance - $pending - $held), 2);
+    }
+
+    /**
+     * Refuse a collection that does not fit what is actually collectible.
+     *
+     * Shared by the direct settle path and the approval submission path, so a
+     * cashier's proposal is guarded by the same rule as a manager's direct
+     * collection - including the pending-delivery reservation.
+     */
+    public function assertCollectible(Customer $customer, float $amount, float $reservedForApproval = 0.0): void
+    {
+        if ((int) round($amount * 100) <= (int) round($this->collectible($customer, $reservedForApproval) * 100)) {
+            return;
+        }
+
+        if (DeliveryProof::pendingForCustomer($customer->id) > 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'This balance includes a pending delivery collection. Record that collection separately.',
+            ]);
+        }
+
+        throw ValidationException::withMessages(['amount' => (float) $customer->settlement_pending_amount > 0
+            ? 'This balance includes a collection still waiting for approval. Ask a manager to approve it before recording another.'
+            : 'Payment cannot exceed the outstanding balance.']);
+    }
+
     public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey, ?int $deliveryProofId = null, ?string $note = null): array
     {
         abort_unless($cashier->canHandleCash(), 403);
@@ -19,9 +63,14 @@ class CustomerLedgerService
             /** @var Customer $locked */
             $locked = Customer::query()->lockForUpdate()->find($customer->id);
 
-            $pending = DeliveryProof::pendingForCustomer($locked->id);
             $proof = $deliveryProofId === null ? null : DeliveryProof::where('customer_id', $locked->id)->lockForUpdate()->findOrFail($deliveryProofId);
-            $available = $proof ? $proof->unremittedCash(true) : max(0, $locked->debt_balance - $pending);
+
+            // A remittance against a specific delivery is measured by the cash
+            // that delivery's rider is still carrying, not the whole balance.
+            $available = $proof
+                ? $proof->unremittedCash(true)
+                : max(0, $locked->debt_balance - DeliveryProof::pendingForCustomer($locked->id) - (float) $locked->settlement_pending_amount);
+
             if ((int) round($amount * 100) > (int) round($available * 100)) {
                 throw ValidationException::withMessages(['amount' => $proof
                     ? 'Payment exceeds the remaining delivery collection.'

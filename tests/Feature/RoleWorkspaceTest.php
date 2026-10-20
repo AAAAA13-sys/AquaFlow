@@ -39,11 +39,21 @@ class RoleWorkspaceTest extends TestCase
         $this->putJson('/api/settings', [])->assertForbidden();
     }
 
-    public function test_manager_cannot_create_catalog_items(): void
+    public function test_manager_catalog_creates_are_queued_for_owner_approval(): void
     {
         $this->loginAsRole('admin');
-        $this->postJson('/api/products', [])->assertForbidden();
+        // An empty payload is still rejected by validation, not by rank.
+        $this->postJson('/api/products', [])->assertUnprocessable();
         $this->assertDatabaseCount('products', 0);
+
+        // A valid manager create becomes a pending request - not a live row.
+        $this->postJson('/api/products', [
+            'name' => 'Manager Item', 'price' => 50,
+            'category' => 'refill', 'container_kind' => 'S',
+        ])->assertStatus(202)->assertJsonPath('pending_approval', true);
+
+        $this->assertDatabaseCount('products', 0);
+        $this->assertDatabaseHas('approval_requests', ['type' => 'product.create', 'state' => 'pending']);
     }
 
     public function test_cashier_history_is_scoped_in_both_list_and_bootstrap(): void
@@ -77,10 +87,18 @@ class RoleWorkspaceTest extends TestCase
         $this->get('/admin/inventory')->assertOk()->assertDontSee('id="tillFormPanel"', false);
         $this->get('/admin/orders')->assertOk()->assertSee('fulfillmentRows');
         $this->getJson('/api/products')->assertOk();
-        $this->patchJson('/api/products/'.$product->id, ['price' => 123])->assertForbidden();
-        $this->deleteJson('/api/products/'.$product->id)->assertForbidden();
-        $this->putJson('/api/products/'.$product->id.'/recipe', [])->assertForbidden();
+
+        // A manager's write is a proposal: queued, and the price does not move.
+        $this->patchJson('/api/products/'.$product->id, ['price' => 123])
+            ->assertStatus(202)->assertJsonPath('pending_approval', true);
+        $this->deleteJson('/api/products/'.$product->id)->assertStatus(202);
+        $this->putJson('/api/products/'.$product->id.'/recipe', [
+            'consumables' => [['inventory_item_id' => \App\Models\InventoryItem::value('id'), 'qty_per_sale' => 1]],
+        ])->assertStatus(202);
         $this->assertEquals($price, $product->fresh()->price);
+        $this->assertSame(3, \App\Models\ApprovalRequest::count());
+
+        // The owner still writes directly, and the queued proposals stay idle.
         $this->actingAs(User::where('username', 'admin')->firstOrFail());
         $this->patchJson('/api/products/'.$product->id, ['price' => 123])->assertOk();
         $this->assertEquals(123, $product->fresh()->price);

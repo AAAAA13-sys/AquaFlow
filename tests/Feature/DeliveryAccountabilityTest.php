@@ -106,7 +106,11 @@ class DeliveryAccountabilityTest extends TestCase
         $this->assertDatabaseCount('transactions', 1);
         Storage::disk('local')->assertExists(DeliveryProof::firstOrFail()->photo_path);
         $this->actingAs($this->cashier);
+        // A counter collection now waits for a manager, and the pending rider
+        // cash still blocks it either way.
         $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
+        // Accepting the rider's cash at the counter stays a direct ledger write:
+        // the delivery evidence is what authorises it, not a second approval.
         $remit = ['amount' => 100, 'submission_key' => (string) Str::uuid()];
         $response = $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $remit)->assertOk();
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', $remit)->assertOk()->assertJsonPath('replayed', true)->assertJsonPath('transaction.no', $response->json('transaction.no'));
@@ -231,11 +235,17 @@ class DeliveryAccountabilityTest extends TestCase
         $this->handoverAndDispatch();
         $this->deliver()->assertOk();
         $this->actingAs($this->cashier);
-        $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 50, 'submission_key' => (string) Str::uuid()])->assertOk();
-        $this->assertEquals(100, $this->buyer->fresh()->debt_balance);
+        // The 50 that is not reserved for the rider is collectible, but a
+        // cashier's collection waits for a manager: the balance holds until
+        // approval and the cash is reserved meanwhile.
+        $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 50, 'submission_key' => (string) Str::uuid()])->assertStatus(202);
+        $this->assertEquals(150, $this->buyer->fresh()->debt_balance);
+        $this->assertEquals(50, $this->buyer->fresh()->settlement_pending_amount);
+        // Nothing more is collectible while that collection awaits approval.
         $this->postJson('/api/customers/'.$this->buyer->id.'/settle', ['amount' => 1, 'submission_key' => (string) Str::uuid()])->assertUnprocessable();
+        // Remitting the rider's cash settles its own 100.
         $this->postJson('/api/deliveries/'.$this->job->id.'/remit', ['amount' => 100, 'submission_key' => (string) Str::uuid()])->assertOk();
-        $this->assertEquals(0, $this->buyer->fresh()->debt_balance);
+        $this->assertEquals(50, $this->buyer->fresh()->debt_balance);
     }
 
     public function test_two_cashiers_share_one_remittance_balance_and_get_only_the_cash_they_accept(): void

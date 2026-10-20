@@ -188,7 +188,28 @@ function renderSidebarBadges() {
 
   set('badgeStock', DB.inventory.filter(needsReorder).length);
   set('badgeBalances', DB.customers.filter(c => Number(c.debt) > 0 && c.name !== 'Walk-in Guest').length);
+  // The approval badge reflects what THIS viewer may decide. The server scopes
+  // the count, so a manager's badge never counts an owner-tier request.
+  set('badgeApprovals', SidebarApprovals.pendingCount);
 }
+
+// The pending-approval count for the sidebar badge.
+//
+// Kept out of `DB` because it is viewer-scoped server state, not a station
+// snapshot. It is refreshed on demand and never trusted for authorization - the
+// approvals screen re-reads the list from the API.
+const SidebarApprovals = {
+  pendingCount: 0,
+  async refresh() {
+    try {
+      const result = await API.approvals({ state: 'pending' });
+      this.pendingCount = Number(result.pending_count || 0);
+    } catch (error) {
+      // A badge is not worth breaking a page over; leave the last known value.
+    }
+    renderSidebarBadges();
+  }
+};
 
 // ---- Insight callout markup ------------------------------------------------
 // Progressive disclosure: the single action line is always visible; the

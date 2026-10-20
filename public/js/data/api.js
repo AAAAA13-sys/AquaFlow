@@ -123,6 +123,21 @@ const API = {
   settleDebt(customerId, amount) { return Submissions.send('customers/' + customerId + '/settle', { amount: amount }); },
   logReturn(customerId, kind) { return this.post('customers/' + customerId + '/returns', { kind: kind }); },
 
+  // Approvals (maker-checker)
+  approvals(params) { return this.getWithQuery('approvals', params); },
+  approval(id) { return this.get('approvals/' + id); },
+  decideApproval(id, decision, note) {
+    return this.post('approvals/' + id + '/decision', {
+      decision: decision,
+      note: note || undefined,
+      submission_key: newSubmissionKey()
+    });
+  },
+  cancelApproval(id, note) { return this.post('approvals/' + id + '/cancel', { note: note || undefined }); },
+
+  // Audit trail (rank-scoped server-side)
+  auditLogs(params) { return this.getWithQuery('audit-logs', params); },
+
   // Inventory
   inventory() { return this.get('inventory'); },
   createInventory(item) { return this.post('inventory', item); },

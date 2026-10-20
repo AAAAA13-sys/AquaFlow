@@ -273,11 +273,34 @@ async function settleDebt() {
     const pay = document.getElementById('debtPay');
     const amount = +((pay && pay.value) || 0);
     if (!Number.isFinite(amount) || amount <= 0) { showStageError('Enter a payment amount.'); return; }
-    if (Math.round(amount * 100) > Math.round(Number(c.debt) * 100)) { showStageError('Payment cannot exceed the outstanding balance.'); return; }
+    // Money already handed over but not yet approved cannot be collected
+    // again, so the counter checks against what is still collectible.
+    const collectible = Number(c.collectible !== undefined ? c.collectible : c.debt);
+    if (Math.round(amount * 100) > Math.round(collectible * 100)) {
+      showStageError(Number(c.settlement_pending) > 0
+        ? 'Part of this balance is a collection already waiting for a manager. Ask them to approve it first.'
+        : 'Payment cannot exceed the outstanding balance.');
+      return;
+    }
 
     if (!await appConfirm('Record ' + money(amount) + ' payment from ' + c.name + '?', 'Record payment')) return;
     try {
       const result = await API.settleDebt(c.id, amount);
+
+      // A cashier's collection is a proposal: no receipt is issued and the
+      // balance does not move until a manager approves it. Say so plainly, so
+      // the customer is not told the debt is cleared when it is not.
+      if (result.pending_approval) {
+        API.replaceCustomer(result.customer);
+        if (pay) pay.value = 0;
+        saveDB();
+        updateDebtPanel();
+        renderPOS();
+        showStageError(null);
+        appNotice('Collected ' + money(amount) + ' from ' + c.name + '. A manager must approve it before the balance changes.');
+        return;
+      }
+
       API.replaceCustomer(result.customer);
       if (pay) pay.value = 0;
       saveDB();
