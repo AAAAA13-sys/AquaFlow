@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A consumable inventory item with dynamic thresholds.
@@ -44,6 +45,18 @@ class InventoryItem extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    /** Defect and damaged-stock reports written off against this item. */
+    public function defectReports(): HasMany
+    {
+        return $this->hasMany(DefectReport::class);
+    }
+
+    /** Every stock movement recorded against this item, newest first. */
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class)->orderByDesc('id');
     }
 
     public function scopeCurrent(Builder $query): Builder

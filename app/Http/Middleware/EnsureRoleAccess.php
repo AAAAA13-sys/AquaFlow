@@ -20,7 +20,10 @@ class EnsureRoleAccess
         if ($user && $user->isEmployee()) {
             $user->load('employee');
             abort_unless($user->employee && $user->employee->is_active, 403, 'Employee access is inactive.');
-            abort_unless($request->is('employee', 'api/employee/*', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/', 'owner/login'), 403);
+            // `api/defects` is matched without a trailing wildcard so staff can
+            // file a report while `api/defects/{id}/approve|reject` — which write
+            // stock off — stays out of reach.
+            abort_unless($request->is('employee', 'api/employee/*', 'api/defects', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/', 'owner/login'), 403);
         }
         if ($user && $request->is('employee', 'api/employee/*')) {
             if (! $request->is('api/employee/profile*')) {

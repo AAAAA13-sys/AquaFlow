@@ -17,15 +17,12 @@
       'customers'  => ['label' => 'Customer Balances','hint' => 'Customer accounts',   'badge' => 'badgeBalances', 'featured' => false],
       'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
       'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
+      'defects'    => ['label' => 'Defect Reports', 'hint' => 'Damaged stock', 'badge' => 'badgeDefects', 'featured' => false],
       'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
-  $groups = [
-      'Operations' => ['dashboard', 'orders', 'arima', 'sales', 'customers'],
-      'Stock & Supply' => ['inventory', 'suppliers'],
-      'Administration' => ['users', 'settings'],
-  ];
+  $slugs = array_keys($tabs);
 @endphp
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
 
@@ -33,26 +30,22 @@
   @include('partials.sidebar-header', ['subtitle' => auth()->user()?->isSuperAdmin() ? 'Owner / Super Admin' : 'Station Manager'])
 
   <nav class="sidebar-nav" id="sideNav" aria-label="{{ auth()->user()?->isSuperAdmin() ? 'Owner' : 'Manager' }} page catalog">
-    @foreach ($groups as $title => $slugs)
-      <p class="sidebar-section-title">{{ $title }}</p>
-      @foreach ($slugs as $slug)
-      @continue(! isset($tabs[$slug]))
-      @php($label = $tabs[$slug])
-      <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
-         class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
-         @if ($active === $slug) aria-current="page" @endif
-         @if ($label['badge']) data-has-badge="1" @endif>
-        <span class="sidebar-link-text">
-          <span class="sidebar-link-label">{{ $label['label'] }}</span>
-          @if ($label['hint'])
-            <span class="sidebar-link-hint">{{ $label['hint'] }}</span>
-          @endif
-        </span>
-        @if ($label['badge'])
-          <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
+    @foreach ($slugs as $slug)
+    @php($label = $tabs[$slug])
+    <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
+       class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
+       @if ($active === $slug) aria-current="page" @endif
+       @if ($label['badge']) data-has-badge="1" @endif>
+      <span class="sidebar-link-text">
+        <span class="sidebar-link-label">{{ $label['label'] }}</span>
+        @if ($label['hint'])
+          <span class="sidebar-link-hint">{{ $label['hint'] }}</span>
         @endif
-      </a>
-      @endforeach
+      </span>
+      @if ($label['badge'])
+        <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
+      @endif
+    </a>
     @endforeach
   </nav>
 
@@ -62,7 +55,6 @@
       <b class="sidebar-user-name" id="who">{{ auth()->user()?->name ?? 'Owner' }}</b>
     </div>
     <div class="sidebar-action-row">
-      <a href="{{ url('/cashier') }}" class="sidebar-pos-link">POS Terminal</a>
       <button onclick="logout()" class="sidebar-logout-btn">Logout</button>
     </div>
   </div>
