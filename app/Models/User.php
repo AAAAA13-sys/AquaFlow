@@ -110,4 +110,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class, 'cashier_id');
     }
+
+    /** Defect and damaged-stock reports this account filed. */
+    public function defectReports(): HasMany
+    {
+        return $this->hasMany(DefectReport::class, 'reported_by');
+    }
 }

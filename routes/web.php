@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DefectReportController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\FulfillmentController;
@@ -55,7 +56,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'approvals', 'audit-logs'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'defects', 'approvals', 'audit-logs'])
             ->name('admin.tab');
     });
 });
@@ -191,6 +192,19 @@ Route::prefix('api')->group(function (): void {
 
         // Replenishment advisories
         Route::get('advisories', AdvisoryController::class)->name('api.advisories');
+
+        // Defect & damaged-stock reporting. Any station account files a report;
+        // only management resolves one, because approving writes stock off.
+        Route::get('defects', [DefectReportController::class, 'index'])
+            ->middleware('owner:management')
+            ->name('api.defects.index');
+        Route::post('defects', [DefectReportController::class, 'store'])->name('api.defects.store');
+        Route::patch('defects/{defectReport}/approve', [DefectReportController::class, 'approve'])
+            ->middleware('owner:management')
+            ->name('api.defects.approve');
+        Route::patch('defects/{defectReport}/reject', [DefectReportController::class, 'reject'])
+            ->middleware('owner:management')
+            ->name('api.defects.reject');
 
         // Users and access
         Route::get('users', [UserController::class, 'index'])

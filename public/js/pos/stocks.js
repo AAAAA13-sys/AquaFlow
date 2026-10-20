@@ -81,3 +81,60 @@ function renderCashierStocksTable() {
     `;
   }).join('');
 }
+
+// ---------- Report Defect ----------
+
+let defectSubmitBusy = false;
+
+function openDefectReportDialog() {
+  const dialog = document.getElementById('defectReportDialog');
+  if (!dialog) return;
+  const select = document.getElementById('defectItem');
+  if (select) {
+    select.innerHTML = cashierInventoryData.map(item =>
+      '<option value="' + Number(item.id) + '">' + esc(item.item) + ' (' + Number(item.on ?? 0).toLocaleString() + ' ' + esc(item.unit || 'pcs') + ' in stock)</option>'
+    ).join('');
+  }
+  document.getElementById('defectQty').value = '';
+  document.getElementById('defectReason').value = '';
+  const err = document.getElementById('defectReportError');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (!dialog.open) dialog.showModal();
+  const qty = document.getElementById('defectQty');
+  if (qty) qty.focus();
+}
+
+function closeDefectReportDialog() {
+  const dialog = document.getElementById('defectReportDialog');
+  if (dialog) dialog.close();
+}
+
+async function submitDefectReport() {
+  if (defectSubmitBusy) return;
+  const itemId = Number(document.getElementById('defectItem')?.value || 0);
+  const qty = Number(document.getElementById('defectQty')?.value || 0);
+  const reason = (document.getElementById('defectReason')?.value || '').trim();
+  const err = document.getElementById('defectReportError');
+  const showError = msg => { if (err) { err.textContent = msg; err.classList.remove('hidden'); } };
+
+  if (!itemId) return showError('Choose an item to report.');
+  if (!Number.isFinite(qty) || qty < 1) return showError('Enter a quantity of at least 1.');
+  if (reason.length < 3) return showError('Describe the defect in a few words.');
+
+  const item = cashierInventoryData.find(r => Number(r.id) === itemId);
+  if (item && qty > Number(item.on ?? 0)) return showError('Quantity exceeds available stock');
+
+  defectSubmitBusy = true;
+  const btn = document.getElementById('defectSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    await API.createDefectReport({ inventory_item_id: itemId, quantity: qty, reason: reason });
+    closeDefectReportDialog();
+    appNotice('Defect reported. A manager will review it.');
+  } catch (error) {
+    showError(error.message || 'Could not submit the report. Try again.');
+  } finally {
+    defectSubmitBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit report'; }
+  }
+}

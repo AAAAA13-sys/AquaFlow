@@ -384,3 +384,70 @@ async function confirmEmployeeLogout() {
     if (await appConfirm('Sign out of your work queue?', 'Sign out')) logout();
   } catch (error) { showEmployeeError(error.message); }
 }
+
+// ---------- Report Defect ----------
+
+let empDefectSubmitBusy = false;
+let empDefectItems = [];
+
+async function openEmployeeDefectDialog() {
+  if (employeeBusy) return;
+  const dialog = document.getElementById('empDefectDialog');
+  if (!dialog) return;
+  try {
+    const data = await API.inventory();
+    empDefectItems = Array.isArray(data.inventory) ? data.inventory : [];
+  } catch (error) {
+    showEmployeeError((error.message || 'Could not load stock items.') + ' Try again.');
+    return;
+  }
+  const select = document.getElementById('empDefectItem');
+  if (select) {
+    select.innerHTML = empDefectItems.map(item =>
+      '<option value="' + Number(item.id) + '">' + esc(item.item) + ' (' + Number(item.on ?? 0).toLocaleString() + ' ' + esc(item.unit || 'pcs') + ' in stock)</option>'
+    ).join('');
+  }
+  document.getElementById('empDefectQty').value = '';
+  document.getElementById('empDefectReason').value = '';
+  const err = document.getElementById('empDefectError');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (!dialog.open) dialog.showModal();
+  const qty = document.getElementById('empDefectQty');
+  if (qty) qty.focus();
+}
+
+function closeEmployeeDefectDialog() {
+  const dialog = document.getElementById('empDefectDialog');
+  if (dialog) dialog.close();
+}
+
+async function submitEmployeeDefect() {
+  if (empDefectSubmitBusy) return;
+  const itemId = Number(document.getElementById('empDefectItem')?.value || 0);
+  const qty = Number(document.getElementById('empDefectQty')?.value || 0);
+  const reason = (document.getElementById('empDefectReason')?.value || '').trim();
+  const err = document.getElementById('empDefectError');
+  const showError = msg => { if (err) { err.textContent = msg; err.classList.remove('hidden'); } };
+
+  if (!itemId) return showError('Choose an item to report.');
+  if (!Number.isFinite(qty) || qty < 1) return showError('Enter a quantity of at least 1.');
+  if (reason.length < 3) return showError('Describe the defect in a few words.');
+
+  const item = empDefectItems.find(r => Number(r.id) === itemId);
+  if (item && qty > Number(item.on ?? 0)) return showError('Quantity exceeds available stock');
+
+  empDefectSubmitBusy = true;
+  const btn = document.getElementById('empDefectSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    await API.createDefectReport({ inventory_item_id: itemId, quantity: qty, reason: reason });
+    closeEmployeeDefectDialog();
+    const notice = document.getElementById('employeeResult');
+    if (notice) notice.textContent = 'Defect reported. A manager will review it.';
+  } catch (error) {
+    showError(error.message || 'Could not submit the report. Try again.');
+  } finally {
+    empDefectSubmitBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit report'; }
+  }
+}

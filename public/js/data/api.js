@@ -178,6 +178,13 @@ const API = {
   // Replenishment advisories
   advisories() { return this.get('advisories'); },
 
+  // Defect & damaged-stock reporting
+  defectReports(status) { return this.getWithQuery('defects', status ? { status: status } : {}); },
+  createDefectReport(payload) { return this.post('defects', payload); },
+  resolveDefectReport(id, action, notes) {
+    return this.patch('defects/' + id + '/' + action, notes === undefined || notes === null ? {} : { notes: notes });
+  },
+
   // Users
   users() { return this.get('users'); },
   createUser(user) { return this.post('users', user); },
