@@ -19,6 +19,5 @@
     </div>
   </div>
 
-  @include('partials.scripts-base')
-  @include('partials.scripts-pos')
+  @include('partials.scripts', ['panel' => 'cashier'])
 @endsection

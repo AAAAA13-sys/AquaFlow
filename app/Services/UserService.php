@@ -123,7 +123,7 @@ class UserService
                 $this->ensureAnotherOwner($user);
             }
 
-            if ($user->transactions()->exists()
+            if (\App\Models\CashShift::where('user_id', $user->id)->exists() || $user->transactions()->exists()
                 || ProductionQueueItem::where('rider_id', $user->id)->orWhere('handed_over_by', $user->id)->exists()
                 || DB::table('fulfillment_events')->where('user_id', $user->id)->exists()
                 || StockMovement::where('user_id', $user->id)->exists()) {

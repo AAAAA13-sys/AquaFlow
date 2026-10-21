@@ -48,3 +48,26 @@ def test_stored_forecast_closes_connection_on_error(monkeypatch: pytest.MonkeyPa
 
     assert response.status_code == 500
     connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("endpoint,payload", [
+    ("/forecast", [1]), ("/forecast", "bad"),
+    ("/forecast", {"values": [1, 2], "horizon": "bad"}),
+    ("/forecast", {"values": [1, 2], "horizon": None}),
+    ("/forecast", {"values": [1, 2], "horizon": True}),
+    ("/forecast", {"values": [1, 2], "horizon": 1.5}),
+    ("/forecast", {"values": [1, 2], "end_weekday": 7}),
+    ("/forecast", {"values": [1, 2], "end_weekday": []}),
+    ("/run", [1]), ("/run", {"days": "bad"}),
+    ("/run", {"days": 0}), ("/run", {"horizon": -1}),
+])
+def test_invalid_requests_return_validation_without_running_models(monkeypatch, endpoint, payload):
+    analyze = Mock()
+    run = Mock()
+    monkeypatch.setattr(service.arima_engine, "analyze", analyze)
+    monkeypatch.setattr(service, "run_all", run)
+    response = service.app.test_client().post(endpoint, json=payload)
+    assert response.status_code == 422
+    assert "error" in response.get_json()
+    analyze.assert_not_called()
+    run.assert_not_called()

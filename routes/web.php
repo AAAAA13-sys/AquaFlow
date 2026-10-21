@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
+    Route::view('/cashier/cash', 'cashier.cash')->name('cashier.cash');
     Route::view('/cashier/stocks', 'cashier.stocks')->name('cashier.stocks');
 
     // Legacy wizard URLs still resolve to the terminal.
@@ -56,7 +57,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'defects', 'approvals', 'audit-logs'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'cash', 'defects', 'approvals', 'audit-logs'])
             ->name('admin.tab');
     });
 });
@@ -85,6 +86,11 @@ Route::prefix('api')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');
+        Route::get('cash-shift', [\App\Http\Controllers\CashShiftController::class, 'current']);
+        Route::post('cash-shift/open', [\App\Http\Controllers\CashShiftController::class, 'open']);
+        Route::post('cash-shift/close', [\App\Http\Controllers\CashShiftController::class, 'close']);
+        Route::get('cash-shift/overview', [\App\Http\Controllers\CashShiftController::class, 'overview'])->middleware('owner:management');
+
 
         // Personal profile and settings
         Route::get('profile', [ProfileController::class, 'show'])->name('api.profile.show');

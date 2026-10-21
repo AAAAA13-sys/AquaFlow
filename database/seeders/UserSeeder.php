@@ -35,12 +35,36 @@ class UserSeeder extends Seeder
         );
 
         User::query()->updateOrCreate(
+            ['username' => 'superadmin'],
+            [
+                'email' => 'superadmin@aquaflow.com',
+                'password' => Hash::make('1234'),
+                'role' => User::ROLE_SUPER_ADMIN,
+                'name' => 'Super Admin',
+                'is_active' => true,
+                'is_bootstrap' => false,
+            ]
+        );
+
+        User::query()->updateOrCreate(
             ['username' => 'admin'],
             [
                 'email' => 'kmikaelim11@gmail.com',
                 'password' => Hash::make('1234'),
                 'role' => User::ROLE_SUPER_ADMIN,
                 'name' => 'Admin (kmikaelim11)',
+                'is_active' => true,
+                'is_bootstrap' => false,
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['username' => 'manager'],
+            [
+                'email' => 'manager@aquaflow.com',
+                'password' => Hash::make('1234'),
+                'role' => User::ROLE_ADMIN,
+                'name' => 'Station Manager (Admin)',
                 'is_active' => true,
                 'is_bootstrap' => false,
             ]

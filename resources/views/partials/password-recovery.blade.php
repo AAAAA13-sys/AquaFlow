@@ -5,7 +5,7 @@
       {{-- Step 1: Request OTP via email --}}
       <div id="forgotStepEmail">
         <label class="form-label" for="forgotEmail">Account email address</label>
-        <input id="forgotEmail" required type="email" class="form-input" autocomplete="email" placeholder="owner@example.com" maxlength="255">
+        <input id="forgotEmail" required type="email" class="form-input" autocomplete="email" placeholder="you@example.com" maxlength="255">
         <button type="submit" id="btnSendOtp" class="btn btn-primary btn-block" style="margin-top:12px;">Send verification code</button>
         <div style="margin-top:14px;text-align:center;">
           <a href="#" class="auth-link" onclick="event.preventDefault(); showAdminLoginForm();" style="font-size:13px;">&larr; Back to login</a>

@@ -6,6 +6,7 @@
 
 | Document | Use |
 |---|---|
+| [Full system checklist](FULL-SYSTEM-CHECKLIST-2026-10-21.md) | Current module coverage, fixes, test results and verification limits |
 | [Root README](../README.md) | Architecture, local startup and API overview |
 | [Deployment](DEPLOYMENT.md) | Development Compose/XAMPP setup, test runner and operational guidance |
 | [Store installation](../distribution/Getting%20Started.md) | Packaged store setup, update, backup/restore and remote access |

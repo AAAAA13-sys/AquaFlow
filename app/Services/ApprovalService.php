@@ -68,6 +68,9 @@ class ApprovalService
             // Serialize one maker's submissions, matching the actor-lock
             // convention used by fulfillment and financial submissions.
             $maker = User::whereKey($maker->id)->lockForUpdate()->firstOrFail();
+            if ($type === ApprovalTypes::SETTLEMENT_CREATE) {
+                app(TransactionSubmissionService::class)->assertDrawerAllowsWrite($maker);
+            }
 
             $request = ApprovalRequest::create([
                 'type' => $type,
@@ -481,6 +484,7 @@ class ApprovalService
                 $amount,
                 $maker,
                 (string) $request->payload['submission_key'],
+                receivedAt: $request->created_at,
             );
         } catch (\Throwable $exception) {
             // The ledger refused after the hold was dropped: put the hold back

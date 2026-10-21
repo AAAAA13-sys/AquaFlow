@@ -8,7 +8,7 @@ class OpenCashShiftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->canHandleCash() ?? false;
     }
 
     /**
@@ -17,7 +17,7 @@ class OpenCashShiftRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'opening_float' => ['required', 'numeric', 'min:0', 'max:1000000'],
+            'opening_float' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
         ];
     }
 }

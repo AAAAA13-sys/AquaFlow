@@ -39,9 +39,10 @@
    3-column track left the fourth card stranded alone on a second row. */
 .cashier-summary:has(article:nth-child(4)) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media(max-width: 1100px) { .cashier-summary:has(article:nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.cashier-summary article { background: #fff; border: 1px solid var(--border-line); border-radius: 14px; padding: 20px; }
-.cashier-summary span, .cashier-summary small { display: block; color: #475569; font-size: 12px; }
-.cashier-summary strong { display: block; font-size: 25px; margin: 10px 0; letter-spacing: -.6px; }
+.cashier-summary article { background: #fff; border: 1px solid var(--border-line); border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.cashier-summary article:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); }
+.cashier-summary span, .cashier-summary small { display: block; color: #475569; font-size: 13px; }
+.cashier-summary strong { display: block; font-size: 26px; font-weight: 700; margin: 8px 0; letter-spacing: -.6px; font-variant-numeric: tabular-nums; color: #0F172A; }
 .cashier-ledger { overflow: hidden; }
 .cashier-ledger .data-table-wrapper { overflow: auto; max-height: 580px; border-radius: 10px; border: 1px solid var(--border-line); }
 /* Was a flat `min-width: 1100px`, which pushed Vatable/VAT/Total/Pay/Receipt
@@ -52,7 +53,7 @@
 /* Explanatory line under the table, shown only when it still overflows. */
 .cashier-scroll-note { display: none; margin: 12px 2px 0; font-size: 11.5px; color: #475569; }
 .cashier-scroll-note.is-needed { display: block; }
-.cashier-ledger th { background: #EDF1F7; position: sticky; top: 0; font-size: 10px; }
+.cashier-ledger th { background: #F1F5F9; position: sticky; top: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; padding: 14px 12px; border-bottom: 2px solid var(--border-line); z-index: 2; }
 .cashier-ledger th, .cashier-ledger td { vertical-align: middle; }
 .cashier-ledger th:nth-child(1), .cashier-ledger td:nth-child(1) { width: 95px; white-space: nowrap; }
 .cashier-ledger th:nth-child(2), .cashier-ledger td:nth-child(2) { width: 95px; white-space: nowrap; }
@@ -64,17 +65,19 @@
 .cashier-ledger th:nth-child(8), .cashier-ledger td:nth-child(8) { width: 100px; white-space: nowrap; text-align: right; }
 .cashier-ledger th:nth-child(9), .cashier-ledger td:nth-child(9) { width: 80px; white-space: nowrap; }
 .cashier-ledger th:nth-child(10), .cashier-ledger td:nth-child(10) { width: 110px; text-align: center; white-space: nowrap; }
-.cashier-ledger td { padding: 16px 12px; font-size: 12px; }
+.cashier-ledger td { padding: 14px 12px; font-size: 14px; color: #1E293B; border-bottom: 1px solid var(--border-line); }
+.cashier-ledger tbody tr:hover td { background-color: #F8FAFC; }
+.cashier-ledger td.num, .cashier-ledger th.num, .cashier-ledger td.col-total { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 /* Receipt numbers and dates were breaking mid-value ("OR-" / "1019" onto two
    lines), which is how a cashier ends up reading the wrong order number. */
 .cashier-ledger td:first-child b,
 .cashier-ledger td:nth-child(2) { white-space: nowrap; }
 /* Room for the sticky Total cell's pinned-edge shadow. */
 .cashier-ledger th.col-total, .cashier-ledger td.col-total { padding-right: 18px; }
-.cashier-pagination, .cashier-pagination > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 12px; color: #475569; }
+.cashier-pagination, .cashier-pagination > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 13px; color: #475569; }
 .cashier-pagination { margin-top: 18px; }
 .cashier-pagination button:disabled { opacity: .45; }
-.cashier-empty { padding: 36px 20px; text-align: center; color: #475569; }
+.cashier-empty { padding: 36px 20px; text-align: center; color: #475569; font-size: 14px; }
 .cashier-queue-layout > .card { padding: 22px; }
 .cashier-shell .queue-card { border: 1px solid var(--border-line); border-radius: 12px; padding: 18px; margin-top: 14px; background: #fff; }
 .cashier-shell .queue-card .flex-between { align-items: flex-start; gap: 12px; }
@@ -135,7 +138,7 @@
   border-radius: 16px;
   padding: 24px;
 }
-.cashier-drawer-dialog::backdrop { background: #0f172a80; }
+.cashier-drawer-dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
 .cashier-drawer-dialog .cash-card { padding: 16px; margin-top: 12px; }
 .cashier-drawer-dialog .form-input { display: block; width: 100%; box-sizing: border-box; margin-bottom: 12px; }
 .cashier-drawer-dialog .insight-row { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
@@ -145,5 +148,71 @@
 .cashier-shell .cart-header-row, .cashier-shell .summary-row { grid-template-columns: minmax(0, 1fr) 60px minmax(90px, auto); gap: .25rem; }
 
 /* Four stock columns do not need the receipt ledger's wide layout. */
-.cashier-stock-ledger table { min-width: 520px; }
-.cashier-stock-ledger th:nth-child(4), .cashier-stock-ledger td:nth-child(4) { min-width: 110px; }
+.cashier-stock-ledger table { min-width: 580px; width: 100%; }
+.cashier-stock-ledger th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; }
+.cashier-stock-ledger td { font-size: 14px; color: #1E293B; }
+.cashier-stock-ledger td b { font-size: 14px; color: #0F172A; }
+.cashier-stock-ledger td.num b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.cashier-stock-ledger .num-unit { font-size: 13px; color: #64748B; margin-left: 4px; }
+.cashier-stock-ledger th:nth-child(4), .cashier-stock-ledger td:nth-child(4) { min-width: 120px; }
+
+/* Enhanced POS Product Item Cards */
+button.product-item {
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-line);
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+button.product-item:hover:not(:disabled):not(.is-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.12);
+  border-color: #93C5FD;
+}
+button.product-item:active:not(:disabled):not(.is-disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+button.product-item .product-info-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.3;
+}
+button.product-item .product-info-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748B;
+  margin-top: 2px;
+}
+button.product-item .product-info-stock {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1D4ED8;
+  margin-top: 4px;
+}
+button.product-item .product-info-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #FEF3C7;
+  color: #92400E;
+  margin-top: 4px;
+}
+button.product-item .product-info-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+button.product-item.prod-theme-blue { border-left: 4px solid #1D4ED8; }
+button.product-item.prod-theme-teal { border-left: 4px solid #0D9488; }
+button.product-item.prod-theme-gray { border-left: 4px solid #64748B; }
+button.product-item.prod-theme-yellow { border-left: 4px solid #D97706; }
+button.product-item.prod-theme-purple { border-left: 4px solid #7C3AED; }

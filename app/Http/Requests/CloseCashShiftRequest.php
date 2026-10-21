@@ -8,7 +8,7 @@ class CloseCashShiftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->canHandleCash() ?? false;
     }
 
     /**
@@ -17,7 +17,9 @@ class CloseCashShiftRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'counted_cash' => ['required', 'numeric', 'min:0', 'max:1000000'],
+            'shift_id' => ['required', 'integer', 'min:1'],
+            'expected_cash' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'counted_cash' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
             'note' => ['nullable', 'string', 'max:500'],
         ];
     }

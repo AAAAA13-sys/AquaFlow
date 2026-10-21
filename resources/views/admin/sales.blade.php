@@ -3,9 +3,6 @@
 @section('title', 'Sales & POS Logs | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Sales History')
 
-@push('styles')
-  <link rel="stylesheet" href="{{ asset('css/sales.css') }}?v={{ asset_version('css/sales.css') }}">
-@endpush
 
 @section('admin-content')
   <section id="s-sales">

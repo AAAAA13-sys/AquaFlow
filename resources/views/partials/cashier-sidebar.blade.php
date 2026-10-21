@@ -1,4 +1,5 @@
 @php($items = [
+    ['url' => '/cashier/cash', 'icon' => 'i-receipt', 'label' => 'Cash Drawer', 'match' => 'cashier.cash'],
     ['url' => '/cashier', 'icon' => 'i-terminal', 'label' => 'POS Terminal', 'match' => 'cashier.index'],
     ['url' => '/cashier/queue', 'icon' => 'i-orders', 'label' => 'Orders in Progress', 'match' => 'cashier.queue'],
     ['url' => '/cashier/history', 'icon' => 'i-receipt', 'label' => 'Sales & Receipts', 'match' => 'cashier.history'],
@@ -6,7 +7,16 @@
 ])
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  @include('partials.sidebar-header', ['subtitle' => 'Cashier Terminal'])
+  <div class="sidebar-header">
+    <div class="sidebar-header-brand">
+      <div class="sidebar-brand-badge">AF</div>
+      <div>
+        <h2 id="brandName" class="sidebar-brand-title">{{ $stationName ?? 'AquaFlow' }}</h2>
+        <p class="sidebar-brand-subtitle">Cashier Terminal</p>
+      </div>
+    </div>
+    <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">&times;</button>
+  </div>
 
   <nav class="sidebar-nav" id="sideNav" aria-label="Cashier page catalog">
     <p class="sidebar-section-title">Daily operations</p>

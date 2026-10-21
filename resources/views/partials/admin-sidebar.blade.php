@@ -10,6 +10,7 @@
   // centrepiece of the system, so it reads ahead of the operational screens it
   // feeds rather than trailing behind them as an equal-weight list item.
   $tabs = [
+      'cash' => ['label' => 'Cash Drawers', 'hint' => 'Starting cash & closing counts', 'badge' => null, 'featured' => false],
       'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null, 'featured' => false],
       'orders' => ['label' => 'Orders & Deliveries', 'hint' => 'Handover & remittances', 'badge' => null, 'featured' => false],
       'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => false],
@@ -29,7 +30,16 @@
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
-  @include('partials.sidebar-header', ['subtitle' => auth()->user()?->isSuperAdmin() ? 'Owner / Super Admin' : 'Station Manager'])
+  <div class="sidebar-header">
+    <div class="sidebar-header-brand">
+      <div class="sidebar-brand-badge">AF</div>
+      <div>
+        <h2 id="brandName" class="sidebar-brand-title">{{ $stationName ?? 'AquaFlow' }}</h2>
+        <p class="sidebar-brand-subtitle">{{ auth()->user()?->isSuperAdmin() ? 'Owner / Super Admin' : 'Station Manager' }}</p>
+      </div>
+    </div>
+    <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">&times;</button>
+  </div>
 
   <nav class="sidebar-nav" id="sideNav" aria-label="{{ auth()->user()?->isSuperAdmin() ? 'Owner' : 'Manager' }} page catalog">
     @foreach ($slugs as $slug)

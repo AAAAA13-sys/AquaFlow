@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "dev": "composer dev",
-        "test": "node tests/frontend-shared.cjs"
+        "test": "node tests/frontend.cjs"
     },
     "devDependencies": {
         "concurrently": "^9.0.1"

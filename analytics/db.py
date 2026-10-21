@@ -7,7 +7,7 @@ from typing import Any
 import pymysql
 from pymysql.connections import Connection
 
-from config import Settings
+from config import Settings, station_today
 
 # Demand Series Definitions
 SERIES_DEFINITIONS: dict[str, dict[str, Any]] = {
@@ -45,12 +45,12 @@ def daily_refill_gallons(connection: Connection, days: int) -> dict[date, float]
         JOIN transaction_items ti ON ti.transaction_id = t.id
         JOIN products p ON p.id = ti.product_id
         WHERE p.category = 'refill'
-          AND t.transaction_date >= (CURDATE() - INTERVAL %s DAY)
+          AND t.transaction_date >= (%s - INTERVAL %s DAY)
         GROUP BY t.transaction_date
         ORDER BY t.transaction_date
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql, (days,))
+        cursor.execute(sql, (station_today(), days))
         rows = cursor.fetchall()
 
     observed: dict[date, float] = {row["day"]: float(row["gallons"] or 0) for row in rows}
@@ -67,7 +67,7 @@ def fill_calendar(connection: Connection, observed: dict[date, float], days: int
     first_day = row["first_day"] if row else None
     if first_day is None:
         return {}
-    today = date.today()
+    today = station_today()
     day = max(first_day, today - timedelta(days=days))
     series: dict[date, float] = {}
     while day <= today:
@@ -82,11 +82,11 @@ def daily_consumable_usage(connection: Connection, name: str, days: int) -> list
         FROM transactions t JOIN transaction_items ti ON ti.transaction_id=t.id
         JOIN product_consumables pc ON pc.product_id=ti.product_id
         JOIN inventory i ON i.id=pc.inventory_item_id
-        WHERE i.item_name=%s AND t.transaction_date >= (CURDATE() - INTERVAL %s DAY)
+        WHERE i.item_name=%s AND t.transaction_date >= (%s - INTERVAL %s DAY)
         GROUP BY t.transaction_date ORDER BY t.transaction_date
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql, (name, days))
+        cursor.execute(sql, (name, station_today(), days))
         rows = cursor.fetchall()
     return list(fill_calendar(connection, {row["day"]: float(row["used"] or 0) for row in rows}, days).values())
 
@@ -121,12 +121,13 @@ def save_forecast(
             (series_name, horizon_type, forecast_date, historical_data, forecasted_data,
              model_order, method, differencing, aic_score, mape_score, mae_score, rmse_score,
              adf_statistic, adf_pvalue, ljung_box_pvalue, residual_std, model_diagnostics)
-        VALUES (%s, %s, CURDATE(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     with connection.cursor() as cursor:
         cursor.execute(sql, (
             series_name,
             horizon_type,
+            station_today(),
             json.dumps([round(float(value), 2) for value in history]),
             json.dumps([round(float(value), 2) for value in forecast]),
             str(metrics.get("order", "ARIMA(1,1,1)")),

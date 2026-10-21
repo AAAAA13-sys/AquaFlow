@@ -89,8 +89,8 @@ class GenerateSalesHistory extends Command
                 $date = now()->subDays($offset);
                 $isWeekend = in_array((int) $date->dayOfWeekIso, [6, 7], true);
 
-                // 15-40 jugs a day across the past month: weekdays 15-30, weekends 26-40
-                $remaining = $isWeekend ? mt_rand(26, 40) : mt_rand(15, 30);
+                // 20-40 gallons a day across the past month: weekdays 20-32, weekends 30-40
+                $remaining = $isWeekend ? mt_rand(30, 40) : mt_rand(20, 32);
 
                 while ($remaining > 0) {
                     $saleGallons = min($remaining, mt_rand(1, 5));

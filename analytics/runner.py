@@ -8,7 +8,7 @@ from typing import Any
 
 import arima_engine
 import db
-from config import load_settings
+from config import load_settings, station_today
 
 # Logger
 logger = logging.getLogger("aquaflow.analytics")
@@ -31,7 +31,7 @@ def run_all(days: int | None = None, horizon: int | None = None) -> dict[str, An
     settings = load_settings()
     history_days = days or settings.history_days
     forecast_horizon = horizon or settings.horizon_days
-    end_weekday = date.today().weekday()
+    end_weekday = station_today().weekday()
 
     results: list[dict[str, Any]] = []
 

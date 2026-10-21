@@ -1,5 +1,7 @@
 # AquaFlow - Deployment Guide
 
+> Current supported workflow (21 October 2026): use Docker Compose for development and the distribution launchers for packaged stores. The XAMPP instructions below are historical and are not the supported project workflow. Source app code is mounted into app/test/mail-worker; rebuild and recreate the scheduler worker after backend changes because it runs code from its image. Normal sign-in is username/password; email OTP is for password recovery. See [the current verification checklist](FULL-SYSTEM-CHECKLIST-2026-10-21.md) and [packaged installation guide](../distribution/Getting%20Started.md).
+
 AquaFlow is a Laravel 12 application with a Python forecasting service and MySQL.
 Two ways to run it:
 

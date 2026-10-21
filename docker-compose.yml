@@ -177,6 +177,7 @@ services:
   analytics:
     build: ./analytics
     environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Manila}
       AQUAFLOW_DB_HOST: db
       AQUAFLOW_DB_PORT: 3306
       AQUAFLOW_DB_NAME: ${DB_DATABASE:-aquaflow_db}

@@ -115,7 +115,7 @@ function renderEmployeeJobs() {
 
   for (const job of employeeJobs) {
     const card = document.createElement('article');
-    card.className = 'emp-order-card';
+    card.className = 'emp-order-card emp-card-' + (job.status || 'neutral');
 
     // Top Header
     const header = document.createElement('div');

@@ -4,9 +4,6 @@
 @section('meta-description', 'Sales, stock and demand forecast for ' . ($stationName ?? 'AquaFlow') . ' water refilling station.')
 @section('topbar-title', 'Overview')
 
-@push('styles')
-  <link rel="stylesheet" href="{{ asset('css/overview.css') }}?v={{ asset_version('css/overview.css') }}">
-@endpush
 
 @section('admin-content')
   <section id="s-dash">

@@ -69,8 +69,7 @@ class CashShiftController extends Controller
     {
         $shift = CashShift::query()
             ->where('user_id', $request->user()->id)
-            ->whereNull('closed_at')
-            ->orderBy('business_date')->first();
+            ->whereKey($request->validated()['shift_id'])->first();
 
         if (! $shift) {
             throw ValidationException::withMessages([
@@ -81,6 +80,7 @@ class CashShiftController extends Controller
         $result = $this->cash->close(
             $shift,
             (float) $request->validated()['counted_cash'],
+            (float) $request->validated()['expected_cash'],
             $request->validated()['note'] ?? null,
         );
 
@@ -95,7 +95,7 @@ class CashShiftController extends Controller
     {
         $shifts = CashShift::query()
             ->with('user')
-            ->whereDate('business_date', today())
+            ->where(fn ($query) => $query->whereDate('business_date', today())->orWhereNull('closed_at'))
             ->orderBy('user_id')
             ->get();
 
@@ -110,7 +110,10 @@ class CashShiftController extends Controller
      */
     private function present(CashShift $shift): array
     {
+        if ($shift->isOpen()) { $shift->fill($this->cash->cashMovement($shift)); }
         return [
+            'pending_collections' => $shift->isOpen() ? $this->cash->pendingCollections($shift->user_id) : 0,
+            'collections' => round($shift->expected_cash - $shift->opening_float - $shift->total_sales, 2),
             'id' => $shift->id,
             'user_id' => $shift->user_id,
             'cashier' => $shift->user?->name ?? 'Unknown',

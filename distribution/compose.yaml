@@ -84,6 +84,7 @@ services:
     image: aquaflow/analytics:${AQUAFLOW_VERSION:?Missing release.env}
     pull_policy: never
     environment:
+      APP_TIMEZONE: Asia/Manila
       AQUAFLOW_DB_HOST: db
       AQUAFLOW_DB_NAME: aquaflow_db
       AQUAFLOW_DB_USER: aquaflow

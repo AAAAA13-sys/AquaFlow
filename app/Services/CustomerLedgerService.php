@@ -55,11 +55,11 @@ class CustomerLedgerService
             : 'Payment cannot exceed the outstanding balance.']);
     }
 
-    public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey, ?int $deliveryProofId = null, ?string $note = null): array
+    public function settle(Customer $customer, float $amount, User $cashier, string $submissionKey, ?int $deliveryProofId = null, ?string $note = null, ?\Carbon\CarbonInterface $receivedAt = null): array
     {
         abort_unless($cashier->canHandleCash(), 403);
 
-        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', array_filter(['customer_id' => $customer->id, 'amount' => $amount, 'note' => $note, 'delivery_proof_id' => $deliveryProofId], fn ($value) => $value !== null), function () use ($customer, $amount, $cashier, $deliveryProofId, $note): array {
+        return app(TransactionSubmissionService::class)->execute($cashier, $submissionKey, 'collection', array_filter(['customer_id' => $customer->id, 'amount' => $amount, 'note' => $note, 'delivery_proof_id' => $deliveryProofId, 'received_at' => $receivedAt?->toIso8601String()], fn ($value) => $value !== null), function () use ($customer, $amount, $cashier, $deliveryProofId, $note, $receivedAt): array {
             /** @var Customer $locked */
             $locked = Customer::query()->lockForUpdate()->find($customer->id);
 
@@ -120,8 +120,8 @@ class CustomerLedgerService
                 'cash_tendered' => $applied,
                 'cash_change' => 0,
                 'balance_after' => $locked->debt_balance,
-                'transaction_date' => now()->toDateString(),
-                'transaction_time' => now()->toTimeString(),
+                'transaction_date' => ($receivedAt ?? now())->toDateString(),
+                'transaction_time' => ($receivedAt ?? now())->toTimeString(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -132,7 +132,7 @@ class CustomerLedgerService
             }
 
             return ['applied' => $applied, 'customer' => $locked, 'transaction' => $transaction->load(['customer', 'cashier'])];
-        });
+        }, $receivedAt?->toDateString());
     }
 }
 

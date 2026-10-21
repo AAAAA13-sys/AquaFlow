@@ -86,12 +86,18 @@ function renderCashierStocksTable() {
 
 let defectSubmitBusy = false;
 
-function openDefectReportDialog() {
+async function openDefectReportDialog() {
   const dialog = document.getElementById('defectReportDialog');
   if (!dialog) return;
   const select = document.getElementById('defectItem');
+  if (select && (!cashierInventoryData || cashierInventoryData.length === 0)) {
+    try {
+      const data = await API.inventory();
+      cashierInventoryData = data.inventory || [];
+    } catch (_) {}
+  }
   if (select) {
-    select.innerHTML = cashierInventoryData.map(item =>
+    select.innerHTML = (cashierInventoryData || []).map(item =>
       '<option value="' + Number(item.id) + '">' + esc(item.item) + ' (' + Number(item.on ?? 0).toLocaleString() + ' ' + esc(item.unit || 'pcs') + ' in stock)</option>'
     ).join('');
   }

@@ -3,7 +3,7 @@
 @section('body-class', '')
 
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/admin-pages.css') }}?v={{ asset_version('css/admin-pages.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ asset_version('css/admin.css') }}">
 @endpush
 
 @section('content')
@@ -21,6 +21,5 @@
     </div>
   </div>
 
-  @include('partials.scripts-base')
-  @include('partials.scripts-admin')
+  @include('partials.scripts', ['panel' => 'admin'])
 @endsection

@@ -43,15 +43,32 @@ def series():
     })
 
 
+def _payload():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        raise ValueError("Request body must be a JSON object.")
+    return payload
+
+
+def _integer(payload, field, default, minimum=1, maximum=None):
+    value = payload.get(field, default)
+    if type(value) is not int or value < minimum or (maximum is not None and value > maximum):
+        raise ValueError(f"Field '{field}' must be an integer from {minimum}" + (f" to {maximum}." if maximum is not None else "."))
+    return value
+
+
 # Forecast Endpoints
 @app.post("/forecast")
 def forecast():
-    payload = request.get_json(silent=True) or {}
+    try:
+        payload = _payload()
+        horizon = _integer(payload, "horizon", SETTINGS.horizon_days)
+        end_weekday = payload.get("end_weekday")
+        if end_weekday is not None:
+            end_weekday = _integer(payload, "end_weekday", None, 0, 6)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 422
     values = payload.get("values")
-    horizon = int(payload.get("horizon", SETTINGS.horizon_days))
-    end_weekday = payload.get("end_weekday")
-    if end_weekday is not None:
-        end_weekday = int(end_weekday)
 
     if not isinstance(values, list) or not values:
         return jsonify({"error": "Field 'values' must be a non-empty array."}), 422
@@ -76,9 +93,12 @@ def stored_forecast(series_name: str):
 
 @app.post("/run")
 def run():
-    payload = request.get_json(silent=True) or {}
-    days = int(payload.get("days", SETTINGS.history_days))
-    horizon = int(payload.get("horizon", SETTINGS.horizon_days))
+    try:
+        payload = _payload()
+        days = _integer(payload, "days", SETTINGS.history_days)
+        horizon = _integer(payload, "horizon", SETTINGS.horizon_days)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 422
     return jsonify(run_all(days, horizon))
 
 

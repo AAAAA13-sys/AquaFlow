@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dataclasses import dataclass
 
 
@@ -29,3 +31,9 @@ def load_settings() -> Settings:
         history_days=int(os.getenv("AQUAFLOW_HISTORY_DAYS", "90")),
         horizon_days=int(os.getenv("AQUAFLOW_HORIZON_DAYS", "7")),
     )
+
+
+def station_today(at: datetime | None = None):
+    """Use Laravel's station timezone even when Python/MySQL hosts run UTC."""
+    zone = ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Manila"))
+    return (at.astimezone(zone) if at is not None else datetime.now(zone)).date()

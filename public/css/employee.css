@@ -25,9 +25,9 @@ body.employee-page {
 }
 
 .emp-container {
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 18px 16px;
   box-sizing: border-box;
 }
 
@@ -87,14 +87,16 @@ body.employee-page {
   background: #ffffff;
   border: 1px solid var(--emp-border);
   color: var(--emp-text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
 }
 
@@ -108,12 +110,16 @@ body.employee-page {
   background: #ffffff;
   border: 1px solid var(--emp-border);
   color: var(--emp-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .emp-signout-btn:hover,
@@ -223,13 +229,15 @@ body.employee-page {
 .emp-refresh-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
   background: #ffffff;
   border: 1px solid var(--emp-border);
   color: var(--emp-text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 8px 14px;
+  min-height: 44px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -246,77 +254,109 @@ body.employee-page {
   background: var(--emp-surface);
   border: 1px solid var(--emp-border);
   border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.15s ease;
 }
+.emp-order-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.emp-card-preparing { border-left: 4px solid #D97706; }
+.emp-card-ready { border-left: 4px solid #16A34A; background: #FAFDFB; }
+.emp-card-out_for_delivery { border-left: 4px solid #0284C7; }
+.emp-card-delivered { border-left: 4px solid #64748B; }
 
 .emp-order-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #F1F5F9;
 }
 
 .emp-order-receipt {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--emp-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .emp-order-customer {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--emp-muted);
-  font-weight: 500;
-  margin-top: 1px;
+  font-weight: 600;
+  margin-top: 2px;
 }
 
 .emp-order-lines {
   background: #F8FAFC;
+  border: 1px solid #EDF2F7;
   border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--emp-text);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .emp-order-meta {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--emp-muted);
   margin-bottom: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .emp-meta-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 13px;
+}
+.emp-meta-row a {
+  color: var(--emp-brand);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #EFF6FF;
+  min-height: 32px;
+  transition: background 0.15s ease;
+}
+.emp-meta-row a:hover {
+  background: #DBEAFE;
 }
 
 /* Action button for jobs */
 .emp-action-btn {
   width: 100%;
-  min-height: 42px;
+  min-height: 46px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   border: none;
   cursor: pointer;
   background: var(--emp-brand);
   color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.2);
 }
 
 .emp-action-btn:hover,
 .emp-action-btn:active {
   background: var(--emp-brand-hover);
+  transform: translateY(1px);
 }
 
 /* Error banner */
@@ -359,10 +399,73 @@ body.employee-page {
 .employee-issue-dialog {
   padding: 0;
   border: 0;
-  border-radius: 14px;
-  max-width: calc(100vw - 24px);
+  border-radius: 16px;
+  max-width: min(480px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
   overflow-y: auto;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.2);
 }
-.employee-issue-dialog::backdrop { background: #0f172a80; }
+.employee-issue-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+}
 .emp-order-lines, .emp-order-meta, .emp-order-customer { overflow-wrap: anywhere; }
+
+#deliveryEvidenceForm {
+  padding: 24px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 14px;
+  background: #FFFFFF;
+}
+#deliveryEvidenceForm h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #0F172A;
+  font-weight: 700;
+}
+#deliveryEvidenceForm p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+#deliveryEvidenceForm input[name="recipient_code"] {
+  letter-spacing: 0.15em;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+#deliveryEvidenceForm input[name="recipient_code"]:focus {
+  border-color: #1D4ED8;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
+}
+#deliveryEvidenceForm label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#deliveryEvidenceForm input[type="file"] {
+  padding: 8px;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
+  background: #F8FAFC;
+  width: 100%;
+  box-sizing: border-box;
+}
+#deliveryEvidenceForm .btn {
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+}

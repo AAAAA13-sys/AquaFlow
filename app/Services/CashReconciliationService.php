@@ -78,18 +78,30 @@ class CashReconciliationService
      *
      * @return array{shift: CashShift, expected_cash: float, variance: float}
      */
-    public function close(CashShift $shift, float $countedCash, ?string $note = null): array
+    public function close(CashShift $shift, float $countedCash, float $reviewedExpectedCash, ?string $note = null): array
     {
-        return DB::transaction(function () use ($shift, $countedCash, $note): array {
+        return DB::transaction(function () use ($shift, $countedCash, $reviewedExpectedCash, $note): array {
             User::whereKey($shift->user_id)->lockForUpdate()->firstOrFail();
             $shift = CashShift::whereKey($shift->id)->lockForUpdate()->firstOrFail();
             if (! $shift->isOpen()) {
-                throw ValidationException::withMessages(['counted_cash' => 'This drawer has already been closed.']);
+                if (round($countedCash, 2) !== round((float) $shift->counted_cash, 2) || trim($note ?? '') !== trim($shift->note ?? '')) {
+                    throw ValidationException::withMessages(['counted_cash' => 'This drawer is already closed with different details.']);
+                }
+                return ['shift' => $shift, 'expected_cash' => (float) $shift->expected_cash, 'variance' => (float) $shift->variance];
             }
             $movement = $this->cashMovement($shift);
 
             $expected = $movement['expected_cash'];
+            if ($this->pendingCollections($shift->user_id) > 0) {
+                throw ValidationException::withMessages(['drawer' => 'Ask a manager to resolve pending collections before closing.']);
+            }
+            if ((int) round($reviewedExpectedCash * 100) !== (int) round($expected * 100)) {
+                throw ValidationException::withMessages(['expected_cash' => 'Cash receipts changed. Refresh and recount before closing.']);
+            }
             $variance = round($countedCash - $expected, 2);
+            if (abs($variance) >= 0.01 && mb_strlen(trim($note ?? '')) < 5) {
+                throw ValidationException::withMessages(['note' => 'Explain the shortage or overage in at least five characters.']);
+            }
 
             $shift->fill([
                 'expected_cash' => $expected,
@@ -103,6 +115,14 @@ class CashReconciliationService
 
             return ['shift' => $shift->fresh(), 'expected_cash' => $expected, 'variance' => $variance];
         });
+    }
+
+    /** Unapproved counter collections are physically held but not yet posted. */
+    public function pendingCollections(int $userId): float
+    {
+        return round((float) \App\Models\ApprovalRequest::where('requested_by', $userId)
+            ->where('type', \App\Support\ApprovalTypes::SETTLEMENT_CREATE)->where('state', 'pending')
+            ->get()->sum(fn ($request) => (float) ($request->payload['amount'] ?? 0)), 2);
     }
 
     /** Recent closed sessions, newest first, for the history list. */
