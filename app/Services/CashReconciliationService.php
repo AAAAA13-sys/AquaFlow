@@ -42,9 +42,9 @@ class CashReconciliationService
      *
      * @return array{shift: CashShift, already_open: bool}
      */
-    public function open(User $user, float $openingFloat, ?string $date = null): array
+    public function open(User $user, float $openingFloat, ?string $date = null, ?string $openingNote = null): array
     {
-        return DB::transaction(function () use ($user, $openingFloat, $date): array {
+        return DB::transaction(function () use ($user, $openingFloat, $date, $openingNote): array {
             User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $businessDate = $date ?: today()->toDateString();
 
@@ -57,13 +57,21 @@ class CashReconciliationService
                 return ['shift' => $existing, 'already_open' => true];
             }
 
-            $shift = CashShift::create([
+            $shift = new CashShift([
                 'user_id' => $user->id,
                 'business_date' => $businessDate,
                 'opening_float' => round($openingFloat, 2),
                 'opened_at' => now(),
+                'opening_note' => $openingNote,
             ]);
 
+            if ($shift->openingPunctuality() === 'late' && mb_strlen(trim($openingNote ?? '')) < 5) {
+                throw ValidationException::withMessages([
+                    'opening_note' => 'Explain the late opening in at least five characters.',
+                ]);
+            }
+
+            $shift->save();
             $shift->fill($this->cashMovement($shift))->save();
 
             return ['shift' => $shift->fresh(), 'already_open' => false];

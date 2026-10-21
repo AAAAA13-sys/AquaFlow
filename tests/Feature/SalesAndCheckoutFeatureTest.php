@@ -762,7 +762,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
         $this->seed();
         $cashier = User::where('role', 'cashier')->firstOrFail();
         $this->actingAs($cashier)->get('/cashier/cash')->assertOk()->assertSee('cashOpenForm', false)->assertSee('cashCloseForm', false);
-        $id = $this->postJson('/api/cash-shift/open', ['opening_float'=>200])->assertOk()->json('shift.id');
+        $id = $this->postJson('/api/cash-shift/open', ['opening_float'=>200, 'opening_note'=>'Shift opening'])->assertOk()->json('shift.id');
         $payload = ['submission_key'=>(string) Str::uuid(), 'customer_id'=>Customer::where('name','Walk-in Guest')->value('id'), 'order_type'=>'Walk-in', 'cash_tendered'=>100, 'items'=>[['product_id'=>'slim','quantity'=>1]]];
         $receipt = $this->postJson('/api/transactions',$payload)->assertCreated()->json('transaction.id');
         $expected = $this->getJson('/api/cash-shift')->assertOk()->json('shift.expected_cash');
@@ -789,20 +789,20 @@ class SalesAndCheckoutFeatureTest extends TestCase
         $cashier = User::where('role','cashier')->firstOrFail();
         $customer = Customer::where('name','Santos Family')->firstOrFail();
         $customer->update(['debt_balance'=>100]);
-        $id = $this->actingAs($cashier)->postJson('/api/cash-shift/open',['opening_float'=>200])->assertOk()->json('shift.id');
+        $id = $this->actingAs($cashier)->postJson('/api/cash-shift/open',['opening_float'=>200, 'opening_note'=>'Shift opening'])->assertOk()->json('shift.id');
         $this->postJson('/api/customers/'.$customer->id.'/settle',['amount'=>50,'submission_key'=>(string) Str::uuid()])->assertStatus(202);
         $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.pending_collections',50);
         $this->postJson('/api/cash-shift/close',['shift_id'=>$id,'expected_cash'=>200,'counted_cash'=>200])->assertUnprocessable()->assertJsonValidationErrors('drawer');
         $this->travel(1)->days();
         $this->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.id',$id);
-        $this->postJson('/api/cash-shift/open',['opening_float'=>100])->assertConflict();
+        $this->postJson('/api/cash-shift/open',['opening_float'=>100, 'opening_note'=>'Shift opening'])->assertConflict();
         $this->assertDatabaseHas('cash_shifts',['id'=>$id,'closed_at'=>null]);
         $approval=\App\Models\ApprovalRequest::where('type','settlement.create')->firstOrFail();
         $manager=User::create(['name'=>'Manager','username'=>'midnight_manager','email'=>'midnight@example.com','password'=>'Private123!','role'=>'admin','is_active'=>true]);
         $this->actingAs($manager)->postJson('/api/approvals/'.$approval->id.'/decision',['decision'=>'approve','submission_key'=>(string) Str::uuid()])->assertOk();
         $this->actingAs($cashier)->getJson('/api/cash-shift')->assertOk()->assertJsonPath('shift.expected_cash',250);
         $this->postJson('/api/cash-shift/close',['shift_id'=>$id,'expected_cash'=>250,'counted_cash'=>250])->assertOk();
-        $this->postJson('/api/cash-shift/open',['opening_float'=>100])->assertOk()->assertJsonPath('shift.expected_cash',100);
+        $this->postJson('/api/cash-shift/open',['opening_float'=>100, 'opening_note'=>'Shift opening'])->assertOk()->assertJsonPath('shift.expected_cash',100);
         $this->travelBack();
     }
     public function test_approved_collection_enters_the_cashiers_drawer_once_and_closed_drawer_rejects_new_proposals(): void
@@ -811,7 +811,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
         $cashier=User::where('role','cashier')->firstOrFail();
         $customer=Customer::where('name','Santos Family')->firstOrFail();
         $customer->update(['debt_balance'=>100]);
-        $id=$this->actingAs($cashier)->postJson('/api/cash-shift/open',['opening_float'=>200])->assertOk()->json('shift.id');
+        $id=$this->actingAs($cashier)->postJson('/api/cash-shift/open',['opening_float'=>200, 'opening_note'=>'Shift opening'])->assertOk()->json('shift.id');
         $this->postJson('/api/customers/'.$customer->id.'/settle',['amount'=>50,'submission_key'=>(string) Str::uuid()])->assertStatus(202);
         $approval=\App\Models\ApprovalRequest::where('type','settlement.create')->firstOrFail();
         $manager=User::create(['name'=>'Manager','username'=>'approving_manager','email'=>'approver@example.com','password'=>'Private123!','role'=>'admin','is_active'=>true]);
@@ -934,5 +934,150 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
         // And that operator's own direct settlement cannot reuse the key.
         $this->postJson('/api/customers/'.$customer->id.'/settle', ['submission_key' => $payload['submission_key'], 'amount' => 10])->assertStatus(409);
+    }
+
+    public function test_shift_schedule_verification_and_19_case_punctuality_matrix(): void
+    {
+        $date = '2026-10-21';
+        $tz = 'Asia/Manila';
+        \App\Models\SystemSetting::bustShiftPolicyCache();
+
+        // T1: null opened_at -> 'unopened', 0
+        $shift = new CashShift(['business_date' => $date, 'opened_at' => null]);
+        $this->assertSame('unopened', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T2: 07:29:59 -> 'early', 0
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 07:29:59", $tz);
+        $this->assertSame('early', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T3: 07:59:59 -> 'early', 0
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 07:59:59", $tz);
+        $this->assertSame('early', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T4: 08:00:00 -> 'on_time', 0
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:00:00", $tz);
+        $this->assertSame('on_time', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T5: 08:15:00 -> 'on_time', 0
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:15:00", $tz);
+        $this->assertSame('on_time', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T6: 08:30:00 (exact inclusive boundary) -> 'on_time', 0
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:30:00", $tz);
+        $this->assertSame('on_time', $shift->openingPunctuality());
+        $this->assertSame(0, $shift->openingLateMinutes());
+
+        // T7: 08:30:01 (first second past grace cutoff -> ceil(1/60) = 1m) -> 'late', 1
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:30:01", $tz);
+        $this->assertSame('late', $shift->openingPunctuality());
+        $this->assertSame(1, $shift->openingLateMinutes());
+
+        // T8: 08:45:00 (15 mins past grace cutoff) -> 'late', 15
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:45:00", $tz);
+        $this->assertSame('late', $shift->openingPunctuality());
+        $this->assertSame(15, $shift->openingLateMinutes());
+
+        // T9: null closed_at with active opened_at -> 'open', 0
+        $shift->closed_at = null;
+        $this->assertSame('open', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T10: 16:29:59 -> 'early', 0
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 16:29:59", $tz);
+        $this->assertSame('early', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T11: 16:59:59 -> 'early', 0
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 16:59:59", $tz);
+        $this->assertSame('early', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T12: 17:00:00 (exact target close) -> 'on_time', 0
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 17:00:00", $tz);
+        $this->assertSame('on_time', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T13: 17:15:00 -> 'on_time', 0
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 17:15:00", $tz);
+        $this->assertSame('on_time', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T14: 17:30:00 (exact inclusive closing grace boundary) -> 'on_time', 0
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 17:30:00", $tz);
+        $this->assertSame('on_time', $shift->closingPunctuality());
+        $this->assertSame(0, $shift->closingLateMinutes());
+
+        // T15: 17:30:01 (first second past grace cutoff -> ceil(1/60) = 1m) -> 'delayed', 1
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 17:30:01", $tz);
+        $this->assertSame('delayed', $shift->closingPunctuality());
+        $this->assertSame(1, $shift->closingLateMinutes());
+
+        // T16: 18:15:00 (45 mins past grace cutoff) -> 'delayed', 45
+        $shift->closed_at = \Carbon\Carbon::parse("{$date} 18:15:00", $tz);
+        $this->assertSame('delayed', $shift->closingPunctuality());
+        $this->assertSame(45, $shift->closingLateMinutes());
+
+        // T17: opened_at valid, business_date cast to Carbon -> no exception
+        $this->assertInstanceOf(\Carbon\CarbonInterface::class, $shift->business_date);
+        $this->assertSame($date, $shift->business_date->format('Y-m-d'));
+
+        // T18: Policy overridden in SystemSetting to 09:00 start, open at 08:45 -> 'early'
+        \App\Models\SystemSetting::put(\App\Models\SystemSetting::KEY_SHIFT_START_TIME, '09:00:00');
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:45:00", $tz);
+        $this->assertSame('early', $shift->openingPunctuality());
+
+        // T19: Policy grace set to 0, open at 08:00:01 -> 'late', 1 min
+        \App\Models\SystemSetting::put(\App\Models\SystemSetting::KEY_SHIFT_START_TIME, '08:00:00');
+        \App\Models\SystemSetting::put(\App\Models\SystemSetting::KEY_SHIFT_GRACE_MINUTES, '0');
+        $shift->opened_at = \Carbon\Carbon::parse("{$date} 08:00:01", $tz);
+        $this->assertSame('late', $shift->openingPunctuality());
+        $this->assertSame(1, $shift->openingLateMinutes());
+
+        // Reset settings
+        \App\Models\SystemSetting::put(\App\Models\SystemSetting::KEY_SHIFT_GRACE_MINUTES, '30');
+    }
+
+    public function test_late_open_requires_explanation_note_and_exposes_timing_payload(): void
+    {
+        $this->seed();
+        $cashier = User::where('role', 'cashier')->firstOrFail();
+
+        // Travel to late morning past 08:30 grace: 08:45 AM Manila time
+        $tz = 'Asia/Manila';
+        $lateTime = \Carbon\Carbon::parse(today()->toDateString().' 08:45:00', $tz);
+        $this->travelTo($lateTime);
+
+        // Attempting to open without note fails validation
+        $this->actingAs($cashier)->postJson('/api/cash-shift/open', [
+            'opening_float' => 200,
+        ])->assertUnprocessable()->assertJsonValidationErrors('opening_note');
+
+        // Short note (<5 chars) fails validation
+        $this->postJson('/api/cash-shift/open', [
+            'opening_float' => 200,
+            'opening_note' => 'late',
+        ])->assertUnprocessable()->assertJsonValidationErrors('opening_note');
+
+        // Note >= 5 chars succeeds
+        $res = $this->postJson('/api/cash-shift/open', [
+            'opening_float' => 200,
+            'opening_note' => 'POS system startup delay',
+        ])->assertOk();
+
+        $res->assertJsonPath('shift.opening_note', 'POS system startup delay')
+            ->assertJsonPath('shift.timing.opening_status', 'late')
+            ->assertJsonPath('shift.timing.opening_late_minutes', 15);
+
+        // Current endpoint exposes timing object
+        $this->getJson('/api/cash-shift')->assertOk()
+            ->assertJsonPath('shift.timing.opening_status', 'late')
+            ->assertJsonPath('shift.timing.schedule', '08:00 - 17:00');
+
+        $this->travelBack();
     }
 }

@@ -259,13 +259,27 @@ body.employee-page {
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   transition: box-shadow 0.15s ease;
 }
+
 .emp-order-card:hover {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
-.emp-card-preparing { border-left: 4px solid #D97706; }
-.emp-card-ready { border-left: 4px solid #16A34A; background: #FAFDFB; }
-.emp-card-out_for_delivery { border-left: 4px solid #0284C7; }
-.emp-card-delivered { border-left: 4px solid #64748B; }
+
+.emp-card-preparing {
+  border-left: 4px solid #D97706;
+}
+
+.emp-card-ready {
+  border-left: 4px solid #16A34A;
+  background: #FAFDFB;
+}
+
+.emp-card-out_for_delivery {
+  border-left: 4px solid #0284C7;
+}
+
+.emp-card-delivered {
+  border-left: 4px solid #64748B;
+}
 
 .emp-order-header {
   display: flex;
@@ -318,6 +332,7 @@ body.employee-page {
   gap: 6px;
   font-size: 13px;
 }
+
 .emp-meta-row a {
   color: var(--emp-brand);
   font-weight: 600;
@@ -331,6 +346,7 @@ body.employee-page {
   min-height: 32px;
   transition: background 0.15s ease;
 }
+
 .emp-meta-row a:hover {
   background: #DBEAFE;
 }
@@ -388,14 +404,23 @@ body.employee-page {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.emp-action-btn:disabled, .emp-issue-top-btn:disabled {
+.emp-action-btn:disabled,
+.emp-issue-top-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
 .employee-issue-dialog {
   padding: 0;
   border: 0;
@@ -405,11 +430,17 @@ body.employee-page {
   overflow-y: auto;
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.2);
 }
+
 .employee-issue-dialog::backdrop {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
 }
-.emp-order-lines, .emp-order-meta, .emp-order-customer { overflow-wrap: anywhere; }
+
+.emp-order-lines,
+.emp-order-meta,
+.emp-order-customer {
+  overflow-wrap: anywhere;
+}
 
 #deliveryEvidenceForm {
   padding: 24px;
@@ -418,18 +449,21 @@ body.employee-page {
   gap: 14px;
   background: #FFFFFF;
 }
+
 #deliveryEvidenceForm h2 {
   margin: 0;
   font-size: 20px;
   color: #0F172A;
   font-weight: 700;
 }
+
 #deliveryEvidenceForm p {
   margin: 0;
   font-size: 13px;
   line-height: 1.55;
   color: #475569;
 }
+
 #deliveryEvidenceForm input[name="recipient_code"] {
   letter-spacing: 0.15em;
   font-size: 18px;
@@ -442,11 +476,13 @@ body.employee-page {
   box-sizing: border-box;
   width: 100%;
 }
+
 #deliveryEvidenceForm input[name="recipient_code"]:focus {
   border-color: #1D4ED8;
   outline: none;
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
 }
+
 #deliveryEvidenceForm label {
   font-size: 13px;
   font-weight: 600;
@@ -455,6 +491,7 @@ body.employee-page {
   flex-direction: column;
   gap: 4px;
 }
+
 #deliveryEvidenceForm input[type="file"] {
   padding: 8px;
   border: 1px dashed #CBD5E1;
@@ -463,6 +500,7 @@ body.employee-page {
   width: 100%;
   box-sizing: border-box;
 }
+
 #deliveryEvidenceForm .btn {
   min-height: 44px;
   font-size: 14px;

@@ -50,6 +50,7 @@ class CashShiftController extends Controller
         $result = $this->cash->open(
             $request->user(),
             (float) $request->validated()['opening_float'],
+            openingNote: $request->validated()['opening_note'] ?? null,
         );
 
         if ($result['already_open']) {
@@ -134,6 +135,54 @@ class CashShiftController extends Controller
                 default => 'balanced',
             },
             'note' => $shift->note,
+            'opening_note' => $shift->opening_note,
+            'timing' => $this->presentTiming($shift),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function presentTiming(CashShift $shift): array
+    {
+        $policy = CashShift::shiftPolicy();
+        $tz = $shift->policyTz();
+
+        $openActualStr = $shift->opened_at ? $shift->opened_at->copy()->setTimezone($tz)->format('g:i A') : null;
+        $closeActualStr = $shift->closed_at ? $shift->closed_at->copy()->setTimezone($tz)->format('g:i A') : null;
+
+        $openStatus = $shift->openingPunctuality();
+        $closeStatus = $shift->closingPunctuality();
+        $openLateMins = $shift->openingLateMinutes();
+        $closeLateMins = $shift->closingLateMinutes();
+
+        $openLabel = match ($openStatus) {
+            'unopened' => 'Unopened',
+            'early' => "Early Prep ({$openActualStr} • Before schedule)",
+            'on_time' => "Opened on-time ({$openActualStr} • Within grace period)",
+            'late' => "Late Opening ({$openActualStr} • +{$openLateMins}m past grace)",
+            default => 'Unknown',
+        };
+
+        $closeLabel = match ($closeStatus) {
+            'unopened' => 'Unopened',
+            'open' => 'Currently Open',
+            'early' => "Early Close ({$closeActualStr} • Before schedule)",
+            'on_time' => "Closed on-time ({$closeActualStr} • Within grace period)",
+            'delayed' => "Delayed Close ({$closeActualStr} • +{$closeLateMins}m past grace)",
+            default => 'Unknown',
+        };
+
+        return [
+            'schedule' => substr($policy['start'], 0, 5).' - '.substr($policy['end'], 0, 5),
+            'grace_minutes' => $policy['grace_minutes'],
+            'timezone' => $tz,
+            'opening_status' => $openStatus,
+            'opening_label' => $openLabel,
+            'opening_late_minutes' => $openLateMins,
+            'closing_status' => $closeStatus,
+            'closing_label' => $closeLabel,
+            'closing_late_minutes' => $closeLateMins,
         ];
     }
 }

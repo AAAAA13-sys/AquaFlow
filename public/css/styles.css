@@ -596,17 +596,18 @@ button {
 }
 
 .sidebar-backdrop.open {
-.sidebar-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(3px);
-  z-index: 998;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
-  display: none;
-}
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    display: none;
+  }
+
   opacity: 1;
   visibility: visible;
   display: block;
@@ -1598,6 +1599,7 @@ body.pos-lock .pos-layout {
 }
 
 @media print {
+
   /* Printing must show ONLY the receipt. Everything else on the page is hidden
      with visibility (not display) so nested ancestors cannot re-show it wrongly,
      and the receipt is lifted to the top of the page. */
@@ -2038,6 +2040,7 @@ button.product-item .product-info-price {
   align-items: center;
   width: 100%;
 }
+
 .credential-control input.form-input,
 .credential-control input {
   width: 100%;
@@ -2045,6 +2048,7 @@ button.product-item .product-info-price {
   padding-right: 42px;
   box-sizing: border-box;
 }
+
 .credential-control .password-toggle-btn {
   position: absolute;
   right: 6px;
@@ -2064,15 +2068,24 @@ button.product-item .product-info-price {
   transition: color 0.15s, background-color 0.15s;
   z-index: 2;
 }
+
 .credential-control .password-toggle-btn:hover {
   color: #0f172a;
   background-color: rgba(0, 0, 0, 0.05);
 }
+
 .credential-control .password-toggle-btn:focus-visible {
   outline: 2px solid #0284c7;
   outline-offset: 1px;
 }
-.credential-hint { color: #475569; font-size: 12px; line-height: 1.6; margin: 8px 0; }
+
+.credential-hint {
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+
 /* =============================================================================
    AquaFlow icons
 
@@ -2112,7 +2125,9 @@ button.product-item .product-info-price {
 
 /* Print: icons are decorative, keep them but never let them break a receipt. */
 @media print {
-  .icon { vertical-align: baseline; }
+  .icon {
+    vertical-align: baseline;
+  }
 }
 
 /* =============================================================================
@@ -2235,6 +2250,7 @@ button.product-item .product-info-price {
     transform: none;
   }
 }
+
 /* =============================================================================
    AquaFlow - Plain Language & Visual Refresh  (temporary revamp)
    -----------------------------------------------------------------------------
@@ -2573,6 +2589,7 @@ body {
     border: 1px solid #ddd;
   }
 }
+
 /* =============================================================================
    AquaFlow ? UI System Layer
    -----------------------------------------------------------------------------
@@ -2645,7 +2662,7 @@ body {
   cursor: pointer;
   text-align: center;
   transition: background-color 150ms ease, border-color 150ms ease,
-              color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
+    color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
 }
 
 .btn:focus-visible {
@@ -2750,7 +2767,8 @@ body {
 .dashboard-row-3col,
 .dashboard-row-4col,
 .kpi-cards-grid {
-  align-items: start;      /* the fix for dead white space */
+  align-items: start;
+  /* the fix for dead white space */
   gap: var(--gap);
   margin-bottom: var(--gap);
 }
@@ -2789,9 +2807,9 @@ body {
 }
 
 /* Cards never stretch; they breathe instead. */
-.dashboard-row-2col > .card,
-.dashboard-row-3col > .card,
-.dash-row-chart > .card {
+.dashboard-row-2col>.card,
+.dashboard-row-3col>.card,
+.dash-row-chart>.card {
   align-self: start;
 }
 
@@ -2935,7 +2953,7 @@ body {
   overflow: hidden;
 }
 
-.insight > summary {
+.insight>summary {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -2945,20 +2963,25 @@ body {
   transition: background-color 130ms ease;
 }
 
-.insight > summary::-webkit-details-marker { display: none; }
-.insight > summary::marker { content: ''; }
+.insight>summary::-webkit-details-marker {
+  display: none;
+}
 
-.insight > summary:hover {
+.insight>summary::marker {
+  content: '';
+}
+
+.insight>summary:hover {
   background: var(--surface-subtle);
 }
 
-.insight > summary:focus-visible {
+.insight>summary:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: -2px;
 }
 
 /* Chevron sits at the end, rotates when open. */
-.insight > summary::after {
+.insight>summary::after {
   content: '';
   margin-left: auto;
   flex: 0 0 auto;
@@ -2971,7 +2994,7 @@ body {
   transition: transform 160ms ease;
 }
 
-.insight[open] > summary::after {
+.insight[open]>summary::after {
   transform: rotate(-135deg);
   margin-top: 0.25rem;
 }
@@ -3485,6 +3508,7 @@ body {
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
+
   .btn,
   .btn-tertiary::after {
     transition: none;
@@ -3496,11 +3520,13 @@ body {
 }
 
 @media (prefers-contrast: more) {
+
   .btn-secondary,
   .btn-ghost {
     border-color: var(--text-slate);
   }
 }
+
 /* =============================================================================
    12. WIDE-TABLE READABILITY
    -----------------------------------------------------------------------------
@@ -3580,13 +3606,21 @@ body {
 }
 
 @keyframes af-skeleton-sweep {
-  0%   { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .af-skeleton,
-  .af-skeleton-row { animation: none; }
+  .af-skeleton-row {
+    animation: none;
+  }
 }
 
 /* =============================================================================
@@ -3611,7 +3645,9 @@ body {
 }
 
 .is-unconfigured td,
-.is-unconfigured .cell-name { color: var(--text-muted); }
+.is-unconfigured .cell-name {
+  color: var(--text-muted);
+}
 
 /* =============================================================================
    15. DEBT-PAYMENT ROWS
@@ -3634,7 +3670,9 @@ body {
 }
 
 .is-payment-row:hover td,
-.is-payment-row:hover td.col-total { background-color: var(--surface-subtle); }
+.is-payment-row:hover td.col-total {
+  background-color: var(--surface-subtle);
+}
 
 /* =============================================================================
    16. SIDEBAR BADGES
@@ -3658,7 +3696,9 @@ body {
 }
 
 .sidebar-badge:empty,
-.sidebar-badge[hidden] { display: none; }
+.sidebar-badge[hidden] {
+  display: none;
+}
 
 /* =============================================================================
    17. FRESHNESS STAMP
@@ -3672,7 +3712,9 @@ body {
 
 /* On the blue header a stale stamp needs light amber rather than #B45309,
    which would be nearly invisible on royal blue. */
-.af-stamp--stale { color: #FDE68A; }
+.af-stamp--stale {
+  color: #FDE68A;
+}
 
 /* =============================================================================
    18. VISUALLY HIDDEN
@@ -3789,7 +3831,9 @@ body {
   pointer-events: auto;
 }
 
-.af-tip-layer[hidden] { display: none; }
+.af-tip-layer[hidden] {
+  display: none;
+}
 
 /* On the dark sidebar the chip needs a light border to stay visible. */
 .admin-sidebar .af-tip-btn {
@@ -3798,65 +3842,257 @@ body {
 }
 
 /* Tables keep tips on one line with their header. */
-.clean th .af-tip-btn { vertical-align: middle; }
+.clean th .af-tip-btn {
+  vertical-align: middle;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .af-tip-btn { transition: none; }
+  .af-tip-btn {
+    transition: none;
+  }
 }
+
 /* Shared page polish: compact catalog, stable scroll areas and readable controls. */
-.admin-sidebar { height: 100dvh; overflow: hidden; }
-.sidebar-header, .sidebar-footer { flex-shrink: 0; }
-.sidebar-nav { min-height: 0; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #ffffff70 transparent; overscroll-behavior: contain; }
-.sidebar-nav::-webkit-scrollbar { width: 5px; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: #ffffff70; border-radius: 8px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-section-title { flex-shrink: 0; margin: 10px 12px 2px; color: #ffffffc9; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-.sidebar-nav .sidebar-link { flex-shrink: 0; padding-top: 9px; padding-bottom: 9px; }
-.sidebar-link:focus-visible { outline: 2px solid white; outline-offset: -3px; }
-.admin-main-container, .admin-main-content, .cashier-page, .filter-group { min-width: 0; }
-.data-table-wrapper, .side-drawer { scrollbar-width: thin; scrollbar-color: #94a3b8 transparent; }
-.filter-group input[type="datetime-local"] { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--border-line, #dbe3ed); border-radius: 8px; background: white; color: var(--text-primary, #0f172a); font: inherit; box-sizing: border-box; }
-.filter-group:has(input[type="datetime-local"]) { min-width: min(220px, 100%); }
-.side-drawer { overscroll-behavior: contain; }
+.admin-sidebar {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.sidebar-header,
+.sidebar-footer {
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  min-height: 0;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff70 transparent;
+  overscroll-behavior: contain;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #ffffff70;
+  border-radius: 8px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-section-title {
+  flex-shrink: 0;
+  margin: 10px 12px 2px;
+  color: #ffffffc9;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.sidebar-nav .sidebar-link {
+  flex-shrink: 0;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.sidebar-link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -3px;
+}
+
+.admin-main-container,
+.admin-main-content,
+.cashier-page,
+.filter-group {
+  min-width: 0;
+}
+
+.data-table-wrapper,
+.side-drawer {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
+}
+
+.filter-group input[type="datetime-local"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border-line, #dbe3ed);
+  border-radius: 8px;
+  background: white;
+  color: var(--text-primary, #0f172a);
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.filter-group:has(input[type="datetime-local"]) {
+  min-width: min(220px, 100%);
+}
+
+.side-drawer {
+  overscroll-behavior: contain;
+}
+
 @media (max-width: 600px) {
-  .filter-group:has(input[type="datetime-local"]) { width: 100%; flex-basis: 100%; }
-  .side-drawer { padding: 18px; }
+  .filter-group:has(input[type="datetime-local"]) {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .side-drawer {
+    padding: 18px;
+  }
 }
 
 /* Operational forms must remain readable on phones and at browser zoom. */
-.auth-form input, .form-input, .order-row, .queue-card { font-size: 1rem; }
-.cust-detail, .cust-detail-name, .queue-card p, td { overflow-wrap: anywhere; }
-.qty-ctrl button, .employee-page button { min-height: 44px; min-width: 44px; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #0284c7; outline-offset: 2px; }
-dialog::backdrop { background: rgb(15 23 42 / 50%); backdrop-filter: blur(4px); }
+.auth-form input,
+.form-input,
+.order-row,
+.queue-card {
+  font-size: 1rem;
+}
+
+.cust-detail,
+.cust-detail-name,
+.queue-card p,
+td {
+  overflow-wrap: anywhere;
+}
+
+.qty-ctrl button,
+.employee-page button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(15 23 42 / 50%);
+  backdrop-filter: blur(4px);
+}
+
 /* Shared AquaFlow palette. Loaded after page styles so every portal agrees. */
 :root {
   color-scheme: light;
-  --brand-primary:#1D4ED8; --brand-hover:#1E40AF; --brand-active:#1E3A8A;
-  --brand-dark:#0F172A; --brand-light:#DBEAFE; --brand-tint:#EFF4FF;
-  --brand-ring:rgba(29,78,216,.38);
-  --surface-white:#FFFFFF; --surface-card:#FFFFFF; --surface-bg:#EAEFF6; --surface-subtle:#F3F6FA;
-  --text-dark:#0B1220; --text-slate:#1E293B; --text-muted:#475569; --text-dim:#64748B;
-  --border-line:#D3DAE5; --border-subtle:#BFC8D6;
-  --surface:var(--surface-white); --border:var(--border-line); --text-primary:var(--text-dark);
-  --af-edge:var(--border-line); --af-ink:var(--text-dark); --af-muted:var(--text-muted);
-  --emp-brand:var(--brand-primary); --emp-brand-hover:var(--brand-hover); --emp-brand-tint:var(--brand-light);
-  --emp-surface:var(--surface-white); --emp-bg:var(--surface-bg); --emp-border:var(--border-line);
-  --emp-text:var(--text-slate); --emp-muted:var(--text-muted);
-  --success-bg:#DCFCE7; --success-text:#166534; --success-border:#86EFAC;
-  --warning-bg:#FEF9C3; --warning-text:#854D0E; --warning-border:#FDE047;
-  --danger-bg:#FEE2E2; --danger-text:#991B1B; --danger-border:#FCA5A5;
+  --brand-primary: #1D4ED8;
+  --brand-hover: #1E40AF;
+  --brand-active: #1E3A8A;
+  --brand-dark: #0F172A;
+  --brand-light: #DBEAFE;
+  --brand-tint: #EFF4FF;
+  --brand-ring: rgba(29, 78, 216, .38);
+  --surface-white: #FFFFFF;
+  --surface-card: #FFFFFF;
+  --surface-bg: #EAEFF6;
+  --surface-subtle: #F3F6FA;
+  --text-dark: #0B1220;
+  --text-slate: #1E293B;
+  --text-muted: #475569;
+  --text-dim: #64748B;
+  --border-line: #D3DAE5;
+  --border-subtle: #BFC8D6;
+  --surface: var(--surface-white);
+  --border: var(--border-line);
+  --text-primary: var(--text-dark);
+  --af-edge: var(--border-line);
+  --af-ink: var(--text-dark);
+  --af-muted: var(--text-muted);
+  --emp-brand: var(--brand-primary);
+  --emp-brand-hover: var(--brand-hover);
+  --emp-brand-tint: var(--brand-light);
+  --emp-surface: var(--surface-white);
+  --emp-bg: var(--surface-bg);
+  --emp-border: var(--border-line);
+  --emp-text: var(--text-slate);
+  --emp-muted: var(--text-muted);
+  --success-bg: #DCFCE7;
+  --success-text: #166534;
+  --success-border: #86EFAC;
+  --warning-bg: #FEF9C3;
+  --warning-text: #854D0E;
+  --warning-border: #FDE047;
+  --danger-bg: #FEE2E2;
+  --danger-text: #991B1B;
+  --danger-border: #FCA5A5;
 }
-button,input,select,textarea { color:var(--text-primary); }
-input,select,textarea { background-color:var(--surface-white); }
-.btn-primary { background-color:var(--brand-primary); border-color:var(--brand-primary); color:#FFFFFF; }
-.btn-primary:hover { background-color:var(--brand-hover); border-color:var(--brand-hover); color:#FFFFFF; }
-.btn-secondary,.btn-ghost { background-color:var(--surface-white); color:var(--text-slate); border-color:var(--border-line); }
-.btn-secondary:hover,.btn-ghost:hover { background-color:var(--brand-tint); color:var(--brand-active); }
-input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
-.setup-progress { margin:18px 0; padding:12px 16px 12px 34px; background:var(--brand-tint); border-radius:10px; color:var(--text-slate); line-height:1.9; }
-.setup-step-note { color:var(--brand-primary); font-weight:600; margin:12px 0; }
-@media print { :root { --surface-bg:#FFFFFF; } }
+
+button,
+input,
+select,
+textarea {
+  color: var(--text-primary);
+}
+
+input,
+select,
+textarea {
+  background-color: var(--surface-white);
+}
+
+.btn-primary {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: var(--brand-hover);
+  border-color: var(--brand-hover);
+  color: #FFFFFF;
+}
+
+.btn-secondary,
+.btn-ghost {
+  background-color: var(--surface-white);
+  color: var(--text-slate);
+  border-color: var(--border-line);
+}
+
+.btn-secondary:hover,
+.btn-ghost:hover {
+  background-color: var(--brand-tint);
+  color: var(--brand-active);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.setup-progress {
+  margin: 18px 0;
+  padding: 12px 16px 12px 34px;
+  background: var(--brand-tint);
+  border-radius: 10px;
+  color: var(--text-slate);
+  line-height: 1.9;
+}
+
+.setup-step-note {
+  color: var(--brand-primary);
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+@media print {
+  :root {
+    --surface-bg: #FFFFFF;
+  }
+}
+
 /* ============================================================================
    AquaFlow design system
    ----------------------------------------------------------------------------
@@ -3941,7 +4177,10 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
    The four steps below the page title used to sit within a few pixels of each
    other, so nothing looked like a heading. Restore the jumps. */
 .admin-layout h1,
-.admin-layout .admin-page > h2 { font-size: var(--fs-2xl); line-height: 1.25; }
+.admin-layout .admin-page>h2 {
+  font-size: var(--fs-2xl);
+  line-height: 1.25;
+}
 
 .admin-layout h3,
 .admin-layout .panel-heading {
@@ -3950,14 +4189,22 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   letter-spacing: -0.01em;
 }
 
-.admin-layout h4 { font-size: var(--fs-md); line-height: 1.35; }
+.admin-layout h4 {
+  font-size: var(--fs-md);
+  line-height: 1.35;
+}
 
-.admin-layout p { font-size: var(--fs-sm); line-height: 1.6; }
+.admin-layout p {
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
 
 /* Body copy should not be smaller than the labels around it. */
 .admin-layout td,
 .admin-layout .overview-empty p,
-.admin-layout .settings-help { font-size: var(--fs-xs); }
+.admin-layout .settings-help {
+  font-size: var(--fs-xs);
+}
 
 /* ---------------------------------------------------------------------------
    2. Numbers
@@ -3995,7 +4242,9 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   border-radius: var(--radius-sm);
 }
 
-.admin-layout :focus:not(:focus-visible) { outline: none; }
+.admin-layout :focus:not(:focus-visible) {
+  outline: none;
+}
 
 /* ---------------------------------------------------------------------------
    4. Touch targets
@@ -4017,7 +4266,9 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
 /* Purely text links inside prose stay compact - they are not the tap target. */
 .admin-layout p a,
 .admin-layout .settings-help a,
-.admin-layout .cell-sub a { min-height: 0; }
+.admin-layout .cell-sub a {
+  min-height: 0;
+}
 
 /* ---------------------------------------------------------------------------
    5. Cards
@@ -4025,12 +4276,14 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
    interface feel designed rather than assembled.
    ------------------------------------------------------------------------ */
 .admin-layout .card,
-.admin-layout .admin-page > section,
+.admin-layout .admin-page>section,
 .admin-layout .data-table-wrapper {
   border-radius: var(--radius);
 }
 
-.admin-layout .btn { border-radius: var(--radius-sm); }
+.admin-layout .btn {
+  border-radius: var(--radius-sm);
+}
 
 /* ---------------------------------------------------------------------------
    6. Tables
@@ -4089,8 +4342,13 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   color: #FFFFFF;
 }
 
-.admin-layout .sidebar-link.is-featured .sidebar-link-label { font-weight: 700; }
-.admin-layout .sidebar-link.is-featured .sidebar-link-hint { color: rgba(255, 255, 255, 0.88); }
+.admin-layout .sidebar-link.is-featured .sidebar-link-label {
+  font-weight: 700;
+}
+
+.admin-layout .sidebar-link.is-featured .sidebar-link-hint {
+  color: rgba(255, 255, 255, 0.88);
+}
 
 .admin-layout .sidebar-link.is-featured.active,
 .admin-layout .sidebar-link.is-featured.active:hover {
@@ -4099,9 +4357,13 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   /* Drop the accent edge: the folder tab already says "current page". */
   box-shadow: -6px 0 14px -4px rgba(9, 20, 56, 0.32);
 }
-.admin-layout .sidebar-link.is-featured.active .sidebar-link-hint { color: rgba(29, 78, 216, 0.85); }
+
+.admin-layout .sidebar-link.is-featured.active .sidebar-link-hint {
+  color: rgba(29, 78, 216, 0.85);
+}
 
 @media (prefers-reduced-motion: reduce) {
+
   .admin-layout *,
   .admin-layout *::before,
   .admin-layout *::after {
@@ -4123,10 +4385,8 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   background:
     linear-gradient(var(--surface-card) 30%, rgba(255, 255, 255, 0)) top / 100% 28px no-repeat local,
     linear-gradient(rgba(255, 255, 255, 0), var(--surface-card) 70%) bottom / 100% 28px no-repeat local,
-    radial-gradient(farthest-side at 50% 0, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0))
-      top / 100% 12px no-repeat scroll,
-    radial-gradient(farthest-side at 50% 100%, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0))
-      bottom / 100% 12px no-repeat scroll;
+    radial-gradient(farthest-side at 50% 0, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0)) top / 100% 12px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(15, 23, 42, .16), rgba(15, 23, 42, 0)) bottom / 100% 12px no-repeat scroll;
 }
 
 /* ---------------------------------------------------------------------------
@@ -4141,7 +4401,7 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   overflow: visible;
 }
 
-.admin-layout .filter-tabs > * {
+.admin-layout .filter-tabs>* {
   flex: 0 0 auto;
 }
 
@@ -4178,12 +4438,23 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   background: var(--brand-primary);
 }
 
-.admin-layout .magbar--ok .magbar-fill { background: #10B981; }
+.admin-layout .magbar--ok .magbar-fill {
+  background: #10B981;
+}
+
 .admin-layout .magbar--watch .magbar-fill,
-.admin-layout .magbar--warn .magbar-fill { background: #D97706; }
+.admin-layout .magbar--warn .magbar-fill {
+  background: #D97706;
+}
+
 .admin-layout .magbar--bad .magbar-fill,
-.admin-layout .magbar--critical .magbar-fill { background: #DC2626; }
-.admin-layout .magbar--debt .magbar-fill { background: #B45309; }
+.admin-layout .magbar--critical .magbar-fill {
+  background: #DC2626;
+}
+
+.admin-layout .magbar--debt .magbar-fill {
+  background: #B45309;
+}
 
 /* Stock cover: the figure and its unit sit above a bar, so the eye reads
    "3.4 days, this bar" as one thing rather than scanning a number column. */
@@ -4206,8 +4477,13 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
 }
 
 .admin-layout .debt-cell,
-.admin-layout .debt-inline { display: block; }
-.admin-layout .debt-inline .magbar { margin-top: 4px; }
+.admin-layout .debt-inline {
+  display: block;
+}
+
+.admin-layout .debt-inline .magbar {
+  margin-top: 4px;
+}
 
 /* KPI trend line: sits under the figure, deliberately quiet. */
 .admin-layout .kpi-trend {
@@ -4216,22 +4492,70 @@ input::placeholder,textarea::placeholder { color:var(--text-dim); opacity:1; }
   margin-top: 2px;
 }
 
-.admin-layout .spark { display: block; }
-.admin-layout .spark--up { color: #10B981; }
-.admin-layout .spark--down { color: #DC2626; }
-.admin-layout .spark--flat { color: var(--text-dim); }
+.admin-layout .spark {
+  display: block;
+}
+
+.admin-layout .spark--up {
+  color: #10B981;
+}
+
+.admin-layout .spark--down {
+  color: #DC2626;
+}
+
+.admin-layout .spark--flat {
+  color: var(--text-dim);
+}
 
 /* ---------------------------------------------------------------------------
    12. Print
    An owner reconciling a drawer prints the page. Chrome should not appear.
    ------------------------------------------------------------------------ */
 @media print {
+
   .admin-layout .sidebar-link,
   .admin-layout .no-print,
-  .admin-layout .table-filters { display: none !important; }
+  .admin-layout .table-filters {
+    display: none !important;
+  }
 }
-.payment-recovery { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1100; width: min(640px, calc(100% - 32px)); padding: 16px; border: 1px solid #f0c36d; border-radius: 12px; background: #fff9e9; color: #453218; box-shadow: 0 6px 24px #0002; display: flex; align-items: center; gap: 16px; }
-.payment-recovery[hidden] { display: none; }
-.payment-recovery button { flex-shrink: 0; }
-@media print { .payment-recovery { display: none; } }
-@media (max-width: 540px) { .payment-recovery { flex-direction: column; align-items: stretch; } }
+
+.payment-recovery {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: min(640px, calc(100% - 32px));
+  padding: 16px;
+  border: 1px solid #f0c36d;
+  border-radius: 12px;
+  background: #fff9e9;
+  color: #453218;
+  box-shadow: 0 6px 24px #0002;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.payment-recovery[hidden] {
+  display: none;
+}
+
+.payment-recovery button {
+  flex-shrink: 0;
+}
+
+@media print {
+  .payment-recovery {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .payment-recovery {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -18,6 +18,7 @@ class OpenCashShiftRequest extends FormRequest
     {
         return [
             'opening_float' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
+            'opening_note' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

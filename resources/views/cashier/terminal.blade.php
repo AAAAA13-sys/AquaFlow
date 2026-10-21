@@ -7,7 +7,10 @@
 @section('cashier-body')
   @include('partials.cashier-steps')
 
+  <div id="posDrawerBanner" style="display:none;margin:0.5rem 1.25rem 0.75rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.875rem;"></div>
+
   <main class="pos-layout">
+
     {{-- ===================================================================
          STAGE 1: Customer selection
     ==================================================================== --}}
@@ -332,6 +335,36 @@ function renderModalStocks() {
     </tr>`;
   }).join('');
 }
+
+async function checkDrawerGuard() {
+  const banner = document.getElementById('posDrawerBanner');
+  try {
+    const data = await API.get('cash-shift');
+    const shift = data?.shift;
+    if (!banner) return;
+    if (!shift) {
+      banner.style.display = 'flex';
+      banner.style.alignItems = 'center';
+      banner.style.justifyContent = 'space-between';
+      banner.style.background = '#FEF3C7';
+      banner.style.color = '#92400E';
+      banner.style.border = '1px solid #FCD34D';
+      banner.innerHTML = '<span>⚠️ <b>Cash drawer is not open today.</b> Record starting cash float to activate register.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">Open Drawer</a>';
+    } else if (!shift.is_open) {
+      banner.style.display = 'flex';
+      banner.style.alignItems = 'center';
+      banner.style.justifyContent = 'space-between';
+      banner.style.background = '#FEF2F2';
+      banner.style.color = '#991B1B';
+      banner.style.border = '1px solid #FECACA';
+      banner.innerHTML = '<span>🔒 <b>Cash drawer closed for today.</b> Reconciled at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString() : 'end of shift') + '. Further sales are disabled.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">View Shift</a>';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch(e) {
+    if (banner) banner.style.display = 'none';
+  }
+}
 </script>
 @endpush
 
@@ -341,4 +374,5 @@ setType(POS.type);
 renderPOS();
 posStep(1);
 searchCustomers();
+checkDrawerGuard();
 @endcomponent
