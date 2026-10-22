@@ -13,7 +13,7 @@
   @stack('styles')
   <script>window.SPRITE_URL = @json(asset('icons/sprite.svg'));</script>
 </head>
-<body class="@yield('body-class')">
+<body class="role-{{ auth()->user()?->role ?? 'guest' }} @yield('body-class')">
 @yield('content')
 @auth
 @include('partials.profile-modal')

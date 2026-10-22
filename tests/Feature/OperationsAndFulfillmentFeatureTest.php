@@ -191,6 +191,236 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
         $this->actingAs($otherRider)->postJson('/api/employee/orders/'.$job->id, ['action' => 'dispatch', 'version' => 3, 'submission_key' => (string) Str::uuid()])->assertForbidden();
     }
 
+    public function test_the_owner_can_work_the_staff_workspace_and_is_recorded_as_the_actor(): void
+    {
+        $this->seed();
+        $owner = User::where('role', 'super_admin')->firstOrFail();
+        $manager = User::where('role', 'admin')->firstOrFail();
+        $cashier = User::where('role', 'cashier')->firstOrFail();
+        $customer = Customer::whereNull('system_key')->firstOrFail();
+
+        // A delivery handed over and waiting for a rider.
+        $sale = Transaction::create([
+            'receipt_number' => 'STAFF-RIDE',
+            'customer_id' => $customer->id,
+            'cashier_id' => $cashier->id,
+            'order_type' => 'Delivery',
+            'payment_method' => 'Account',
+            'total_amount' => 100,
+            'payment_status' => 'unpaid',
+            'transaction_date' => today(),
+            'transaction_time' => '09:00:00',
+        ]);
+        TransactionItem::create(['transaction_id' => $sale->id, 'product_id' => 'slim', 'item_name' => 'Refill', 'quantity' => 2, 'unit_price' => 50, 'line_total' => 100]);
+        $ride = ProductionQueueItem::create([
+            'transaction_id' => $sale->id,
+            'receipt_number' => 'STAFF-RIDE',
+            'customer_name' => $customer->name,
+            'items_description' => '2 refills',
+            'order_type' => 'Delivery',
+        ]);
+        $ride->forceFill(['fulfillment_status' => 'ready', 'handed_over_at' => now(), 'delivery_code' => '13572468'])->save();
+
+        // A walk-in order still being prepared.
+        $walkIn = ProductionQueueItem::create(['receipt_number' => 'STAFF-PREP', 'customer_name' => $customer->name, 'items_description' => '1 refill', 'order_type' => 'Walk-in']);
+        $walkIn->forceFill(['fulfillment_status' => 'preparing'])->save();
+
+        // The page is a management screen, and it offers both staff roles.
+        $this->actingAs($owner)->get('/admin/staff-workspaces')
+            ->assertOk()
+            ->assertSee('Staff workspaces', false)
+            ->assertSee('mode=refiller', false)
+            ->assertSee('mode=rider', false);
+        $this->actingAs($manager)->get('/admin/staff-workspaces')->assertOk();
+        $this->actingAs($cashier)->get('/admin/staff-workspaces')->assertRedirect('/cashier');
+
+        // Rider mode: the owner sees the shared delivery queue and can dispatch it.
+        $orders = $this->actingAs($owner)->getJson('/api/employee/orders?mode=rider')->assertOk()->json('orders');
+        $this->assertSame(['STAFF-RIDE'], array_column($orders, 'receipt'));
+        $this->actingAs($owner)->postJson('/api/employee/orders/'.$ride->id, [
+            'action' => 'dispatch',
+            'version' => 0,
+            'submission_key' => (string) Str::uuid(),
+            'mode' => 'rider',
+        ])->assertOk()->assertJsonPath('order.status', 'out_for_delivery');
+
+        // The order is handled by the OWNER, not by a rider, and the role they
+        // acted under is stamped beside the actor.
+        $this->assertSame($owner->id, $ride->fresh()->rider_id);
+        $history = $ride->fresh()->stage_history;
+        $this->assertSame($owner->id, $history[0]['user_id']);
+        $this->assertSame('rider', $history[0]['acting_role']);
+
+        // Refiller mode: the owner sees the preparation queue and can mark it ready.
+        $orders = $this->actingAs($owner)->getJson('/api/employee/orders?mode=refiller')->assertOk()->json('orders');
+        $this->assertSame(['STAFF-PREP'], array_column($orders, 'receipt'));
+        $this->actingAs($owner)->postJson('/api/employee/orders/'.$walkIn->id, [
+            'action' => 'ready',
+            'version' => 0,
+            'submission_key' => (string) Str::uuid(),
+            'mode' => 'refiller',
+        ])->assertOk()->assertJsonPath('order.status', 'ready');
+        $this->assertSame('refiller', $walkIn->fresh()->stage_history[0]['acting_role']);
+
+        // A staff account cannot borrow another role: the mode is ignored.
+        $rider = User::where('role', 'rider')->firstOrFail();
+        $riderOrders = $this->actingAs($rider)->getJson('/api/employee/orders?mode=refiller')->assertOk()->json('orders');
+        $this->assertNotContains('STAFF-PREP', array_column($riderOrders, 'receipt'));
+        $this->actingAs($rider)->postJson('/api/employee/orders/'.$walkIn->id, [
+            'action' => 'ready',
+            'version' => 1,
+            'submission_key' => (string) Str::uuid(),
+            'mode' => 'refiller',
+        ])->assertForbidden();
+    }
+
+    public function test_employee_activity_history_lists_only_todays_own_actions(): void
+    {
+        $this->seed();
+        $refiller = User::where('role', 'refiller')->firstOrFail();
+        $rider = User::where('role', 'rider')->firstOrFail();
+        $job = ProductionQueueItem::create(['receipt_number' => 'HISTORY-QA', 'customer_name' => 'Customer', 'items_description' => '1 refill', 'order_type' => 'Walk-in']);
+
+        $this->actingAs($refiller)
+            ->postJson('/api/employee/orders/'.$job->id, ['action' => 'ready', 'version' => 0, 'submission_key' => (string) Str::uuid()])
+            ->assertOk();
+
+        $entries = $this->actingAs($refiller)->getJson('/api/activity')->assertOk()->json('entries');
+        $this->assertCount(1, $entries);
+        $this->assertSame('HISTORY-QA', $entries[0]['title']);
+        $this->assertSame('Marked ready', $entries[0]['badge']);
+        $this->assertSame('Customer', $entries[0]['subtitle']);
+
+        // Another employee only sees their own work.
+        $this->assertCount(0, $this->actingAs($rider)->getJson('/api/activity')->assertOk()->json('entries'));
+
+        // Yesterday's action is history, but it is not today's activity.
+        $stale = ProductionQueueItem::create(['receipt_number' => 'HISTORY-OLD', 'customer_name' => 'Customer', 'items_description' => '1 refill', 'order_type' => 'Walk-in']);
+        $stale->forceFill([
+            'stage_history' => [[
+                'status' => 'ready',
+                'action' => 'ready',
+                'user_id' => $refiller->id,
+                'at' => now()->subDay()->toISOString(),
+                'reason' => null,
+            ]],
+        ])->save();
+        $entries = $this->actingAs($refiller)->getJson('/api/activity')->assertOk()->json('entries');
+        $this->assertCount(1, $entries);
+        $this->assertSame('HISTORY-QA', $entries[0]['title']);
+    }
+
+    public function test_activity_today_uses_the_station_day_not_utc(): void
+    {
+        $this->seed();
+        $refiller = User::where('role', 'refiller')->firstOrFail();
+        $job = ProductionQueueItem::create(['receipt_number' => 'DAY-BOUNDARY', 'customer_name' => 'Customer', 'items_description' => '1 refill', 'order_type' => 'Walk-in']);
+
+        // 11:50 PM last night is still yesterday, even though the stored
+        // timestamp is UTC and therefore a different calendar day.
+        $job->forceFill([
+            'stage_history' => [[
+                'status' => 'ready',
+                'action' => 'ready',
+                'user_id' => $refiller->id,
+                'at' => now()->subDay()->setTime(23, 50)->toISOString(),
+                'reason' => null,
+            ]],
+        ])->save();
+        $this->assertCount(0, $this->actingAs($refiller)->getJson('/api/activity')->assertOk()->json('entries'));
+
+        // Half past midnight tonight is today.
+        $job->forceFill([
+            'stage_history' => [[
+                'status' => 'ready',
+                'action' => 'ready',
+                'user_id' => $refiller->id,
+                'at' => now()->setTime(0, 30)->toISOString(),
+                'reason' => null,
+            ]],
+        ])->save();
+        $entries = $this->actingAs($refiller)->getJson('/api/activity')->assertOk()->json('entries');
+        $this->assertCount(1, $entries);
+        $this->assertSame('DAY-BOUNDARY', $entries[0]['title']);
+    }
+
+    public function test_a_damage_report_appears_in_the_reporter_activity(): void
+    {
+        $this->seed();
+        $refiller = User::where('role', 'refiller')->firstOrFail();
+        $item = \App\Models\InventoryItem::query()->current()->firstOrFail();
+
+        $this->actingAs($refiller)
+            ->postJson('/api/defects', ['inventory_item_id' => $item->id, 'quantity' => 2, 'reason' => 'Cracked cap'])
+            ->assertCreated();
+
+        $entries = $this->actingAs($refiller)->getJson('/api/activity')->assertOk()->json('entries');
+        $this->assertCount(1, $entries);
+        $this->assertSame('damage', $entries[0]['kind']);
+        $this->assertSame('Reported damaged stock', $entries[0]['badge']);
+        $this->assertSame('Cracked cap', $entries[0]['lines']);
+        $this->assertSame('Waiting for a manager', $entries[0]['note']);
+
+        // The report is evidence, so the reporter keeps seeing it.
+        $this->assertDatabaseHas('defect_reports', ['reported_by' => $refiller->id, 'status' => 'pending']);
+    }
+
+    public function test_the_cashier_activity_shows_only_their_own_day(): void
+    {
+        $this->seed();
+        $cashier = User::where('role', 'cashier')->firstOrFail();
+        $otherCashier = User::create(['username' => 'qa_second_cashier', 'name' => 'Second Cashier', 'password' => 'Cashier123', 'role' => 'cashier', 'is_active' => true]);
+        $customer = Customer::whereNull('system_key')->firstOrFail();
+
+        $sale = Transaction::create([
+            'receipt_number' => 'ACTIVITY-SALE',
+            'customer_id' => $customer->id,
+            'cashier_id' => $cashier->id,
+            'order_type' => 'Walk-in',
+            'payment_method' => 'Cash',
+            'total_amount' => 150,
+            'transaction_date' => today(),
+            'transaction_time' => '09:30:00',
+        ]);
+
+        $entries = $this->actingAs($cashier)->getJson('/api/activity')->assertOk()->json('entries');
+        $this->assertNotEmpty($entries);
+        $saleEntry = collect($entries)->firstWhere('kind', 'sale');
+        $this->assertNotNull($saleEntry);
+        $this->assertSame('ACTIVITY-SALE', $saleEntry['title']);
+        $this->assertEquals(150, $saleEntry['amount']);
+
+        // A colleague's sale is not part of this cashier's day.
+        Transaction::create([
+            'receipt_number' => 'ACTIVITY-OTHER',
+            'customer_id' => $customer->id,
+            'cashier_id' => $otherCashier->id,
+            'order_type' => 'Walk-in',
+            'payment_method' => 'Cash',
+            'total_amount' => 90,
+            'transaction_date' => today(),
+            'transaction_time' => '09:45:00',
+        ]);
+        $titles = collect($this->actingAs($cashier)->getJson('/api/activity')->assertOk()->json('entries'))->pluck('title');
+        $this->assertNotContains('ACTIVITY-OTHER', $titles->all());
+    }
+
+    public function test_employee_catalogue_endpoint_exposes_only_identity_and_counts(): void
+    {
+        $this->seed();
+        $refiller = User::where('role', 'refiller')->firstOrFail();
+
+        $items = $this->actingAs($refiller)->getJson('/api/employee/items')->assertOk()->json('items');
+        $this->assertNotEmpty($items);
+        $this->assertArrayHasKey('item', $items[0]);
+        $this->assertArrayHasKey('on', $items[0]);
+        $this->assertArrayNotHasKey('lead_time_days', $items[0]);
+        $this->assertArrayNotHasKey('supplier_id', $items[0]);
+
+        // The full stock screen stays out of reach for staff.
+        $this->actingAs($refiller)->getJson('/api/inventory')->assertForbidden();
+    }
+
     public function test_delivery_can_be_marked_ready_even_if_no_rider_is_active(): void
     {
         $this->seed();

@@ -23,9 +23,9 @@ class EnsureRoleAccess
             // `api/defects` is matched without a trailing wildcard so staff can
             // file a report while `api/defects/{id}/approve|reject` — which write
             // stock off — stays out of reach.
-            abort_unless($request->is('employee', 'api/employee/*', 'api/defects', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/', 'owner/login'), 403);
+            abort_unless($request->is('employee', 'employee/*', 'api/employee/*', 'api/activity', 'api/defects', 'api/profile*', 'api/auth/logout', 'api/auth/session', '/', 'owner/login'), 403);
         }
-        if ($user && $request->is('employee', 'api/employee/*')) {
+        if ($user && $request->is('employee', 'employee/*', 'api/employee/*')) {
             if (! $request->is('api/employee/profile*')) {
                 abort_unless($user->isEmployee() || $user->isAdmin(), 403);
             }

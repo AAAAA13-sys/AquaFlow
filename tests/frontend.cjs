@@ -939,6 +939,54 @@ globalThis.testEmployees = async root => {
   await ctx.refreshEmployee();
   assert.equal(onboarding, 1);
   console.log('PASS: employee confirmation lock, role/FIFO guards, issue validation, uncertain-action/photo recovery, multipart CSRF and stale-order protection.');
+
+  // --- Staff workspace mode -------------------------------------------------
+  // A manager or owner working the staff tools sends the role they act under,
+  // so the server can scope the queue and the permissions to it.
+  {
+    const modeContainer = element();
+    modeContainer.dataset = {role: 'rider', mode: 'rider', user: 'owner1', userId: '3'};
+    const requested = [];
+    const modeCtx = vm.createContext({console,Date,
+      document:{hidden:false,querySelector:s=>s==='.emp-container'?modeContainer:null,getElementById:id=>elements[id]||null,createElement:element,addEventListener(){},body:element()},
+      window:{addEventListener(){}},setInterval(){},
+      sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},
+      getSession:()=>({role:'super_admin'}),esc:String,appConfirm:async()=>true,appNotice(){},
+      API:{request:async(route,options)=>{requested.push({route,options});return {orders:[],updated_at:new Date().toISOString()};}}});
+    vm.runInContext(fs.readFileSync(path.join(root,'public/js/employee.js'),'utf8'),modeCtx);
+    await modeCtx.refreshEmployee();
+    assert.equal(requested[0].route,'employee/orders?mode=rider','The acting role is sent with the queue read');
+  }
+
+  // --- Activity history tab -------------------------------------------------
+  const historyElements = Object.fromEntries(
+    ['activityList','activitySummary','activityCount','activityUpdated','pulseDot','activityError'].map(id=>[id,element()]));
+  const historyRoutes = [];
+  const historyCtx = vm.createContext({console,Date,
+    document:{hidden:false,getElementById:id=>historyElements[id]||null,createElement:element,querySelector:()=>null,addEventListener(){},body:element()},
+    window:{addEventListener(){}},setInterval(){},
+    API:{request:async route=>{historyRoutes.push(route);return {entries:[
+      {kind:'order',at:new Date().toISOString(),title:'AF-0001',subtitle:'Maria Santos',badge:'Marked ready',tone:'ready',
+       lines:'2 × 5-Gallon Slim',amount:null,amount_label:null,note:null,address:null},
+      {kind:'order',at:new Date().toISOString(),title:'AF-0002',subtitle:'Jose Reyes',badge:'Delivered',tone:'delivered',
+       lines:'1 × Round 5G',amount:250,amount_label:'Cash collected',note:null,address:'12 Mabini Street'},
+      {kind:'damage',at:new Date().toISOString(),title:'Clear Cover',subtitle:'3 pcs reported damaged',badge:'Reported damaged stock',tone:'damage',
+       lines:'Torn seal',amount:null,amount_label:null,note:'Waiting for a manager',address:null}
+    ],counts:{actions:3,sales:0,deliveries:1,damage:1,cash:250},updated_at:new Date().toISOString()};}}});
+  vm.runInContext(fs.readFileSync(path.join(root,'public/js/data/activity.js'),'utf8'),historyCtx);
+  await historyCtx.refreshActivity();
+  assert.deepEqual(historyRoutes,['activity'],'The activity screen reads the shared activity endpoint');
+  const text = node => (node.textContent || '') + (node.children||[]).map(text).join(' ');
+  assert.equal(historyElements.activityList.children.length,3,'Every recorded action is listed');
+  const cards = historyElements.activityList.children.map(text);
+  assert.match(cards[0],/AF-0001/); assert.match(cards[0],/Marked ready/);
+  assert.match(cards[1],/AF-0002/); assert.match(cards[1],/Delivered/);
+  assert.match(cards[1],/250\.00/,'Riders see the cash they reported');
+  assert.match(cards[2],/Reported damaged stock/,'A damage report appears in the same list');
+  assert.match(historyElements.activitySummary.textContent,/3 actions/);
+  assert.match(historyElements.activitySummary.textContent,/1 damage report/);
+  assert.equal(historyElements.activityCount.textContent,'3');
+  console.log('PASS: the activity screen lists today’s own work, cash and damage reports in one timeline.');
 };
 
 })();

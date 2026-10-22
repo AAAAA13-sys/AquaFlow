@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminSetupController;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AdvisoryController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AuditLogController;
@@ -35,11 +36,13 @@ Route::get('/', fn (\Illuminate\Http\Request $request) => $request->user()
     ? redirect($request->user()->homeUrl())
     : view('auth.owner-login'))->name('cashier.login');
 Route::redirect('/owner/login', '/')->name('owner.login');
-Route::view('/employee', 'employee.home')->middleware('auth');
+Route::view('/employee', 'employee.home')->middleware('auth')->name('employee.home');
+Route::view('/employee/history', 'employee.history')->middleware('auth')->name('employee.history');
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/cashier', 'cashier.terminal')->name('cashier.index');
     Route::view('/cashier/queue', 'cashier.queue')->name('cashier.queue');
+    Route::view('/cashier/activity', 'cashier.activity')->name('cashier.activity');
     Route::view('/cashier/history', 'cashier.history')->name('cashier.history');
     Route::view('/cashier/cash', 'cashier.cash')->name('cashier.cash');
     Route::view('/cashier/stocks', 'cashier.stocks')->name('cashier.stocks');
@@ -59,7 +62,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'cash', 'defects', 'approvals', 'audit-logs'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'cash', 'defects', 'approvals', 'audit-logs', 'staff-workspaces'])
             ->name('admin.tab');
     });
 });
@@ -98,6 +101,9 @@ Route::prefix('api')->group(function (): void {
         // Personal profile and settings
         Route::get('profile', [ProfileController::class, 'show'])->name('api.profile.show');
         Route::put('profile', [ProfileController::class, 'update'])->name('api.profile.update');
+
+        // What this account did today, for the "My activity" screen.
+        Route::get('activity', [ActivityController::class, 'index'])->name('api.activity.index');
 
         // Customers and receivables
         Route::get('customers', [CustomerController::class, 'index'])->name('api.customers.index');
@@ -263,8 +269,12 @@ Route::prefix('api')->group(function (): void {
 |
 */
 Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
-    Route::get('defect-items', [DefectReportController::class, 'items']);
     Route::get('orders', [FulfillmentController::class, 'index']);
+    // Identity, unit and on-hand only, for the damaged-stock picker. Riders and
+    // refillers cannot reach the full stock screen (api/inventory), so this is
+    // the narrow catalogue their defect dialog is allowed to read.
+    Route::get('items', [InventoryController::class, 'options']);
+    Route::get('defect-items', [DefectReportController::class, 'items']);
     // Reporting progress carries the buyer code, so this endpoint is throttled
     // on its own tighter limiter rather than the general API budget.
     Route::post('orders/{id}', [FulfillmentController::class, 'update'])

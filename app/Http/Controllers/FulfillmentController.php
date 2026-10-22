@@ -7,6 +7,7 @@ use App\Http\Requests\RemittanceRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\ProductionQueueItem;
+use App\Models\User;
 use App\Services\CustomerLedgerService;
 use App\Services\FulfillmentService;
 use Illuminate\Http\JsonResponse;
@@ -18,15 +19,18 @@ class FulfillmentController extends Controller
     public function index(Request $request, FulfillmentService $service): JsonResponse
     {
         return response()->json([
-            'orders' => $service->listing($request->user()),
+            'orders' => $service->listing($request->user(), $request->query('mode')),
             'updated_at' => now()->toISOString(),
             'quantities' => $request->user()->isEmployee() ? null : $service->quantities(),
+            'riders' => $request->user()->isAdmin()
+                ? User::where('role', User::ROLE_RIDER)->where('is_active', true)->whereHas('employee', fn ($query) => $query->where('is_active', true))->orderBy('name')->get(['id', 'name'])
+                : [],
         ]);
     }
 
     public function update(FulfillmentRequest $request, int $id, FulfillmentService $service): JsonResponse
     {
-        return response()->json(['order' => $service->change($id, $request->user(), $request->validated())]);
+        return response()->json(['order' => $service->change($id, $request->user(), $request->validated(), $request->input('mode'))]);
     }
 
     public function show(Request $request, int $id, FulfillmentService $service): JsonResponse

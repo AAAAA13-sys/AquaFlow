@@ -14,22 +14,47 @@ use Illuminate\Validation\ValidationException;
 
 class FulfillmentService
 {
-    public function listing(User $user): array
+    /**
+     * The role this account is acting as on the staff workspace.
+     *
+     * A rider or a refiller always acts as themselves: their own account, their
+     * own queue, their own name on the record. A manager or an owner may open
+     * the staff workspace from the owner portal and act AS a rider or a
+     * refiller, so the same tools can be exercised from the back office. The
+     * actor recorded in the history is still the signed-in account, and the
+     * role they acted under is stamped beside it, so the trail never claims
+     * someone did work they did not do.
+     */
+    public function actingRole(User $user, ?string $requested = null): string
     {
+        if (in_array($user->role, [User::ROLE_RIDER, User::ROLE_REFILLER], true)) {
+            return $user->role;
+        }
+
+        if ($user->isAdmin() && in_array($requested, [User::ROLE_RIDER, User::ROLE_REFILLER], true)) {
+            return $requested;
+        }
+
+        return $user->role;
+    }
+
+    public function listing(User $user, ?string $mode = null): array
+    {
+        $role = $this->actingRole($user, $mode);
         $query = ProductionQueueItem::with(['transaction.items', 'transaction.customer', 'deliveryProof.remittances'])
             ->where(fn ($query) => $query->where('is_completed', false)
                 ->orWhereDate('delivered_at', today())
                 ->orWhereHas('deliveryProof', fn ($proof) => $proof->whereRaw('reported_cash > COALESCE((SELECT SUM(amount) FROM delivery_remittances WHERE delivery_proof_id = delivery_proofs.id), 0)')));
-        if ($user->role === 'rider') {
+        if ($role === 'rider') {
             $query->where('order_type', 'Delivery')->where(fn ($delivery) => $delivery
                 ->where('rider_id', $user->id)
                 ->orWhere(fn ($available) => $available->whereNull('rider_id')->where('fulfillment_status', 'ready')));
         }
-        if ($user->role === 'refiller') {
+        if ($role === 'refiller') {
             $query->where('fulfillment_status', 'preparing');
         }
 
-        return $query->orderBy('created_at')->orderBy('id')->get()->map(fn ($job) => $this->row($job, $user))->all();
+        return $query->orderBy('created_at')->orderBy('id')->get()->map(fn ($job) => $this->row($job, $user, $mode))->all();
     }
 
     public function quantities(): array
@@ -39,13 +64,14 @@ class FulfillmentService
             ->groupBy('q.fulfillment_status')->selectRaw('q.fulfillment_status, SUM(i.quantity) AS quantity')->pluck('quantity', 'fulfillment_status')->all();
     }
 
-    public function row(ProductionQueueItem $job, User $user): array
+    public function row(ProductionQueueItem $job, User $user, ?string $mode = null): array
     {
         $job->loadMissing(['transaction.items', 'transaction.customer']);
         $lines = $job->transaction?->items->map(fn ($line) => ['product' => $line->item_name, 'quantity' => $line->quantity])->all() ?? [];
 
+        $role = $this->actingRole($user, $mode);
         $proof = $job->deliveryProof;
-        $money = $user->role !== 'refiller';
+        $money = $role !== 'refiller';
         $pending = $proof ? round($proof->unremittedCash(), 2) : 0;
 
         return ['id' => $job->id, 'receipt' => $job->receipt_number, 'customer' => $job->customer_name,
@@ -59,15 +85,15 @@ class FulfillmentService
                 'received_quantity' => $proof->received_quantity, 'reported_cash' => $proof->reported_cash,
                 'pending_remittance' => $pending, 'collection_note' => $proof->collection_note,
                 'submitted_at' => $proof->created_at->toISOString(),
-                'photo_url' => ($user->role === 'rider' ? '/api/employee/orders/' : '/api/deliveries/').$job->id.'/proof',
+                'photo_url' => ($role === 'rider' ? '/api/employee/orders/' : '/api/deliveries/').$job->id.'/proof',
                 'remittances' => $proof->remittances->map(fn ($remittance) => ['amount' => (float) $remittance->amount, 'cashier_id' => $remittance->cashier_id, 'transaction_id' => $remittance->transaction_id, 'note' => $remittance->note, 'at' => $remittance->created_at])->all()] : null, 'created_at' => $job->created_at->toISOString(), 'lines' => $lines,
             'description' => ItemDescription::fromLines($job->transaction?->items ?? [], $job->items_description),
             'issues' => collect($job->stage_history ?? [])->where('action', 'issue')->pluck('reason')->values()->all(),
-            'address' => $user->role === 'rider' ? ($job->transaction?->delivery_address ?: $job->transaction?->customer?->address) : null,
-            'contact' => $user->role === 'rider' ? $job->transaction?->customer?->contact : null];
+            'address' => $role === 'rider' ? ($job->transaction?->delivery_address ?: $job->transaction?->customer?->address) : null,
+            'contact' => $role === 'rider' ? $job->transaction?->customer?->contact : null];
     }
 
-    public function change(int $id, User $user, array $data): array
+    public function change(int $id, User $user, array $data, ?string $mode = null): array
     {
         $photo = $data['photo'] ?? null;
         unset($data['photo']);
@@ -76,17 +102,22 @@ class FulfillmentService
         }
         $storedPath = null;
         try {
-            return DB::transaction(function () use ($id, $user, $data, $photo, &$storedPath): array {
+            return DB::transaction(function () use ($id, $user, $data, $photo, $mode, &$storedPath): array {
+                // The role this account acts under on the staff workspace. It is
+                // part of the hashed request, so a retry cannot change the role
+                // it was first sent with.
+                $role = $this->actingRole($user, $mode);
+                $data['acting_role'] = $role;
                 // Serialize this actor's retries and all FIFO transitions by the same rider.
                 $user = User::whereKey($user->id)->lockForUpdate()->first();
                 abort_unless($user && $user->is_active, 403);
                 $job = ProductionQueueItem::whereKey($id)->lockForUpdate()->firstOrFail();
                 $action = $data['action'];
                 abort_unless(
-                    ($action === 'ready' && $user->role === 'refiller') ||
+                    ($action === 'ready' && $role === 'refiller') ||
                     (in_array($action, ['handover', 'reset_code'], true) && $user->canHandleCash()) ||
-                    (in_array($action, ['dispatch', 'issue']) && $user->role === 'rider' && (! $job->rider_id || (int) $job->rider_id === $user->id)) ||
-                    ($action === 'deliver' && $user->role === 'rider' && (int) $job->rider_id === $user->id),
+                    (in_array($action, ['dispatch', 'issue']) && $role === 'rider' && (! $job->rider_id || (int) $job->rider_id === $user->id)) ||
+                    ($action === 'deliver' && $role === 'rider' && (int) $job->rider_id === $user->id),
                     403
                 );
                 $hash = hash('sha256', json_encode([$id, $data], JSON_THROW_ON_ERROR));
@@ -94,7 +125,7 @@ class FulfillmentService
                 if ($event) {
                     abort_unless(hash_equals($event->request_hash, $hash), 409, 'This action key belongs to a different request.');
 
-                    return $this->row($job, $user);
+                    return $this->row($job, $user, $mode);
                 }
                 abort_unless($job->version === (int) $data['version'], 409, 'Order changed. Refresh before continuing.');
                 abort_if($job->is_completed, 422, 'This order has already been completed.');
@@ -163,12 +194,16 @@ class FulfillmentService
                 }
                 $job->version++;
                 $history = $job->stage_history ?? [];
-                $history[] = ['status' => $job->fulfillment_status, 'action' => $action, 'user_id' => $user->id, 'at' => now()->toISOString(), 'reason' => $data['reason'] ?? null];
+                $history[] = ['status' => $job->fulfillment_status, 'action' => $action, 'user_id' => $user->id, 'at' => now()->toISOString(), 'reason' => $data['reason'] ?? null,
+                    // The role the account acted under. A manager working the
+                    // staff workspace is recorded as the manager, acting as a
+                    // rider - never as the rider.
+                    'acting_role' => $role === $user->role ? null : $role];
                 $job->stage_history = $history;
                 $job->save();
-                DB::table('fulfillment_events')->insert(['production_queue_id' => $job->id, 'user_id' => $user->id, 'submission_key' => $data['submission_key'], 'request_hash' => $hash, 'action' => $action, 'details' => json_encode(['status' => $job->fulfillment_status, 'rider_id' => $job->rider_id, 'reason' => $data['reason'] ?? null]), 'created_at' => now()]);
+                DB::table('fulfillment_events')->insert(['production_queue_id' => $job->id, 'user_id' => $user->id, 'submission_key' => $data['submission_key'], 'request_hash' => $hash, 'action' => $action, 'details' => json_encode(['status' => $job->fulfillment_status, 'rider_id' => $job->rider_id, 'reason' => $data['reason'] ?? null, 'acting_role' => $role === $user->role ? null : $role]), 'created_at' => now()]);
 
-                return $this->row($job->refresh(), $user);
+                return $this->row($job->refresh(), $user, $mode);
             });
         } catch (\Throwable $exception) {
             if ($storedPath) {

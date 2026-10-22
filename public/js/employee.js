@@ -8,6 +8,14 @@ function getEmployeeRole() {
   return container?.dataset.role || getSession()?.role || '';
 }
 
+// The role this account is acting as on the staff workspace. A rider or
+// refiller is always themselves; a manager or owner working the staff tools
+// from the owner portal sends the role they are acting under.
+function getEmployeeMode() {
+  const container = document.querySelector('.emp-container');
+  return container?.dataset.mode || '';
+}
+
 function getOrderBadge(status) {
   const map = {
     preparing: { text: 'Preparing', cls: 'emp-badge-preparing' },
@@ -50,7 +58,8 @@ async function refreshEmployee() {
   if (employeeFlight) return employeeFlight;
   employeeFlight = (async () => {
     try {
-      const data = await API.request('employee/orders');
+      const mode = getEmployeeMode();
+      const data = await API.request('employee/orders' + (mode ? '?mode=' + encodeURIComponent(mode) : ''));
       if (!Array.isArray(data?.orders)) throw new Error('Order list was incomplete. Try Refresh again.');
       employeeJobs = data.orders;
       employeeFresh = true;
@@ -87,7 +96,7 @@ function employeeActionProblem(job, action) {
     if (!job.handed_over_at) return 'Wait for the cashier to confirm the prepared quantity and hand over this order.';
     const older = employeeJobs.some(row => row.id !== job.id && ['preparing', 'ready'].includes(row.status) &&
       (row.created_at < job.created_at || (row.created_at === job.created_at && row.id < job.id)));
-    return older ? 'Start the oldest available order first. Wait for its preparation if needed.' : null;
+    return older ? 'Start the oldest assigned order first. Wait for its preparation if needed.' : null;
   }
   if (action === 'deliver' && job.status === 'out_for_delivery') return null;
   if (action === 'issue' && ['ready', 'out_for_delivery'].includes(job.status)) return null;
@@ -108,9 +117,9 @@ function renderEmployeeJobs() {
   if (countPill) countPill.textContent = employeeJobs.length;
 
   const container = document.getElementById('jobs');
+  if (!container) return;
   const role = getEmployeeRole();
   const renderKey = JSON.stringify([employeeJobs, blocked, employeeFresh, role]);
-  // Keep focused buttons attached when polling returns unchanged work.
   if (renderKey === employeeRenderedKey) return;
   container.replaceChildren();
   const queueTitleEl = document.getElementById('queueSectionTitle');
@@ -135,9 +144,7 @@ function renderEmployeeJobs() {
     textGroup.append(receipt, customer);
 
     const rightGroup = document.createElement('div');
-    rightGroup.style.display = 'flex';
-    rightGroup.style.alignItems = 'center';
-    rightGroup.style.gap = '8px';
+    rightGroup.className = 'emp-order-header-actions';
 
     const badgeData = getOrderBadge(job.status);
     const badge = document.createElement('span');
@@ -149,14 +156,6 @@ function renderEmployeeJobs() {
       const issueBtn = document.createElement('button');
       issueBtn.type = 'button';
       issueBtn.className = 'emp-issue-top-btn';
-      issueBtn.style.background = '#fef2f2';
-      issueBtn.style.color = '#dc2626';
-      issueBtn.style.border = '1px solid #fecaca';
-      issueBtn.style.borderRadius = '6px';
-      issueBtn.style.fontSize = '11px';
-      issueBtn.style.fontWeight = '600';
-      issueBtn.style.padding = '3px 8px';
-      issueBtn.style.cursor = 'pointer';
       issueBtn.textContent = 'Report Issue';
       issueBtn.disabled = blocked || !!employeeActionProblem(job, 'issue');
       issueBtn.onclick = () => openRiderIssueDialog(job);
@@ -225,6 +224,9 @@ function renderEmployeeJobs() {
     }
 
     if (action && buttonLabel) {
+      const actionRow = document.createElement('div');
+      actionRow.className = 'emp-order-actions-row';
+
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'emp-action-btn';
@@ -235,7 +237,8 @@ function renderEmployeeJobs() {
       }
       button.textContent = buttonLabel;
       button.onclick = () => changeJob(job, action);
-      card.append(button);
+      actionRow.append(button);
+      card.append(actionRow);
     }
 
     container.append(card);
@@ -277,7 +280,8 @@ async function changeJob(job, action, reason = null, recovering = false, deliver
       const photo = delivery?.photo;
       const detailsBody = delivery ? {...delivery} : {};
       delete detailsBody.photo;
-      pending = {id:job.id, receipt:job.receipt, body:{action, reason, ...detailsBody, version:job.version, submission_key:newSubmissionKey()}};
+      const mode = getEmployeeMode();
+      pending = {id:job.id, receipt:job.receipt, body:{action, reason, ...detailsBody, version:job.version, submission_key:newSubmissionKey(), ...(mode ? {mode} : {})}};
       if (photo) { evidenceKey = pending.body.submission_key; await deliveryPhoto(evidenceKey, 'put', photo); }
       sessionStorage.setItem(employeeStorageKey(), JSON.stringify(pending));
     }
@@ -308,13 +312,18 @@ function retryEmployeeAction() {
   return changeJob(null, null, null, true);
 }
 
-// Initial load & periodic refresh
-refreshEmployee();
-window.addEventListener('focus', refreshEmployee);
-window.addEventListener('online', refreshEmployee);
-setInterval(() => {
-  if (!document.hidden && !employeeBusy && !document.querySelector('dialog[open]') && !document.activeElement?.closest('#jobs')) refreshEmployee();
-}, 5000);
+// Initial load & periodic refresh.
+// The history tab shares this file (for the shared dialogs and logout), so the
+// queue only loads on the page that actually has a queue.
+if (document.getElementById('jobs')) {
+  if (typeof startPortalClock === 'function') startPortalClock('employeeClock');
+  refreshEmployee();
+  window.addEventListener('focus', refreshEmployee);
+  window.addEventListener('online', refreshEmployee);
+  setInterval(() => {
+    if (!document.hidden && !employeeBusy && !document.querySelector('dialog[open]') && !document.activeElement?.closest('#jobs')) refreshEmployee();
+  }, 5000);
+}
 
 function openRiderIssueDialog(job) {
   let modal = document.getElementById('empIssueModal');
@@ -322,21 +331,23 @@ function openRiderIssueDialog(job) {
     modal = document.createElement('dialog');
     modal.id = 'empIssueModal';
     modal.className = 'employee-issue-dialog';
+    modal.style.width = 'min(400px, calc(100vw - 24px))';
     modal.setAttribute('aria-labelledby', 'empIssueTitle');
     modal.innerHTML = `
-      <div class="receipt-card" style="width:380px;max-width:calc(100vw - 48px);box-sizing:border-box;font-family:inherit;padding:22px;background:#fff;border-radius:14px;box-shadow:0 12px 28px rgba(0,0,0,0.18);">
-        <h3 id="empIssueTitle" style="margin:0 0 6px;font-size:16px;color:#0f172a;">Report Delivery Issue</h3>
+      <div style="padding:22px;box-sizing:border-box;font-family:inherit;width:100%;background:#fff;">
+        <h3 id="empIssueTitle" style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Report Delivery Issue</h3>
         <p style="margin:0 0 16px;font-size:12px;color:#64748b;" id="empIssueReceipt"></p>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;" onclick="submitRiderIssue('Delivery not Finished')">
+          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;border:1px solid #e2e8f0;border-radius:8px;" onclick="submitRiderIssue('Delivery not Finished')">
             Delivery not Finished
           </button>
-          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;" onclick="submitRiderIssue('no one receiving')">
+          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;border:1px solid #e2e8f0;border-radius:8px;" onclick="submitRiderIssue('No one receiving')">
             No one receiving
           </button>
         </div>
-        <div style="margin-bottom:14px;">
-          <label for="customIssueReason">Issue details (5 to 500 characters)</label><input type="text" id="customIssueReason" minlength="5" maxlength="500" oninput="this.setCustomValidity('')" class="form-input" placeholder="Or enter specific reason..." style="width:100%;font-size:12px;box-sizing:border-box;padding:8px 10px;">
+        <div style="margin-bottom:16px;">
+          <label for="customIssueReason" class="form-label" style="display:block;margin-bottom:6px;font-size:12px;font-weight:600;color:#334155;">Issue details (5 to 500 characters)</label>
+          <input type="text" id="customIssueReason" minlength="5" maxlength="500" oninput="this.setCustomValidity('')" class="form-input" placeholder="Or enter specific reason..." style="width:100%;font-size:13px;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;">
         </div>
         <div class="button-grid-2">
           <button type="button" class="btn btn-ghost" onclick="closeRiderIssueDialog()">Cancel</button>
@@ -396,11 +407,12 @@ let empDefectItems = [];
 
 async function openEmployeeDefectDialog() {
   if (employeeBusy) return;
+  if (getEmployeeRole() !== 'refiller') return;
   const dialog = document.getElementById('empDefectDialog');
   if (!dialog) return;
   try {
-    const data = await API.defectItems();
-    empDefectItems = Array.isArray(data.inventory) ? data.inventory : [];
+    const data = await API.request('employee/items');
+    empDefectItems = Array.isArray(data.items) ? data.items : [];
   } catch (error) {
     showEmployeeError((error.message || 'Could not load stock items.') + ' Try again.');
     return;

@@ -15,15 +15,6 @@
   <svg> wrapper, give it an id prefixed with i-, and keep the viewBox="0 0 24 24".
 -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
-  </symbol>
-  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m16 3 5 5-12 12-6 1 1-6Z M14 5l5 5"/>
-  </symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7"/>
-  </symbol>
 
   <!-- warning / outstanding debt -->
   <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,6 +97,29 @@
     <path d="M2 10h20"/>
     <circle cx="12" cy="15" r="1.5"/>
     <path d="M6 7h.01M10 7h.01"/>
+  </symbol>
+  <!-- owner overview / dashboard -->
+  <symbol id="i-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="7" height="9" x="3" y="3" rx="1"/>
+    <rect width="7" height="5" x="14" y="3" rx="1"/>
+    <rect width="7" height="9" x="14" y="12" rx="1"/>
+    <rect width="7" height="5" x="3" y="16" rx="1"/>
+  </symbol>
+
+  <!-- demand forecast / chart -->
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+    <path d="M7 16v-4"/>
+    <path d="M12 16V8"/>
+    <path d="M17 16v-6"/>
+  </symbol>
+
+  <!-- a customer / an account -->
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
   </symbol>
 
 </svg>

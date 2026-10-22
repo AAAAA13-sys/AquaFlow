@@ -1,18 +1,10 @@
 /* =============================================================================
-   AquaFlow — Employee Mobile Portal Styles
-   Aligned with AquaFlow's core UI palette (Royal Blue #1D4ED8, Slate #1E293B, #D3DAE5).
-   ========================================================================== */
+   AquaFlow — Employee workspace (rider / refiller)
 
-:root {
-  --emp-brand: #1D4ED8;
-  --emp-brand-hover: #1E40AF;
-  --emp-brand-tint: #DBEAFE;
-  --emp-surface: #FFFFFF;
-  --emp-bg: #F8FAFC;
-  --emp-border: #D3DAE5;
-  --emp-text: #1E293B;
-  --emp-muted: #475569;
-}
+   The employee portal shares the app shell with the owner and cashier
+   portals, so this file only styles the work queue itself. Every colour is
+   read from the shared tokens in styles.css; nothing is redefined here.
+   ========================================================================== */
 
 body.employee-page {
   background-color: var(--emp-bg);
@@ -25,222 +17,171 @@ body.employee-page {
 }
 
 .emp-container {
-  max-width: 560px;
+  width: 100%;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 18px 16px;
+  padding: 0 0 32px;
   box-sizing: border-box;
 }
 
-/* App Header */
-.emp-header {
+/* Top bar & sidebar polish for employee workspace */
+.employee-page .admin-topbar {
+  padding: 0.5rem 1.25rem;
+  min-height: 46px;
+}
+
+.employee-page .sidebar-header {
+  padding: 0.65rem 1.25rem;
+  min-height: 46px;
+}
+
+.employee-page .admin-topbar-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.employee-page .admin-topbar-meta {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Sidebar polish: preserves royal blue color scheme, refines link padding/radius and MY WORK title */
+.employee-page .admin-sidebar .sidebar-nav {
+  padding: 0.75rem 0.75rem;
+}
+
+.employee-page .admin-sidebar .sidebar-section-title {
+  margin: 14px 4px 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.employee-page .admin-sidebar .sidebar-link {
+  margin-right: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.employee-page .admin-sidebar .sidebar-link.active {
+  background-color: #FFFFFF;
+  color: var(--brand-primary);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin-right: 0;
+  padding-right: 12px;
+}
+
+/* Queue toolbar / header */
+.emp-queue-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  background: var(--emp-surface);
-  padding: 14px 18px;
-  border-radius: 14px;
-  border: 1px solid var(--emp-border);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-top: 4px;
 }
 
-.emp-user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.emp-queue-header-left {
+  flex: 1;
+  min-width: 0;
 }
 
-.emp-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: var(--emp-brand);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-.emp-user-text h1 {
+.emp-section-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--emp-text);
+  color: var(--emp-text, #0F172A);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   line-height: 1.25;
 }
 
-.emp-role-tag {
-  display: inline-block;
-  margin-top: 2px;
+.emp-queue-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+  max-width: 640px;
+}
+
+.emp-count-pill {
   font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--emp-brand-tint);
-  color: var(--emp-brand);
-}
-
-.emp-profile-btn {
-  background: #ffffff;
-  border: 1px solid var(--emp-border);
-  color: var(--emp-text);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 10px 14px;
-  min-height: 44px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.emp-profile-btn:hover,
-.emp-profile-btn:active {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
-}
-
-.emp-signout-btn {
-  background: #ffffff;
-  border: 1px solid var(--emp-border);
-  color: var(--emp-muted);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 10px 14px;
-  min-height: 44px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  background: var(--emp-brand-tint, #DBEAFE);
+  color: var(--emp-brand, #1D4ED8);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.emp-signout-btn:hover,
-.emp-signout-btn:active {
-  background: #F1F5F9;
-  color: var(--emp-text);
-}
-
-/* Status Bar */
-.emp-status-bar {
+.emp-queue-header-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px 12px 4px;
-  font-size: 12px;
-  color: var(--emp-muted);
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .emp-pulse-wrapper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  min-height: 38px;
+  box-sizing: border-box;
 }
 
 .emp-pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--emp-brand);
+  background: #16A34A;
+  flex-shrink: 0;
 }
 
 .emp-pulse-dot.offline {
   background: #DC2626;
 }
 
-/* Status Badges */
-.emp-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 6px;
-  letter-spacing: 0.2px;
-}
-
-.emp-badge-neutral {
-  background: #F1F5F9;
-  color: var(--emp-muted);
-  border: 1px solid var(--emp-border);
-}
-
-.emp-badge-preparing {
-  background: var(--emp-brand-tint);
-  color: var(--emp-brand);
-  border: 1px solid #BFDBFE;
-}
-
-.emp-badge-ready {
-  background: #FEF3C7;
-  color: #B45309;
-  border: 1px solid #FDE68A;
-}
-
-.emp-badge-out_for_delivery {
-  background: #E0F2FE;
-  color: #0369A1;
-  border: 1px solid #BAE6FD;
-}
-
-.emp-badge-delivered {
-  background: #DCFCE7;
-  color: #15803D;
-  border: 1px solid #BBF7D0;
-}
-
-
-
-/* Orders section */
-.emp-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.emp-section-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--emp-text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.emp-count-pill {
-  font-size: 12px;
-  background: var(--emp-brand-tint);
-  color: var(--emp-brand);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-}
-
-/* Standard Refresh Button on My Orders */
+/* Buttons */
 .emp-refresh-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: #ffffff;
+  background: #FFFFFF;
   border: 1px solid var(--emp-border);
   color: var(--emp-text);
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
-  min-height: 44px;
+  min-height: 38px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
 }
 
 .emp-refresh-btn:hover,
@@ -249,78 +190,86 @@ body.employee-page {
   border-color: #BFC8D6;
 }
 
-/* Order Item Card */
+.emp-refresh-btn:focus-visible {
+  outline: 2px solid var(--emp-brand);
+  outline-offset: 2px;
+}
+
+.emp-refresh-btn-warn {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.emp-refresh-btn-warn:hover,
+.emp-refresh-btn-warn:active {
+  background: #FDE68A;
+  border-color: #FCD34D;
+}
+
+/* Order card */
 .emp-order-card {
   background: var(--emp-surface);
   border: 1px solid var(--emp-border);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 18px;
   margin-bottom: 14px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-  transition: box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
-.emp-order-card:hover {
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-}
-
-.emp-card-preparing {
-  border-left: 4px solid #D97706;
-}
-
-.emp-card-ready {
-  border-left: 4px solid #16A34A;
-  background: #FAFDFB;
-}
-
-.emp-card-out_for_delivery {
-  border-left: 4px solid #0284C7;
-}
-
-.emp-card-delivered {
-  border-left: 4px solid #64748B;
-}
+.emp-card-preparing { border-left: 4px solid #D97706; }
+.emp-card-ready { border-left: 4px solid #16A34A; background: #FAFDFB; }
+.emp-card-out_for_delivery { border-left: 4px solid #0284C7; }
+.emp-card-delivered { border-left: 4px solid #64748B; }
 
 .emp-order-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #F1F5F9;
 }
 
+.emp-order-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .emp-order-receipt {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--emp-text);
+  color: #0F172A;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .emp-order-customer {
   font-size: 14px;
-  color: var(--emp-muted);
+  color: #1E293B;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .emp-order-lines {
   background: #F8FAFC;
-  border: 1px solid #EDF2F7;
+  border: 1px solid #E2E8F0;
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   margin-bottom: 12px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--emp-text);
-  line-height: 1.45;
+  color: #0F172A;
+  line-height: 1.5;
 }
 
 .emp-order-meta {
   font-size: 13px;
-  color: var(--emp-muted);
-  margin-bottom: 12px;
+  color: #334155;
+  margin: 0 0 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -331,51 +280,105 @@ body.employee-page {
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.emp-meta-row svg {
+  flex-shrink: 0;
 }
 
 .emp-meta-row a {
   color: var(--emp-brand);
   font-weight: 600;
-  text-decoration: none;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+/* Status badge */
+.emp-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: #EFF6FF;
-  min-height: 32px;
-  transition: background 0.15s ease;
-}
-
-.emp-meta-row a:hover {
-  background: #DBEAFE;
-}
-
-/* Action button for jobs */
-.emp-action-btn {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 10px;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.emp-badge-neutral { background: #F1F5F9; color: var(--emp-muted); border: 1px solid var(--emp-border); }
+.emp-badge-preparing { background: var(--emp-brand-tint); color: var(--emp-brand); border: 1px solid #BFDBFE; }
+.emp-badge-ready { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+.emp-badge-out_for_delivery { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+.emp-badge-delivered { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+
+.emp-order-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 10px;
+}
+
+/* Primary work action */
+.emp-action-btn {
+  width: auto;
+  min-width: 140px;
+  min-height: 40px;
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   border: none;
   cursor: pointer;
   background: var(--emp-brand);
-  color: #ffffff;
-  display: flex;
+  color: #FFFFFF;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.2);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.2);
 }
 
-.emp-action-btn:hover,
-.emp-action-btn:active {
+.emp-action-btn:hover:not(:disabled) {
   background: var(--emp-brand-hover);
+}
+
+.emp-action-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-/* Error banner */
+.emp-action-btn:focus-visible {
+  outline: 2px solid var(--emp-brand);
+  outline-offset: 2px;
+}
+
+.emp-action-btn:disabled,
+.emp-issue-top-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.emp-issue-top-btn {
+  min-height: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.emp-issue-top-btn:hover:not(:disabled) {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+}
+
+/* Alerts and notices */
 .emp-alert {
   background: #FEE2E2;
   border: 1px solid #FECACA;
@@ -391,49 +394,27 @@ body.employee-page {
   display: none;
 }
 
-/* Empty State */
+#employeeResult {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #15803D;
+}
+
+#employeeResult:empty {
+  display: none;
+}
+
+/* Empty state */
 .emp-empty-state {
   text-align: center;
-  padding: 28px 16px;
+  padding: 32px 16px;
   background: var(--emp-surface);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px dashed var(--emp-border);
   color: var(--emp-muted);
   font-size: 13px;
   font-weight: 600;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.emp-action-btn:disabled,
-.emp-issue-top-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.employee-issue-dialog {
-  padding: 0;
-  border: 0;
-  border-radius: 16px;
-  max-width: min(480px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
-  overflow-y: auto;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.2);
-}
-
-.employee-issue-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
 }
 
 .emp-order-lines,
@@ -442,8 +423,29 @@ body.employee-page {
   overflow-wrap: anywhere;
 }
 
+/* Dialogs (defect report, delivery evidence, rider issue) */
+.employee-issue-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.employee-issue-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(3px);
+}
+
 #deliveryEvidenceForm {
-  padding: 24px;
+  padding: 22px;
   box-sizing: border-box;
   display: grid;
   gap: 14px;
@@ -478,7 +480,7 @@ body.employee-page {
 }
 
 #deliveryEvidenceForm input[name="recipient_code"]:focus {
-  border-color: #1D4ED8;
+  border-color: #1A45C4;
   outline: none;
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
 }
@@ -507,11 +509,56 @@ body.employee-page {
   font-weight: 600;
   border-radius: 8px;
 }
-@media (max-width:420px) {
-  .emp-header { flex-wrap:wrap; gap:12px; }
-  .emp-header .emp-user-info { flex:1 1 100%; }
-  .emp-header > div:last-child { margin-left:auto; }
-  .emp-section-head { flex-wrap:wrap; gap:8px; }
-  .emp-section-title { flex:1 1 100%; }
-  .emp-section-head > button { flex:1; justify-content:center; }
+
+/* =============================================================================
+   Responsive: phone and small tablet
+   The shell already turns the rail into a drawer; these rules only stop the
+   queue cards from crowding.
+   ========================================================================== */
+@media (max-width: 720px) {
+  .emp-container {
+    padding: 0 0 28px;
+  }
+
+  .emp-queue-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .emp-queue-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .emp-order-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .emp-order-header {
+    flex-wrap: wrap;
+  }
+
+  .emp-order-receipt {
+    font-size: 15px;
+  }
+
+  .emp-order-customer {
+    font-size: 13px;
+  }
+
+  .emp-order-lines {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .emp-order-actions-row {
+    justify-content: stretch;
+  }
+
+  .emp-action-btn {
+    width: 100%;
+    min-height: 46px;
+  }
 }

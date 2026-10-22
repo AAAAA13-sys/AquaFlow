@@ -31,6 +31,28 @@ class InventoryController extends Controller
         ]);
     }
 
+    /**
+     * Minimal read-only catalogue for staff-facing pickers.
+     *
+     * Riders and refillers may report damaged stock but cannot open the stock
+     * screen, so they get identity, unit and on-hand count only. Prices,
+     * suppliers, thresholds and lead times stay behind the owner/manager routes.
+     */
+    public function options(): JsonResponse
+    {
+        $items = InventoryItem::query()->current()->orderBy('id')
+            ->get(['id', 'item_name', 'unit', 'stock_on_hand']);
+
+        return response()->json([
+            'items' => $items->map(fn (InventoryItem $item): array => [
+                'id' => $item->id,
+                'item' => $item->item_name,
+                'unit' => $item->unit,
+                'on' => (int) $item->stock_on_hand,
+            ])->values(),
+        ]);
+    }
+
     public function store(StoreInventoryRequest $request): JsonResponse
     {
         $data = $request->validated();

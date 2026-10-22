@@ -72,6 +72,24 @@ class User extends Authenticatable
         return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
+    /**
+     * Plain-language name for the role, for the account chip in the sidebar.
+     *
+     * "Owner" and "Station Manager" are what the people at the station call
+     * these accounts; the internal role names never reach the screen.
+     */
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            self::ROLE_SUPER_ADMIN => 'Owner',
+            self::ROLE_ADMIN => 'Station Manager',
+            self::ROLE_CASHIER => 'Cashier',
+            self::ROLE_RIDER => 'Delivery Rider',
+            self::ROLE_REFILLER => 'Refiller',
+            default => ucfirst((string) $this->role),
+        };
+    }
+
     /** A privileged approval always requires a different, strictly higher rank. */
     public function canApproveActor(self $actor): bool
     {

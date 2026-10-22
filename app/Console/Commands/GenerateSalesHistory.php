@@ -315,9 +315,12 @@ class GenerateSalesHistory extends Command
             return false;
         }
 
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $greatestExpr = $isSqlite ? 'MAX(0, debt_balance - ' . $paid . ')' : 'GREATEST(0, debt_balance - ' . $paid . ')';
+
         DB::table('customers')
             ->where('id', $debtor->id)
-            ->update(['debt_balance' => DB::raw('GREATEST(0, debt_balance - ' . $paid . ')')]);
+            ->update(['debt_balance' => DB::raw($greatestExpr)]);
 
         DB::table('transactions')->insert([
             'receipt_number' => 'OR-' . $this->receipt,
