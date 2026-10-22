@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Transaction;
+use App\Support\ItemDescription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +24,7 @@ class TransactionResource extends JsonResource
             't' => substr((string) $this->transaction_time, 0, 5),
             'cust' => $this->whenLoaded('customer', fn () => $this->customer->name, ''),
             'type' => $this->order_type,
-            'gal' => $this->gallons_volume,
+            'gal' => ItemDescription::fromLines($this->relationLoaded('items') ? $this->items : [], $this->gallons_volume),
             'vatable' => (float) $this->subtotal_amount,
             'vat' => (float) $this->vat_amount,
             'total' => (float) $this->total_amount,

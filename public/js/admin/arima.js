@@ -180,6 +180,7 @@ function renderArimaChart() {
   if (!record || !record.history) return;
 
   const hz = horizonDays();
+  el.setAttribute('aria-label', hz === 1 ? 'Recorded daily demand for the last 30 days and stored forecast.' : 'Recorded demand and stored forecast aggregated by ' + (hz === 7 ? 'week.' : 'month.'));
   const hist = record.history.map(Number);
   const fc = record.forecast.map(Number);
   let labels, hData, fData;

@@ -1,24 +1,49 @@
 // Shared cashier reconciliation and read-only manager totals.
 let currentCashShift = null, cashBusy = false, cashReadVersion = 0;
+let cashOverviewRows = [];
+
+function cashStatusLabel(s) {
+  return s.is_open ? 'Open' : ({balanced:'Balanced',short:'Short',over:'Over'}[s.status] || 'Closed');
+}
+
+function cashTable(rows, emptyMessage) {
+  const amount = value => value == null ? '—' : money(value);
+  return '<div class="cash-table-scroll" role="region" aria-label="Cash drawer records" tabindex="0"><table class="cash-register-table"><caption class="visually-hidden">Cash drawer reconciliation records. Scroll horizontally to compare all amounts.</caption><thead><tr>' +
+    ['Date / operator','Status','Starting cash','Cash sales','Collections','Expected','Counted','Difference','Notes'].map(label=>'<th scope="col">'+label+'</th>').join('') + '</tr></thead><tbody>' +
+    (rows.map(s=>'<tr data-shift-id="'+Number(s.id)+'"><td><b>'+esc(s.date)+'</b><span class="cash-cell-sub">'+esc(s.cashier)+'</span></td><td><span class="cash-state cash-state-'+(s.is_open?'open':s.status==='short'?'short':s.status==='over'?'over':'balanced')+'">'+cashStatusLabel(s)+'</span></td>' +
+      [s.opening_float,s.total_sales,s.collections,s.expected_cash,s.is_open?null:s.counted_cash,s.is_open?null:s.variance].map(value=>'<td class="cash-number">'+amount(value)+'</td>').join('') +
+      '<td>' + (s.note || s.opening_note || s.timing || s.pending_collections ? '<details class="cash-row-notes"><summary>View details</summary>'+formatTimingTag(s.timing,!s.is_open)+(s.opening_note?'<p><b>Opening:</b> '+esc(s.opening_note)+'</p>':'')+(s.note?'<p><b>Closing:</b> '+esc(s.note)+'</p>':'')+(s.pending_collections?'<p>Pending approval: '+money(s.pending_collections)+'</p>':'')+'</details>':'—')+'</td></tr>').join('') || '<tr><td colspan="9" class="cash-empty">'+emptyMessage+'</td></tr>') + '</tbody></table></div>';
+}
+
+function renderCashOverviewRows() {
+  const search = (document.getElementById('cashOverviewSearch')?.value || '').trim().toLowerCase();
+  const status = document.getElementById('cashOverviewStatus')?.value || '';
+  const oldest = document.getElementById('cashOverviewSort')?.value === 'oldest';
+  const rows = cashOverviewRows.filter(s=>(!search || (s.cashier+' '+s.date).toLowerCase().includes(search)) && (!status || (s.is_open?'open':s.status)===status))
+    .sort((a,b)=>(oldest?1:-1)*(a.date.localeCompare(b.date)||Number(a.id)-Number(b.id)));
+  const target = document.getElementById('cashOverview');
+  const html = cashTable(rows, cashOverviewRows.length?'No drawers match these filters.':'No drawer records yet.')+'<p class="cash-record-count">'+rows.length+' of '+cashOverviewRows.length+' records</p>';
+  if (target.dataset.rendered !== html) { target.innerHTML = html; target.dataset.rendered = html; }
+}
 
 function formatTimingTag(timing, isClosed) {
   if (!timing) return '';
   const openClass = timing.opening_status === 'on_time' ? 'pill-ok' : (timing.opening_status === 'late' ? 'pill-bad' : 'pill-info');
-  let html = '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.5rem 0;">';
-  html += '<span class="pill ' + openClass + '" title="Shift Schedule: ' + esc(timing.schedule) + '">⏱️ ' + esc(timing.opening_label) + '</span>';
+  let html = '<div class="cash-timing">';
+  html += '<span class="pill ' + openClass + '" title="Shift Schedule: ' + esc(timing.schedule) + '">' + esc(timing.opening_label) + '</span>';
   if (isClosed && timing.closing_label) {
     const closeClass = timing.closing_status === 'on_time' ? 'pill-ok' : (timing.closing_status === 'delayed' ? 'pill-bad' : 'pill-info');
-    html += '<span class="pill ' + closeClass + '">🔒 ' + esc(timing.closing_label) + '</span>';
+    html += '<span class="pill ' + closeClass + '">' + esc(timing.closing_label) + '</span>';
   }
   html += '</div>';
   return html;
 }
 
 function cashDetails(s) {
-  const line = (label,value) => '<div class="insight-row"><span>'+label+'</span><b>'+money(value)+'</b></div>';
-  return '<article class="card" style="padding:16px;margin:12px 0;overflow-wrap:anywhere">' +
+  const line = (label,value) => '<div class="cash-total-row'+(label==='Expected cash'?' cash-expected':'')+'"><span>'+label+'</span><b>'+money(value)+'</b></div>';
+  return '<article class="cash-detail">' +
     '<h3>'+esc(s.cashier)+' · '+esc(s.date)+'</h3>' +
-    '<p>Status: <b>'+esc(s.status)+'</b></p>' +
+    '<p class="cash-detail-state">'+cashStatusLabel(s)+'</p>' +
     formatTimingTag(s.timing, !s.is_open) +
     line('Starting cash',s.opening_float) +
     line('Cash sales',s.total_sales) +
@@ -101,9 +126,13 @@ async function renderCashShift() {
     const overview = panel.dataset.overview === '1';
     const data = await API.get(overview ? 'cash-shift/overview' : 'cash-shift');
     if (version !== cashReadVersion || cashBusy) return;
-    document.getElementById('cashHistory').innerHTML = data.history.map(cashDetails).join('') || '<p>No closed drawers yet.</p>';
-    if (overview) document.getElementById('cashOverview').innerHTML = data.shifts.map(cashDetails).join('') || '<p>No current or outstanding drawers.</p>';
+    const visibleIds = new Set((overview ? data.shifts : [data.shift]).filter(Boolean).map(shift => shift.id));
+    if (overview) {
+      cashOverviewRows = [...data.shifts, ...data.history.filter(shift=>!visibleIds.has(shift.id))];
+      renderCashOverviewRows();
+    }
     else {
+      document.getElementById('cashHistory').innerHTML = cashTable(data.history.filter(shift=>!visibleIds.has(shift.id)), 'No earlier closed drawers.');
       currentCashShift = data.shift;
       for (const [id,hide] of [['cashOpenForm',!!data.shift],['cashCloseForm',!data.shift?.is_open],['cashResultCard',!data.shift || data.shift.is_open]]) {
         const el = document.getElementById(id);

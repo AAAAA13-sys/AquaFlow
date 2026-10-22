@@ -359,7 +359,7 @@ async function saveNewCustomer() {
   const registrationError = document.getElementById('registrationError');
   if (registrationError) registrationError.textContent = '';
   if (/\d/.test(name) || !/^(?=.*\p{L})[\p{L}\s.'-]+$/u.test(name) || name.length > 150) {
-    if (registrationError) registrationError.textContent = 'Enter a customer name using letters only â€” numbers are not allowed (maximum 150 characters).';
+    if (registrationError) registrationError.textContent = 'Enter a customer name using letters only — numbers are not allowed (maximum 150 characters).';
     nameEl?.focus(); return;
   }
   if (!/^(09\d{9}|\+639\d{9})$/.test(contact)) {
@@ -408,19 +408,19 @@ function receiptContents(tx) {
   const isWalkIn = (!tx.cust || tx.cust === 'Walk-in Guest' || tx.type === 'Walk-in') && !tx.customer_id;
   return line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
     (tx.delivery_address ? line('Delivery address', tx.delivery_address) : '') +
-    (tx.items || []).map(item => line(item.quantity + ' Ã— ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
+    (tx.items || []).map(item => line(item.quantity + ' × ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
     (debtPayment ? '' : line('Vatable sales', money(tx.vatable || 0)) + line('12% VAT (inclusive)', money(tx.vat || 0))) +
     line(debtPayment ? 'Payment received' : 'Total', money(tx.total), true) +
     (tx.pay === 'Cash' && tx.cash_tendered != null && Number(tx.cash_tendered) >= Number(tx.total) ? line('Cash tendered', money(tx.cash_tendered)) + line('Change', money(tx.cash_change || 0)) : '') +
     (tx.balance_after != null && !isWalkIn ? line('Account balance after transaction', money(tx.balance_after)) : '') +
-    line('Cashier', tx.by || 'â€”');
+    line('Cashier', tx.by || '—');
 }
 
 function displayTransactionReceipt(tx, reprint = false) {
   const meta = document.getElementById('rMeta'), body = document.getElementById('rBody'), box = document.getElementById('receipt');
   if (!meta || !body || !box) return;
   const timeStr = [tx.date, tx.t].filter(Boolean).join(' ');
-  meta.textContent = tx.no + (timeStr ? ' Â· ' + timeStr : '');
+  meta.textContent = tx.no + (timeStr ? ' · ' + timeStr : '');
   body.innerHTML = receiptContents(tx);
   box.classList.remove('hidden');
   if (typeof Submissions !== 'undefined') Submissions.render();

@@ -233,13 +233,13 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
         $this->postJson('/api/queue/'.$job->id.'/deliver')->assertForbidden();
         $this->postJson('/api/employee/orders/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertForbidden();
         $this->assertDatabaseCount('fulfillment_events', 0);
-        $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertOk();
-        $this->assertEquals($rider->id, $job->fresh()->rider_id);
+        $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, ['action' => 'assign', 'version' => 0, 'submission_key' => (string) Str::uuid(), 'rider_id' => $rider->id])->assertForbidden();
+        $this->assertNull($job->fresh()->rider_id);
         $rider->employee->update(['is_active' => false]);
         $this->actingAs($rider)->getJson('/api/employee/orders')->assertForbidden();
         $refiller->update(['is_active' => false]);
         $this->actingAs($refiller)->getJson('/api/employee/orders')->assertUnauthorized();
-        $this->assertDatabaseCount('fulfillment_events', 1);
+        $this->assertDatabaseCount('fulfillment_events', 0);
     }
 
     // --- From DeliveryAccountabilityTest.php ---
@@ -542,53 +542,38 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
     }
 
     // --- From RiderAssignmentTest.php ---
-    public function test_owner_assignment_is_audited_idempotent_and_cannot_be_changed_after_handover(): void
-    {
-        $this->seed();
-        $owner = User::where('role', 'super_admin')->firstOrFail();
-        $rider = User::where('role', 'rider')->firstOrFail();
-        $job = ProductionQueueItem::create(['receipt_number' => 'ASSIGN-1', 'customer_name' => 'Test', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
-        $payload = ['action' => 'assign', 'rider_id' => $rider->id, 'version' => 0, 'submission_key' => (string) Str::uuid()];
-        $this->actingAs(User::where('role', 'cashier')->firstOrFail())->postJson('/api/fulfillment/'.$job->id, $payload)->assertForbidden();
-        $this->assertNull($job->fresh()->rider_id);
-        $this->actingAs($owner)->postJson('/api/fulfillment/'.$job->id, $payload)->assertOk();
-        $this->postJson('/api/fulfillment/'.$job->id, $payload)->assertOk();
-        $this->assertEquals($rider->id, $job->fresh()->rider_id);
-        $this->assertDatabaseCount('fulfillment_events', 1);
-        $this->actingAs($rider)->getJson('/api/employee/orders')->assertOk()->assertSee('ASSIGN-1');
-        $this->actingAs($owner);
-        $job->refresh()->forceFill(['handed_over_at' => now()])->save();
-        $payload['version'] = 1;
-        $payload['submission_key'] = (string) Str::uuid();
-        $this->postJson('/api/fulfillment/'.$job->id, $payload)->assertUnprocessable();
-    }
-
-    public function test_assignment_rejects_inactive_riders_without_mutating_the_order(): void
+    public function test_manual_assignment_is_rejected_for_management_and_cashiers_without_changing_history(): void
     {
         $this->seed();
         $rider = User::where('role', 'rider')->firstOrFail();
-        $rider->update(['is_active' => false]);
-        $job = ProductionQueueItem::create(['receipt_number' => 'ASSIGN-2', 'customer_name' => 'Test', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
-        $this->actingAs(User::where('role', 'super_admin')->firstOrFail())
-            ->postJson('/api/fulfillment/'.$job->id, ['action' => 'assign', 'rider_id' => $rider->id, 'version' => 0, 'submission_key' => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors('rider_id');
+        $job = ProductionQueueItem::create(['receipt_number' => 'FIFO-ONLY', 'customer_name' => 'Test', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
+        foreach (['super_admin', 'admin', 'cashier'] as $role) {
+            $actor = User::where('role', $role)->firstOrFail();
+            $payload = ['action' => 'assign', 'rider_id' => $rider->id, 'version' => 0, 'submission_key' => (string) Str::uuid()];
+            $this->actingAs($actor)->postJson('/api/fulfillment/'.$job->id, $payload)->assertForbidden();
+            $this->postJson('/api/fulfillment/'.$job->id, $payload)->assertForbidden();
+        }
         $this->assertNull($job->fresh()->rider_id);
+        $this->assertSame(0, $job->fresh()->version);
         $this->assertDatabaseCount('fulfillment_events', 0);
     }
 
-    public function test_manager_can_assign_but_stale_updates_and_walk_in_assignment_are_rejected(): void
+    public function test_queue_sales_and_fulfillment_use_snapshot_product_names_without_rewriting_history(): void
     {
         $this->seed();
-        $manager = User::create(['name' => 'Manager', 'username' => 'assignment_manager', 'email' => 'manager@example.com', 'password' => 'Private123!', 'role' => 'admin', 'is_active' => true]);
-        $rider = User::where('role', 'rider')->firstOrFail();
-        $job = ProductionQueueItem::create(['receipt_number' => 'ASSIGN-3', 'customer_name' => 'Test', 'items_description' => '1 refill', 'order_type' => 'Delivery']);
-        $payload = ['action' => 'assign', 'rider_id' => $rider->id, 'version' => 0, 'submission_key' => (string) Str::uuid()];
-        $this->actingAs($manager)->postJson('/api/fulfillment/'.$job->id, $payload)->assertOk();
-        $payload['submission_key'] = (string) Str::uuid();
-        $this->postJson('/api/fulfillment/'.$job->id, $payload)->assertConflict();
-        $job->refresh()->update(['order_type' => 'Walk-in']);
-        $payload['version'] = 1;
-        $this->postJson('/api/fulfillment/'.$job->id, $payload)->assertUnprocessable();
-        $this->assertDatabaseCount('fulfillment_events', 1);
+        $cashier = User::where('role', 'cashier')->firstOrFail();
+        $sale = Transaction::create(['receipt_number' => 'FULL-NAME-QA', 'customer_id' => Customer::whereNull('system_key')->firstOrFail()->id,
+            'cashier_id' => $cashier->id, 'order_type' => 'Delivery', 'payment_method' => 'Account', 'total_amount' => 500,
+            'gallons_volume' => '0 gal', 'transaction_date' => today(), 'transaction_time' => '08:00:00']);
+        TransactionItem::create(['transaction_id' => $sale->id, 'product_id' => 'newS', 'item_name' => 'New Slim 5-Gal Jug', 'quantity' => 2, 'unit_price' => 250, 'line_total' => 500]);
+        $job = ProductionQueueItem::create(['transaction_id' => $sale->id, 'receipt_number' => $sale->receipt_number, 'customer_name' => 'Test', 'items_description' => '2S', 'order_type' => 'Delivery']);
+        $description = '2 × New Slim 5-Gal Jug';
+        $this->actingAs($cashier)->getJson('/api/transactions')->assertOk()->assertJsonFragment(['gal' => $description]);
+        $this->getJson('/api/queue')->assertOk()->assertJsonFragment(['items' => $description]);
+        $this->getJson('/api/bootstrap')->assertOk()->assertJsonFragment(['gal' => $description])->assertJsonFragment(['items' => $description]);
+        $this->getJson('/api/fulfillment')->assertOk()->assertJsonFragment(['description' => $description]);
+        $this->assertSame('0 gal', $sale->fresh()->gallons_volume);
+        $this->assertSame('2S', $job->fresh()->items_description);
     }
 
     // --- From EmployeeAccessTest.php ---
@@ -697,7 +682,7 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
     public function test_owner_has_business_controls_and_cashier_return_link(): void
     {
         $this->loginAsRole('super_admin');
-        $this->get('/admin/dashboard')->assertOk()->assertSee('Owner overview')->assertSee('Business controls');
+        $this->get('/admin/dashboard')->assertOk()->assertSee('Overview')->assertSee('Business controls');
         $this->get('/cashier/stocks')->assertOk()->assertSee('Owner Portal');
     }
 

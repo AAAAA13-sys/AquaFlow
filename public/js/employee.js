@@ -73,6 +73,7 @@ async function refreshEmployee() {
 }
 
 let employeeJobs = [];
+let employeeRenderedKey = null;
 function employeeActionProblem(job, action) {
   if (!employeeFresh) return 'Refresh orders successfully before changing work.';
   const current = employeeJobs.find(row => row.id === job.id);
@@ -86,7 +87,7 @@ function employeeActionProblem(job, action) {
     if (!job.handed_over_at) return 'Wait for the cashier to confirm the prepared quantity and hand over this order.';
     const older = employeeJobs.some(row => row.id !== job.id && ['preparing', 'ready'].includes(row.status) &&
       (row.created_at < job.created_at || (row.created_at === job.created_at && row.id < job.id)));
-    return older ? 'Start the oldest assigned order first. Wait for its preparation if needed.' : null;
+    return older ? 'Start the oldest available order first. Wait for its preparation if needed.' : null;
   }
   if (action === 'deliver' && job.status === 'out_for_delivery') return null;
   if (action === 'issue' && ['ready', 'out_for_delivery'].includes(job.status)) return null;
@@ -107,9 +108,11 @@ function renderEmployeeJobs() {
   if (countPill) countPill.textContent = employeeJobs.length;
 
   const container = document.getElementById('jobs');
-  container.replaceChildren();
-
   const role = getEmployeeRole();
+  const renderKey = JSON.stringify([employeeJobs, blocked, employeeFresh, role]);
+  // Keep focused buttons attached when polling returns unchanged work.
+  if (renderKey === employeeRenderedKey) return;
+  container.replaceChildren();
   const queueTitleEl = document.getElementById('queueSectionTitle');
   if (queueTitleEl) queueTitleEl.textContent = role === 'rider' ? 'Delivery Queue' : (role === 'refiller' ? 'Refill Queue' : 'My Orders');
 
@@ -244,6 +247,7 @@ function renderEmployeeJobs() {
     empty.textContent = !employeeFresh ? 'Orders could not be loaded. Tap Refresh to try again.' : role === 'rider' ? 'No deliveries assigned yet. New deliveries appear automatically when they are ready.' : 'No orders waiting for preparation. New orders appear automatically.';
     container.append(empty);
   }
+  employeeRenderedKey = renderKey;
 }
 
 async function changeJob(job, action, reason = null, recovering = false, delivery = null) {
@@ -395,7 +399,7 @@ async function openEmployeeDefectDialog() {
   const dialog = document.getElementById('empDefectDialog');
   if (!dialog) return;
   try {
-    const data = await API.inventory();
+    const data = await API.defectItems();
     empDefectItems = Array.isArray(data.inventory) ? data.inventory : [];
   } catch (error) {
     showEmployeeError((error.message || 'Could not load stock items.') + ' Try again.');

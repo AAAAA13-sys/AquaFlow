@@ -7,7 +7,6 @@ use App\Http\Requests\RemittanceRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\ProductionQueueItem;
-use App\Models\User;
 use App\Services\CustomerLedgerService;
 use App\Services\FulfillmentService;
 use Illuminate\Http\JsonResponse;
@@ -22,9 +21,6 @@ class FulfillmentController extends Controller
             'orders' => $service->listing($request->user()),
             'updated_at' => now()->toISOString(),
             'quantities' => $request->user()->isEmployee() ? null : $service->quantities(),
-            'riders' => $request->user()->isAdmin()
-                ? User::where('role', User::ROLE_RIDER)->where('is_active', true)->whereHas('employee', fn ($query) => $query->where('is_active', true))->orderBy('name')->get(['id', 'name'])
-                : [],
         ]);
     }
 

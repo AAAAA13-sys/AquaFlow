@@ -7,8 +7,6 @@
   <main class="admin-main-content cashier-page">
     <header class="cashier-page-header">
       <div>
-        <p class="cashier-eyebrow">COUNTER REFERENCE</p>
-        <h2>Stock availability</h2>
         <p>Read-only stock levels. Ask your manager to restock low supplies. Final order availability is checked at the POS.</p>
       </div>
       <div>

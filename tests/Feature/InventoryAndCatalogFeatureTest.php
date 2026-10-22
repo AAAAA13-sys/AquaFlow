@@ -775,6 +775,18 @@ class InventoryAndCatalogFeatureTest extends TestCase
         $this->actingAs($this->cashier)->getJson('/api/defects')->assertForbidden();
     }
 
+    public function test_staff_can_load_only_reportable_stock_details(): void
+    {
+        foreach ([$this->refiller, $this->rider] as $staff) {
+            $response = $this->actingAs($staff)->getJson('/api/employee/defect-items')->assertOk();
+            $items = $response->json('inventory');
+            $this->assertNotEmpty($items);
+            $this->assertSame(['id', 'item', 'on', 'unit'], array_keys($items[0]));
+            $this->actingAs($staff)->getJson('/api/inventory')->assertForbidden();
+            $this->actingAs($staff)->getJson('/api/defects')->assertForbidden();
+        }
+    }
+
     public function test_rider_cannot_view_the_defect_list(): void
     {
         $this->actingAs($this->rider)->getJson('/api/defects')->assertForbidden();

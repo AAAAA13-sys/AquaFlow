@@ -80,7 +80,7 @@ function renderSalesPage() {
   const start = (salesPage - 1) * SALES_PAGE_SIZE;
   if (body) {
     body.innerHTML = salesRows.slice(start, start + SALES_PAGE_SIZE).map(t =>
-      '<tr><td><b>' + esc(t.no) + '</b></td><td><span>' + esc(t.date || '—') + '</span><small class="cell-sub">' + esc(t.t) + '</small></td><td><b>' + esc(t.cust || 'Walk-in Guest') + '</b></td><td><span class="sales-type ' + (t.type === 'Delivery' ? 'sales-type--delivery' : '') + '">' + esc(t.type) + '</span></td><td>' + esc(t.gal || '—') + '</td><td class="num sales-amount">' + money(Number(t.total)) + '</td><td><span class="sales-payment">' + esc(t.pay) + '</span>' + (t.pay === 'Account' && t.payment_status ? '<small class="cell-sub">' + (t.payment_status === 'paid' ? 'Paid' : 'Unpaid') + '</small>' : '') + '</td><td class="sales-cashier">' + esc(t.by) + '</td></tr>'
+      '<tr><td><b>' + esc(t.no) + '</b></td><td><span>' + esc(t.date || '—') + '</span><small class="cell-sub">' + esc(t.t) + '</small></td><td><b>' + esc(t.cust || 'Walk-in Guest') + '</b></td><td><span class="sales-type ' + (t.type === 'Delivery' ? 'sales-type--delivery' : '') + '">' + esc(t.type) + '</span></td><td class="table-item-cell"><span class="table-item-lines">' + esc(t.gal || '—').replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span></td><td class="num sales-amount">' + money(Number(t.total)) + '</td><td><span class="sales-payment">' + esc(t.pay) + '</span>' + (t.pay === 'Account' && t.payment_status ? '<small class="cell-sub">' + (t.payment_status === 'paid' ? 'Paid' : 'Unpaid') + '</small>' : '') + '</td><td class="sales-cashier">' + esc(t.by) + '</td></tr>'
     ).join('');
     if (!salesRows.length) body.innerHTML = '<tr><td colspan="8" class="sales-empty"><b>No transactions found</b><span>Try another period or clear your search and filters.</span></td></tr>';
   }
@@ -104,7 +104,7 @@ async function exportSalesCSV() {
   let rows;
   try { rows = filterTableRows(filterSalesCashier(await fetchSalesRows()), 'salesBody'); }
   catch(error) { appNotice(error.message || 'Could not export transactions.'); return; }
-  const csv = 'OR,Date,Time,Customer,Type,Gallons,Total,Pay,Cashier\n' +
+  const csv = 'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier\n' +
     rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
   downloadCSV(csv, 'sales-audit.csv');
 }

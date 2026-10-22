@@ -6,7 +6,7 @@
 @section('admin-content')
   <section id="s-audit" class="admin-page">
     <div class="admin-page-titlebar">
-      @include('partials.admin-page-header', ['eyebrow' => 'ACCOUNTABILITY', 'heading' => 'Audit Log', 'description' => 'Every recorded change to prices, items, recipes, stock, suppliers, customers and collections. You see the changes at or below your level.'])
+      @include('partials.admin-page-header', ['eyebrow' => 'ACCOUNTABILITY', 'heading' => 'Audit Log', 'description' => 'Chronological audit trail of changes to prices, stock, suppliers, and collections.'])
     </div>
 
     <div class="card">

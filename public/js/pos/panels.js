@@ -1,5 +1,5 @@
 function historyVolumeLabel(value) {
-  return String(value || '').replace(/(\d+)\s*S\b/g, '$1 Slim').replace(/(\d+)\s*R\b/g, '$1 Round').replace(/\s*gals?\b/gi, '').replace(/\+/g, ', ').trim();
+  return String(value || '').replace(/(\d+)\s*S\b/g, '$1 × Slim 5-Gal Refill').replace(/(\d+)\s*R\b/g, '$1 × Round 5-Gal Refill').replace(/^0 gal$/, '—').replace(/\+/g, ', ').trim();
 }
 
 // AquaFlow CASHIER terminal - sidebar pages.
@@ -162,7 +162,8 @@ function renderHistoryRows() {
   const rows = cashierHistoryRows, pages = Math.max(1, Math.ceil(rows.length / 20));
   cashierHistoryPage = Math.max(1, Math.min(cashierHistoryPage, pages));
   const start = (cashierHistoryPage - 1) * 20;
-  document.getElementById('hBody').innerHTML = rows.slice(start, start + 20).map((t, i) => {
+  const body = document.getElementById('hBody');
+  const html = rows.slice(start, start + 20).map((t, i) => {
     // Debt payments are tinted + italicised so the eye can separate them from
     // sales at a glance, matching the separate summary card above.
     const isPayment = t.type === 'Debt Payment';
@@ -170,17 +171,21 @@ function renderHistoryRows() {
       '<td><b>' + esc(t.no) + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
       '<td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td>' +
       '<td>' + esc(t.cust || 'Walk-in Guest') + '</td>' +
-      '<td><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub">' + esc(historyVolumeLabel(t.gal)) + '</span>' : '') + '</td>' +
+      '<td class="table-item-cell"><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub table-item-lines">' + esc(historyVolumeLabel(t.gal)).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span>' : '') + '</td>' +
       '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
       '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
       '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';
   }).join('') || '<tr><td colspan="10" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
+  // Preserve focused receipt controls when a refresh returns the same rows.
+  if (body.innerHTML !== html) body.innerHTML = html;
   const nav = document.getElementById('historyPages');
   if (nav) nav.innerHTML = '<span>' + (rows.length ? start + 1 : 0) + '–' + Math.min(rows.length, start + 20) + ' of ' + rows.length + ' records</span><div><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(-1)"' + (cashierHistoryPage === 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + cashierHistoryPage + ' of ' + pages + '</span><button class="btn btn-ghost btn-sm" onclick="changeHistoryPage(1)"' + (cashierHistoryPage === pages ? ' disabled' : '') + '>Next</button></div>';
 }
 function toggleCashierFilters() {
   const panel = document.getElementById('cashierFiltersPanel');
-  if (panel) panel.classList.toggle('hidden');
+  if (!panel) return;
+  const hidden = panel.classList.toggle('hidden');
+  document.getElementById('toggleFiltersBtn')?.setAttribute('aria-expanded', String(!hidden));
 }
 function changeHistoryPage(delta) { cashierHistoryPage += delta; renderHistoryRows(); }
 function viewHistoryReceipt(index) { const tx = cashierHistoryRows[index]; if (tx) displayTransactionReceipt(tx, true); }
@@ -194,7 +199,7 @@ async function exportHistoryCsv() {
     return;
   }
 
-  const csv = 'OR,Date,Time,Customer,Type,Gallons,Vatable,VAT,Total,Pay,Cashier\n' +
+  const csv = 'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier\n' +
     rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
 
   downloadCSV(csv, 'cashier-sales.csv');

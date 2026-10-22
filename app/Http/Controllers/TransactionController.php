@@ -71,7 +71,7 @@ class TransactionController extends Controller
             'customer' => new CustomerResource($result['customer']),
             'totals' => $result['totals'],
             'queue' => ProductionQueueItemResource::collection(
-                ProductionQueueItem::query()->activeToday()->orderBy('id')->get()
+                ProductionQueueItem::query()->with('transaction.items')->activeToday()->orderBy('id')->get()
             ),
         ], 201);
     }

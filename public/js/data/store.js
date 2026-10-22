@@ -200,18 +200,29 @@ function toggleAddForm(button) {
     button.dataset.defaultLabel = button.textContent ? button.textContent.trim() : '';
   }
 
+  const isCta = (typeof button.classList?.contains === 'function' && button.classList.contains('btn-cta')) || (button.dataset && button.dataset.isCta === '1');
+
   if (opening) {
     button.textContent = 'Cancel';
     if (button.classList?.add) {
       button.classList.add('btn-secondary');
       button.classList.remove('btn-primary');
+      if (isCta) {
+        button.dataset.isCta = '1';
+        button.classList.remove('btn-cta');
+      }
     }
     panel.querySelector('input, select')?.focus();
   } else {
     button.textContent = button.dataset.defaultLabel || 'Add';
     if (button.classList?.remove) {
       button.classList.remove('btn-secondary');
-      button.classList.add('btn-primary');
+      if (button.dataset && button.dataset.isCta === '1') {
+        button.classList.add('btn-cta');
+        button.classList.remove('btn-primary');
+      } else {
+        button.classList.add('btn-primary');
+      }
     }
   }
 }
@@ -324,16 +335,18 @@ onWindow('resize', () => {
 // node escapes both that clipping and any ancestor stacking context.
 //
 // One open popover at a time. Escape and any outside click close it, and focus
-// returns to the trigger that opened it so keyboard users are not stranded.
+// stays on the trigger during keyboard use; a tooltip never takes focus.
 let tipLayer = null;
 let openTipBtn = null;
 let tipCloseTimer = null;
+let tipPinned = false;
 
 function tipLayerEl() {
   if (tipLayer && tipLayer.isConnected) return tipLayer;
   if (!tipLayer) {
     tipLayer = document.createElement('div');
     tipLayer.className = 'af-tip-pop af-tip-layer';
+    tipLayer.id = 'afTooltip';
     tipLayer.setAttribute('role', 'tooltip');
     tipLayer.hidden = true;
 
@@ -349,6 +362,7 @@ function tipLayerEl() {
 }
 
 function scheduleCloseTip(delay = 120) {
+  if (tipPinned) return;
   if (tipCloseTimer) clearTimeout(tipCloseTimer);
   tipCloseTimer = setTimeout(() => {
     closeTip();
@@ -365,17 +379,20 @@ function cancelCloseTip() {
 
 function closeTip() {
   cancelCloseTip();
+  tipPinned = false;
   if (tipLayer) tipLayer.hidden = true;
   if (!openTipBtn) return;
   openTipBtn.setAttribute('aria-expanded', 'false');
+  openTipBtn.removeAttribute('aria-describedby');
   openTipBtn = null;
 }
 
 function openTip(btn) {
   if (!btn) return;
   const wrapper = btn.closest('.af-tip');
-  const text = (wrapper && wrapper.getAttribute('data-tip')) || btn.getAttribute('data-tip');
+  const text = (wrapper && wrapper.getAttribute('data-tip')) || (btn && btn.getAttribute('data-tip')) || (btn && btn.getAttribute('title'));
   if (!text) return;
+  if (openTipBtn && openTipBtn !== btn) closeTip();
 
   cancelCloseTip();
 
@@ -384,6 +401,7 @@ function openTip(btn) {
   pop.hidden = false;
 
   btn.setAttribute('aria-expanded', 'true');
+  btn.setAttribute('aria-describedby', 'afTooltip');
   openTipBtn = btn;
 
   // Measure, then place: fixed coordinates relative to the viewport.
@@ -411,14 +429,14 @@ function openTip(btn) {
 }
 
 function toggleTip(btn) {
-  if (openTipBtn === btn) closeTip();
-  else openTip(btn);
+  if (openTipBtn === btn && tipPinned) closeTip();
+  else { openTip(btn); tipPinned = true; }
 }
 
 if (typeof document !== 'undefined') {
   // HOVER SUPPORT: Instant display on hover without clicking
   document.addEventListener('mouseover', event => {
-    const tipEl = event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
+    const tipEl = event.target.closest('[data-tip]') || event.target.closest('[data-action-tip]') || event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
     if (tipEl) {
       const btn = tipEl.classList.contains('af-tip-btn') ? tipEl : (tipEl.querySelector('.af-tip-btn') || tipEl);
       cancelCloseTip();
@@ -427,7 +445,7 @@ if (typeof document !== 'undefined') {
   });
 
   document.addEventListener('mouseout', event => {
-    const tipEl = event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
+    const tipEl = event.target.closest('[data-tip]') || event.target.closest('[data-action-tip]') || event.target.closest('.af-tip-btn') || event.target.closest('.af-tip');
     if (tipEl) {
       const related = event.relatedTarget;
       if (related && (tipEl.contains(related) || (tipLayer && tipLayer.contains(related)))) {
@@ -452,7 +470,7 @@ if (typeof document !== 'undefined') {
   });
 
   document.addEventListener('focusin', event => {
-    const btn = event.target.closest('.af-tip-btn');
+    const btn = event.target.closest('[data-tip]') || event.target.closest('[data-action-tip]') || event.target.closest('.af-tip-btn');
     if (btn) {
       cancelCloseTip();
       openTip(btn);
@@ -460,17 +478,16 @@ if (typeof document !== 'undefined') {
   });
 
   document.addEventListener('focusout', event => {
-    const btn = event.target.closest('.af-tip-btn');
+    const btn = event.target.closest('[data-tip]') || event.target.closest('[data-action-tip]') || event.target.closest('.af-tip-btn');
     if (btn) {
+      tipPinned = false;
       scheduleCloseTip();
     }
   });
 
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape' || !openTipBtn) return;
-    const btn = openTipBtn;
     closeTip();
-    btn.focus();
   });
 
   // A fixed popover would drift away from its trigger on scroll or resize.

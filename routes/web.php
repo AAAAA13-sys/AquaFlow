@@ -31,7 +31,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::view('/', 'auth.owner-login')->name('cashier.login');
+Route::get('/', fn (\Illuminate\Http\Request $request) => $request->user()
+    ? redirect($request->user()->homeUrl())
+    : view('auth.owner-login'))->name('cashier.login');
 Route::redirect('/owner/login', '/')->name('owner.login');
 Route::view('/employee', 'employee.home')->middleware('auth');
 
@@ -260,6 +262,7 @@ Route::prefix('api')->group(function (): void {
 |
 */
 Route::prefix('api/employee')->middleware(['auth', 'throttle:api'])->group(function (): void {
+    Route::get('defect-items', [DefectReportController::class, 'items']);
     Route::get('orders', [FulfillmentController::class, 'index']);
     // Reporting progress carries the buyer code, so this endpoint is throttled
     // on its own tighter limiter rather than the general API budget.

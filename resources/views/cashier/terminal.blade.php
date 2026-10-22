@@ -36,8 +36,11 @@
       </div>
 
       <div class="card stage-card customer-search-panel">
-        <h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Showing up to 50 matches.</p>
-        <label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select><div id="custList" class="customer-list-container scroll-region"></div>
+        <div class="customer-search-heading">
+          <div><h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Up to 50 matches.</p></div>
+          <div class="customer-order-field"><label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select></div>
+        </div>
+        <div id="custList" class="customer-list-container scroll-region"></div>
       </div>
     </section>
 

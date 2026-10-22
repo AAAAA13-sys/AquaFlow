@@ -7,7 +7,7 @@
 @section('admin-content')
   <section id="s-sales">
     <header class="sales-header">
-      <div><p class="sales-eyebrow">TRANSACTION RECORDS</p><h2>Sales history</h2><p>Review sales, account charges, and payments recorded by your team.</p></div>
+      <div><h2>Sales history</h2><p>Review sales, account charges, and payments recorded by your team.</p></div>
       <button type="button" onclick="exportSalesCSV()" class="btn btn-primary">Export CSV &darr;</button>
     </header>
     <div id="salesSum" class="sales-summary-grid" aria-label="Summary of filtered transactions"></div>
@@ -59,7 +59,7 @@
             <th>Date &amp; time</th>
             <th>Customer</th>
             <th>Order type</th>
-            <th>Gallons</th>
+            <th>Items</th>
             <th class="num">Total</th>
             <th>Payment</th>
             <th>Cashier</th>

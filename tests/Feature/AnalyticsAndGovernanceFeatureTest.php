@@ -1163,13 +1163,72 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
             ->assertSee('Debt Payment', false);
     }
 
+    public function test_admin_sidebar_opens_the_active_group_and_preserves_role_links(): void
+    {
+        foreach ([$this->manager, $this->owner] as $user) {
+            foreach (['dashboard', 'inventory', 'arima', 'users'] as $tab) {
+                $response = $this->actingAs($user)->get('/admin/'.$tab)->assertOk();
+                $document = new \DOMDocument;
+                @$document->loadHTML($response->getContent());
+                $xpath = new \DOMXPath($document);
+                $this->assertSame(4, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
+                $this->assertSame($tab === 'dashboard' ? 0 : 1, $xpath->query('//nav[@id="sideNav"]/details[@open]')->length);
+                $overview = $xpath->query('//nav[@id="sideNav"]/*[1][self::a and @data-s="dashboard"]');
+                $this->assertSame(1, $overview->length);
+                $active = $xpath->query('//nav[@id="sideNav"]//a[@aria-current="page"]');
+                $this->assertSame(1, $active->length);
+                $this->assertSame('/admin/'.$tab, parse_url($active->item(0)->getAttribute('href'), PHP_URL_PATH));
+                $settings = $xpath->query('//nav[@id="sideNav"]//a[@data-s="settings"]');
+                $this->assertSame($user->isSuperAdmin() ? 1 : 0, $settings->length);
+            }
+        }
+    }
+
+    public function test_management_cash_drawers_use_a_read_only_register_and_cashier_keeps_count_forms(): void
+    {
+        foreach ([$this->manager, $this->owner] as $user) {
+            $this->actingAs($user)->get('/admin/cash')->assertOk()
+                ->assertSee('id="cashOverviewSearch"', false)
+                ->assertSee('id="cashOverviewStatus"', false)
+                ->assertSee('data-overview="1"', false)
+                ->assertDontSee('id="cashOpenForm"', false)
+                ->assertDontSee('id="cashCloseForm"', false);
+        }
+        $this->actingAs($this->cashier)->get('/cashier/cash')->assertOk()
+            ->assertSee('id="cashOpenForm"', false)
+            ->assertSee('id="cashCounted"', false)
+            ->assertDontSee('id="cashOverviewSearch"', false);
+    }
+
+    public function test_admin_delivery_panels_monitor_and_cashier_keeps_physical_operations(): void
+    {
+        foreach ([$this->manager, $this->owner] as $user) {
+            foreach (['/admin/dashboard', '/admin/orders'] as $url) {
+                $this->actingAs($user)->get($url)->assertOk()
+                    ->assertSee('data-mode="monitor"', false)
+                    ->assertSee('Delivery monitoring')
+                    ->assertDontSee('Walk-in handover &amp; order history', false);
+            }
+        }
+        $this->actingAs($this->cashier)->get('/cashier/queue')->assertOk()
+            ->assertSee('data-mode="operations"', false);
+    }
+
+    public function test_signed_in_users_return_to_their_workspace_instead_of_a_second_login(): void
+    {
+        $this->get('/')->assertOk()->assertSee('id="adminForm"', false);
+        foreach (User::whereIn('username', ['manager', 'admin', 'cashier', 'rider', 'refiller'])->get() as $user) {
+            $this->actingAs($user)->get('/')->assertRedirect($user->homeUrl());
+        }
+    }
+
     public function test_each_sidebar_page_marks_itself_active(): void
     {
         $pages = [
             '/cashier' => 'POS Terminal',
             '/cashier/queue' => 'Orders in Progress',
             '/cashier/history' => 'Sales &amp; Receipts',
-            '/cashier/stocks' => 'Stock availability',
+            '/cashier/stocks' => 'Stock Availability',
         ];
 
         foreach ($pages as $url => $marker) {

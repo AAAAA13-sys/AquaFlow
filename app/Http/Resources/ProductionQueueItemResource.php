@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\ProductionQueueItem;
+use App\Support\ItemDescription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,7 +27,7 @@ class ProductionQueueItemResource extends JsonResource
             'version' => $this->version,
             'mins' => max((int) $this->elapsed_minutes, (int) $this->created_at?->diffInMinutes(now())),
             'stage_history' => $this->stage_history ?? [],
-            'items' => $this->items_description,
+            'items' => ItemDescription::fromLines($this->transaction?->items ?? [], $this->items_description),
             'orderType' => $this->order_type,
             'status' => $this->is_completed ? 'delivered' : 'active',
             'delivered_at' => $this->delivered_at?->toIso8601String(),

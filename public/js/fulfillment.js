@@ -2,6 +2,15 @@ let fulfillmentFlight = false;
 let fulfillmentBusy = false;
 function fulfillmentKey() { return 'aquaflow_fulfillment:' + getSession().u; }
 
+function renderFulfillmentMonitor(container, data) {
+  const totals = {preparing:0, ready:0, out_for_delivery:0, delivered:0, ...data.quantities};
+  const labels = {preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for delivery',delivered:'Delivered today'};
+  container.innerHTML = '<div class="delivery-monitor-totals">'+Object.entries(labels).map(([key,label])=>'<div><span>'+label+'</span><b>'+Number(totals[key])+'</b><small>delivery items</small></div>').join('')+'</div>' +
+    '<div class="data-table-wrapper" tabindex="0" role="region" aria-label="Order and delivery monitoring"><table><thead><tr><th scope="col">Order / customer</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Items</th><th scope="col">Rider</th><th scope="col">Pending remittance</th><th scope="col">Issues / evidence</th></tr></thead><tbody>' +
+    (data.orders.map(job=>'<tr><td><b>'+esc(job.receipt)+'</b><span class="cash-cell-sub">'+esc(job.customer)+'</span></td><td>'+esc(job.order_type)+'</td><td>'+esc(job.status === 'delivered' ? 'Delivered' : labels[job.status] || job.status)+'</td><td class="table-item-cell"><span class="table-item-lines">'+esc(job.description).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n')+'</span></td><td>'+(job.rider_id?'Rider #'+Number(job.rider_id):job.order_type==='Delivery'?'Awaiting FIFO dispatch':'—')+'</td><td>'+money(job.proof?.pending_remittance || 0)+'</td><td>'+(job.issues?.length?'<span>'+job.issues.map(esc).join('; ')+'</span>':'No reported issues')+(job.proof?'<button type="button" class="btn btn-ghost btn-sm" onclick="viewDeliveryHistory('+Number(job.id)+')">View evidence</button>':'')+'</td></tr>').join('') || '<tr><td colspan="7" class="empty-cell">No active orders or outstanding remittances.</td></tr>')+'</tbody></table></div>';
+  document.getElementById('fulfillmentStatus').textContent = 'Updated '+new Date(data.updated_at).toLocaleTimeString()+'. Quantities above count delivery items, not sales revenue.';
+}
+
 async function sendFulfillmentAction(job, action, extra = {}) {
   if (fulfillmentBusy) return;
   fulfillmentBusy = true;
@@ -47,7 +56,9 @@ async function refreshFulfillment(force = false) {
   fulfillmentFlight = true;
   try {
     const data = await API.request('fulfillment');
-    const container = document.getElementById('fulfillmentRows'); container.replaceChildren();
+    const container = document.getElementById('fulfillmentRows');
+    if (container.dataset?.mode === 'monitor') { renderFulfillmentMonitor(container, data); return; }
+    container.replaceChildren();
     const totals = {preparing:0, ready:0, out_for_delivery:0, delivered:0, ...data.quantities};
     if (sessionStorage.getItem(fulfillmentKey())) {
       const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn btn-primary'; retry.textContent = 'Retry saved handover'; retry.onclick = () => sendFulfillmentAction(); container.append(retry);
@@ -59,20 +70,6 @@ async function refreshFulfillment(force = false) {
       const row = document.createElement('div'); row.style.cssText = 'padding:12px 0;border-bottom:1px solid #ddd;overflow-wrap:anywhere';
       const text = document.createElement('p'); text.textContent = job.receipt + ' | ' + job.customer + ' | ' + job.status.replaceAll('_', ' ') + ' | ' + job.description + (job.issues.length ? ' | Reported issue: ' + job.issues.join('; ') : '');
       row.append(text);
-      if (job.order_type === 'Delivery' && ['preparing', 'ready'].includes(job.status) && !job.handed_over_at && data.riders?.length) {
-        const form = document.createElement('form');
-        const label = document.createElement('label'); label.textContent = 'Assigned rider';
-        const select = document.createElement('select'); select.className = 'form-input'; select.required = true;
-        const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Select an active rider'; select.append(placeholder);
-        for (const rider of data.riders) {
-          const option = document.createElement('option'); option.value = String(rider.id); option.textContent = rider.name; select.append(option);
-        }
-        select.value = job.rider_id ? String(job.rider_id) : '';
-        const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'btn btn-ghost'; submit.textContent = 'Assign rider';
-        label.append(select); form.append(label, submit);
-        form.onsubmit = event => { event.preventDefault(); if (form.reportValidity()) sendFulfillmentAction(job, 'assign', {rider_id:Number(select.value)}); };
-        row.append(form);
-      }
       if (job.order_type === 'Delivery' && job.status === 'ready' && !job.handed_over_at) {
         const form = document.createElement('form');
         form.innerHTML = '<label>Count all receipt items handed to the rider<input name="quantity" class="form-input" type="number" min="1" max="1000" step="1" required></label><button class="btn btn-primary" type="submit">Confirm prepared order handover</button>';

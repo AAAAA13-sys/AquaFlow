@@ -7,8 +7,6 @@
   <main class="admin-main-content cashier-page">
     <header class="cashier-page-header">
       <div>
-        <p class="cashier-eyebrow">TRANSACTION RECORDS</p>
-        <h2>Sales &amp; receipts</h2>
         <p>{{ auth()->user()?->isAdmin() ? 'Review station sales, account charges, and recorded payments.' : 'Review sales, account charges, and payments recorded by your account.' }}</p>
       </div>
       <button type="button" onclick="exportHistoryCsv()" class="btn btn-primary">Export CSV</button>
@@ -19,7 +17,7 @@
     <section class="card cashier-ledger">
       <div class="flex-between" style="margin-bottom:12px;">
         <h3 class="panel-heading" style="margin:0;">Transactions</h3>
-        <button type="button" id="toggleFiltersBtn" class="btn btn-ghost btn-sm" onclick="toggleCashierFilters()" style="display:inline-flex;align-items:center;gap:5px;">
+        <button type="button" id="toggleFiltersBtn" class="btn btn-ghost btn-sm" aria-expanded="false" aria-controls="cashierFiltersPanel" onclick="toggleCashierFilters()" style="display:inline-flex;align-items:center;gap:5px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           <span>Filters</span>
         </button>
@@ -56,7 +54,7 @@
               <th>Date</th>
               <th>Time</th>
               <th>Customer</th>
-              <th>Type &amp; Gallons</th>
+              <th>Type &amp; Items</th>
               <th class="num">Vatable @include('partials.tip', [
                 'text' => 'The part of the total that tax is charged on. AquaFlow prices are VAT-inclusive, so this is worked backwards from the total you were charged rather than added on top of it.',
                 'label' => 'What does Vatable mean?',

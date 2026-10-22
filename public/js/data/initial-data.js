@@ -42,10 +42,10 @@ const DB = {
   forecast7: [230, 245, 260, 255, 300, 380, 340],
   model: { order: 'ARIMA(1,1,1)', aic: 412.6, adf: 'Stationary (p < 0.05)', mae: 18.4, rmse: 24.7, mape: 7.9 },
   transactions: [
-    { t: '08:12', no: 'OR-1011', cust: 'Santos Family', type: 'Delivery', gal: '3S+2R', total: 175, pay: 'Cash', by: 'Cashier #01' },
-    { t: '09:05', no: 'OR-1012', cust: 'Walk-in Guest', type: 'Walk-in', gal: '2S', total: 70, pay: 'Cash', by: 'Cashier #01' },
-    { t: '10:40', no: 'OR-1013', cust: 'Reyes Store', type: 'Delivery', gal: '5S+5R', total: 350, pay: 'Account', by: 'Cashier #01' },
-    { t: '11:15', no: 'OR-1014', cust: 'Aqua Office', type: 'Delivery', gal: '6S', total: 210, pay: 'Account', by: 'Cashier #01' }
+    { t: '08:12', no: 'OR-1011', cust: 'Santos Family', type: 'Delivery', gal: '3 × Slim 5-Gal Refill, 2 × Round 5-Gal Refill', total: 175, pay: 'Cash', by: 'Cashier #01' },
+    { t: '09:05', no: 'OR-1012', cust: 'Walk-in Guest', type: 'Walk-in', gal: '2 × Slim 5-Gal Refill', total: 70, pay: 'Cash', by: 'Cashier #01' },
+    { t: '10:40', no: 'OR-1013', cust: 'Reyes Store', type: 'Delivery', gal: '5 × Slim 5-Gal Refill, 5 × Round 5-Gal Refill', total: 350, pay: 'Account', by: 'Cashier #01' },
+    { t: '11:15', no: 'OR-1014', cust: 'Aqua Office', type: 'Delivery', gal: '6 × Slim 5-Gal Refill', total: 210, pay: 'Account', by: 'Cashier #01' }
   ],
   queue: [
     { no: 'OR-1015', cust: 'Dela Cruz', stage: 2, mins: 6 },

@@ -68,7 +68,11 @@ function renderInvTable() {
         '<td class="text-center"><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
         '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
         '<td class="text-center" style="white-space:nowrap;">' +
-        (v.id ? '<div class="table-actions"><button onclick="openStockDetail(' + v.id + ')" class="btn btn-secondary btn-sm">History</button><button onclick="openInventoryEditor(' + v.id + ')" class="btn btn-secondary btn-sm">Edit</button><button onclick="deleteInventoryItem(' + v.id + ')" class="btn btn-secondary btn-sm btn-del" title="Delete item">Delete</button></div>' : '') + '</td></tr>';
+        (v.id ? '<div class="table-actions">' +
+          '<button type="button" onclick="openStockDetail(' + v.id + ')" class="table-icon-btn" title="History" aria-label="Movement History" data-tip="Movement History"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>' +
+          '<button type="button" onclick="openInventoryEditor(' + v.id + ')" class="table-icon-btn" title="Edit" aria-label="Edit Item" data-tip="Edit Item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3l5 5-12 12-6 1 1-6Z"/><path d="M14 5l5 5"/></svg></button>' +
+          '<button type="button" onclick="deleteInventoryItem(' + v.id + ')" class="table-icon-btn table-icon-del" title="Delete" aria-label="Delete Item" data-tip="Delete Item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M9 6V3h6v3"/><path d="M5 6l1 15h12l1-15"/><path d="M10 10v7"/><path d="M14 10v7"/></svg></button>' +
+        '</div>' : '') + '</td></tr>';
     }).join('');
     showTableEmpty(body, 8);
   }
@@ -200,7 +204,7 @@ async function createInventoryItem(event) {
       addButton.setAttribute('aria-expanded', 'false');
       if (addButton.classList) {
         addButton.classList.remove('btn-secondary');
-        addButton.classList.add('btn-primary');
+        addButton.classList.add(addButton.dataset?.isCta === '1' ? 'btn-cta' : 'btn-primary');
       }
     }
     renderInvTable();
@@ -286,7 +290,7 @@ function renderSup() {
   const summary = document.getElementById('supplierSummary');
   if (summary) {
     const leads = DB.suppliers.map(s => Number(s.lead)).filter(n => n > 0);
-    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : 'â€”') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
+    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : '—') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
   }
   grid.innerHTML = filterTableRows(DB.suppliers, 'supGrid').map(s => {
     const key = supKey(s);

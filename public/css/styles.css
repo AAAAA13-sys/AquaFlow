@@ -1,24 +1,28 @@
 /* AquaFlow Professional Semantic Design System */
 :root {
+  --table-body-size: 0.94rem;
+  --table-heading-size: 13px;
+  --table-cell-padding: 0.65rem;
+  --sidebar-surface: #1D4ED8;
   --brand-primary: #1D4ED8;
-  --brand-hover: #1D4ED8;
+  --brand-hover: #1E40AF;
+  --brand-active: #1E3A8A;
   --brand-dark: #0F172A;
   --brand-light: #DBEAFE;
+  --brand-tint: #EFF6FF;
+  --brand-ring: rgba(29, 78, 216, 0.25);
 
-  /* The canvas is a real light grey, not near-white. It was #F8FAFC, which put
-     white cards on a white page behind a 0.04-alpha shadow: no surface could be
-     told from any other and the app read as one flat white sheet. */
+  /* The canvas is a real light grey, not near-white. */
   --surface-white: #FFFFFF;
   --surface-bg: #EAEFF6;
   --surface-card: #FFFFFF;
   --surface-subtle: #F3F6FA;
 
-  /* Text was one shade too light across the board. Darkened so secondary copy
-     is legible without relying on low opacity. */
+  /* Darkened gray text tokens for high contrast and readability across cards and tables. */
   --text-dark: #0B1220;
   --text-slate: #1E293B;
-  --text-muted: #475569;
-  --text-dim: #64748B;
+  --text-muted: #334155;
+  --text-dim: #475569;
 
   /* Cards need a visible edge to read as separate from the grey canvas. */
   --border-line: #D3DAE5;
@@ -316,7 +320,7 @@ button {
    --------------------------------------------------------------------- */
 .admin-sidebar {
   width: 260px;
-  background-color: var(--brand-primary);
+  background-color: var(--sidebar-surface);
   color: #FFFFFF;
   display: flex;
   flex-direction: column;
@@ -2080,7 +2084,7 @@ button.product-item .product-info-price {
 }
 
 .credential-hint {
-  color: #475569;
+  color: #334155;
   font-size: 12px;
   line-height: 1.6;
   margin: 8px 0;
@@ -2280,7 +2284,7 @@ button.product-item .product-info-price {
      after the main palette moved. */
   --af-edge: #D3DAE5;
   --af-ink: #0B1220;
-  --af-muted: #475569;
+  --af-muted: #334155;
 }
 
 /* ---- 1. The technical-term hint ------------------------------------------
@@ -2414,9 +2418,10 @@ th .term-hint {
 }
 
 .pill-ok {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  font-weight: 700;
 }
 
 .pill-warn {
@@ -2627,7 +2632,7 @@ body {
   --surface-white: #FFFFFF;
   --surface-subtle: #F3F6FA;
   --text-slate: #1E293B;
-  --text-muted: #475569;
+  --text-muted: #334155;
   --border-line: #D3DAE5;
   --border-subtle: #BFC8D6;
   --radius-sm: 8px;
@@ -3639,7 +3644,7 @@ body {
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
   white-space: nowrap;
-  color: #475569;
+  color: #334155;
   background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
 }
@@ -3723,7 +3728,8 @@ body {
    without occupying the layout.
    ========================================================================== */
 
-.visually-hidden {
+.visually-hidden,
+.sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -3777,7 +3783,7 @@ body {
   /* No opacity here: fading the glyph composites it toward white and
      failed AA at every value tried (0.5 -> 4.34:1, 0.72 -> still short).
      #475569 reads as secondary through its size, not through being washed out. */
-  color: #475569;
+  color: #334155;
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -3819,10 +3825,10 @@ body {
   width: max-content;
   max-width: min(280px, calc(100vw - 24px));
   padding: 0.6rem 0.75rem;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   background: #0F172A;
   color: #F1F5F9;
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
   text-align: left;
@@ -3999,7 +4005,7 @@ dialog::backdrop {
   --surface-subtle: #F3F6FA;
   --text-dark: #0B1220;
   --text-slate: #1E293B;
-  --text-muted: #475569;
+  --text-muted: #334155;
   --text-dim: #64748B;
   --border-line: #D3DAE5;
   --border-subtle: #BFC8D6;
@@ -4559,3 +4565,99 @@ textarea::placeholder {
     align-items: stretch;
   }
 }
+/* Reconciliation records are sections within a panel, not nested cards. */
+.cash-detail { padding:0; margin:0; overflow-wrap:anywhere; }
+.cash-detail h3 { margin:0 0 4px; }
+.cash-detail .insight-row b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.cash-drawer-panel { padding:24px; min-width:0; }
+.cash-panel-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+.cash-panel-header h3 { margin:0 0 6px; }
+.cash-panel-header p { margin:0; color: #334155; line-height:1.6; }
+.cash-sync-status { margin:16px 0 24px; color: #334155; font-size:13px; line-height:1.6; }
+.cash-register-filters { display:grid; grid-template-columns:minmax(220px,1fr) 180px 180px; gap:16px; margin-top:24px; }
+.cash-table-scroll { width:100%; overflow-x:auto; border:1px solid var(--border-line); border-radius:10px; }
+.cash-table-scroll:focus-visible { outline:2px solid var(--brand-primary,#1d4ed8); outline-offset:3px; }
+.cash-register-table { width:100%; min-width:1050px; border-collapse:collapse; font-size:14px; }
+.cash-register-table th { text-align:left; padding:13px 16px; background:#f8fafc; color: #334155; font-size:12px; white-space:nowrap; }
+.cash-register-table td { padding:16px; border-top:1px solid var(--border-line); vertical-align:top; }
+.cash-register-table th:nth-child(n+3):nth-child(-n+8), .cash-register-table .cash-number { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.cash-cell-sub { display:block; margin-top:5px; color: #334155; min-width:145px; }
+.cash-state { display:inline-block; padding:4px 9px; border-radius:6px; font-size:13px; font-weight:600; }
+.cash-state-open,.cash-state-over { background:#eff6ff; color:#1e40af; }
+.cash-state-short { background:#fef2f2; color:#991b1b; }
+.cash-state-balanced { background:#ecfdf5; color:#065f46; }
+.cash-row-notes { min-width:150px; max-width:300px; }
+.cash-row-notes summary { cursor:pointer; color:#1d4ed8; min-height:28px; font-weight:600; }
+.cash-row-notes p { overflow-wrap:anywhere; line-height:1.6; }
+.cash-empty { text-align:center; color: #334155; padding:32px!important; }
+.cash-record-count { color: #334155; font-size:13px; margin:12px 0; }
+.cash-timing { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+#cashOpenForm { max-width:560px; }
+#cashOpenForm h3,.cash-count-entry h3 { margin:0 0 18px; }
+#cashCloseForm:not(.hidden) { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:40px; }
+.cash-count-entry { padding-left:32px; border-left:1px solid var(--border-line); }
+.cash-count-entry textarea { min-height:100px; resize:vertical; }
+.cash-total-row { display:flex; justify-content:space-between; gap:20px; padding:13px 0; border-bottom:1px solid var(--border-line); line-height:1.5; }
+.cash-total-row b { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.cash-expected { color:#1e40af; font-size:18px; margin-top:8px; border-bottom:0; }
+.cash-detail-state { margin:6px 0 16px; color: #334155; }
+.cash-history-section { margin-top:32px; padding-top:24px; border-top:1px solid var(--border-line); }
+.cash-history-section h3 { margin:0 0 8px; }
+
+/* Shared Stock & Prices table rhythm; page rules retain column-specific widths. */
+.admin-layout table { font-family:inherit; font-size:var(--table-body-size); }
+.admin-layout table th,
+.admin-layout table td {
+  padding:var(--table-cell-padding);
+  line-height:1.55;
+  vertical-align:middle;
+}
+.admin-layout table th {
+  font-size:var(--table-heading-size);
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+  color:var(--text-muted);
+  background:#edf1f7;
+  border-bottom:1px solid var(--border-line);
+}
+.admin-layout table td { font-size:var(--table-body-size); }
+.admin-layout table .cell-sub,
+.admin-layout table .cash-cell-sub { font-size:var(--table-heading-size); }
+.admin-layout table tbody tr:nth-child(even) { background:var(--surface-subtle); }
+.admin-layout table tbody tr:hover { background:var(--brand-tint,#eff6ff); }
+.admin-layout table td.table-item-cell { width:220px; white-space:normal; }
+.table-item-lines {
+  display:block;
+  min-width:160px;
+  max-width:220px;
+  white-space:pre-line;
+  overflow-wrap:break-word;
+  word-break:normal;
+  line-height:1.55;
+}
+
+/* Shared shell: quiet navigation, clear actions, and uncluttered controls. */
+.admin-sidebar .sidebar-link { min-height:42px; padding:8px 12px; }
+.sidebar-footer { padding:14px 16px; border-top:1px solid rgba(255, 255, 255, 0.2); display:flex; flex-direction:column; gap:10px; }
+.sidebar-user-card { padding:10px 12px; background:rgba(255, 255, 255, 0.08); border:1px solid rgba(255, 255, 255, 0.16); border-radius:8px; display:flex; flex-direction:column; gap:3px; }
+.sidebar-action-row { display:flex; align-items:stretch; gap:8px; }
+.sidebar-logout-btn { background:rgba(255, 255, 255, 0.14); border:1px solid rgba(255, 255, 255, 0.35); border-radius:6px; color:#FFFFFF; font-size:13px; font-weight:600; min-height:38px; padding:6px 12px; flex:1; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease; }
+.sidebar-logout-btn:hover { background:rgba(255, 255, 255, 0.26); border-color:rgba(255, 255, 255, 0.55); color:#FFFFFF; }
+.sidebar-logout-btn:focus-visible { outline:2px solid #FFFFFF; outline-offset:2px; }
+.admin-layout .admin-summary article,
+.admin-layout .cashier-summary article { border:1px solid #cbd5e1; box-shadow:0 3px 10px #0f172a0a; }
+@media(max-width:800px) {
+  .cash-register-filters { grid-template-columns:1fr 1fr; }
+  .cash-register-filters>div:first-child { grid-column:1/-1; }
+  #cashCloseForm:not(.hidden) { grid-template-columns:1fr; gap:24px; }
+  .cash-count-entry { padding:24px 0 0; border-left:0; border-top:1px solid var(--border-line); }
+}
+@media(max-width:480px) {
+  .cash-drawer-panel { padding:18px; }
+  .cash-panel-header { flex-wrap:wrap; }
+  .cash-panel-header .btn { margin:0; }
+  .cash-register-filters { grid-template-columns:1fr; gap:12px; }
+}
+#cashStatus { margin:12px 0 20px; color:var(--text-muted); }
+#cashHistory:empty { display:none; }

@@ -65,13 +65,13 @@ class BootstrapController extends Controller
             'transactions' => TransactionResource::collection(
                 Transaction::query()
                     ->visibleTo($request->user())
-                    ->with(['customer', 'cashier'])
+                    ->with(['customer', 'cashier', 'items'])
                     ->newestFirst()
                     ->limit(50)
                     ->get()
             ),
             'queue' => ProductionQueueItemResource::collection(
-                ProductionQueueItem::query()->activeToday()->orderBy('id')->get()
+                ProductionQueueItem::query()->with('transaction.items')->activeToday()->orderBy('id')->get()
             ),
             'forecasts' => DemandForecastResource::forSeries($forecasts),
             'history' => $history,

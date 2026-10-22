@@ -5,7 +5,7 @@
 
 @section('admin-content')
   <section id="s-defects" class="admin-page">
-    @include('partials.admin-page-header', ['eyebrow' => 'STOCK CONTROL', 'heading' => 'Defect Reports', 'description' => 'Staff report leaking jugs, torn seals and broken caps. Approve to write the units off stock, or reject if the report is not a genuine loss.'])
+    @include('partials.admin-page-header', ['eyebrow' => 'STOCK CONTROL', 'heading' => 'Defect Reports', 'description' => 'Review and approve reported damaged stock to adjust inventory.'])
 
     <div id="defectSummary" class="admin-summary" aria-label="defect report summary"></div>
 

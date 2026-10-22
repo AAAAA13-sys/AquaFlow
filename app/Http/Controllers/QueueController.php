@@ -18,7 +18,7 @@ class QueueController extends Controller
     {
         $data = $request->validate(['status' => ['sometimes', 'in:active,delivered'], 'search' => ['nullable', 'string', 'max:120'], 'page' => ['sometimes', 'integer', 'min:1']]);
         $completed = ($data['status'] ?? 'active') === 'delivered';
-        $query = ProductionQueueItem::where('is_completed', $completed);
+        $query = ProductionQueueItem::with('transaction.items')->where('is_completed', $completed);
         if ($search = $data['search'] ?? null) {
             $query->where(fn ($q) => $q->where('receipt_number', 'like', '%'.$search.'%')->orWhere('customer_name', 'like', '%'.$search.'%'));
         }
@@ -47,6 +47,6 @@ class QueueController extends Controller
      */
     private function activeQueue(): Collection
     {
-        return ProductionQueueItem::query()->activeToday()->orderBy('id')->get();
+        return ProductionQueueItem::query()->with('transaction.items')->activeToday()->orderBy('id')->get();
     }
 }

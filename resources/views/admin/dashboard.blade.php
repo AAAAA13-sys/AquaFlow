@@ -9,8 +9,7 @@
   <section id="s-dash">
     <header class="workspace-heading">
       <div>
-        <p class="cashier-eyebrow">{{ auth()->user()?->isSuperAdmin() ? 'BUSINESS OVERSIGHT' : 'DAILY OPERATIONS' }}</p>
-        <h1>{{ auth()->user()?->isSuperAdmin() ? 'Owner overview' : 'Station overview' }}</h1>
+
         <p>Review sales, customer balances and stock needs, then open the task that needs attention.</p>
       </div>
       <a href="{{ url('/cashier/queue') }}" class="btn btn-secondary">View active orders</a>
@@ -218,7 +217,7 @@
       </div>
     </div>
   </section>
-  @include('partials.fulfillment')
+  @include('partials.fulfillment', ['monitor' => true])
 @endsection
 
 {{-- Customer balance reminder drawer. --}}

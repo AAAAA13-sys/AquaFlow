@@ -23,13 +23,10 @@ function setSession(user) {
   localStorage.setItem('session', JSON.stringify({ u: user.u, role: user.role, name: user.name, must_change_password: !!user.must_change_password, t: Date.now() }));
 }
 
-let loginErrorTimer;
 function showLoginError(message) {
   const error = document.getElementById('err');
-  clearTimeout(loginErrorTimer);
   error.textContent = message;
   error.classList.remove('hidden');
-  loginErrorTimer = setTimeout(() => error.classList.add('hidden'), 5000);
 }
 
 // Clears both the session and the local mirror, then returns to login.

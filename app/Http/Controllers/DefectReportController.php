@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ResolveDefectReportRequest;
 use App\Http\Requests\StoreDefectReportRequest;
+use App\Http\Resources\DefectItemResource;
 use App\Http\Resources\DefectReportResource;
 use App\Models\DefectReport;
 use App\Models\InventoryItem;
@@ -22,6 +23,16 @@ use Illuminate\Validation\ValidationException;
  */
 class DefectReportController extends Controller
 {
+    public function items(): JsonResponse
+    {
+        return response()->json([
+            'inventory' => DefectItemResource::collection(
+                InventoryItem::query()->current()->orderBy('item_name')
+                    ->get(['id', 'item_name', 'stock_on_hand', 'unit'])
+            ),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = DefectReport::query()

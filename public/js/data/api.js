@@ -179,6 +179,7 @@ const API = {
   advisories() { return this.get('advisories'); },
 
   // Defect & damaged-stock reporting
+  defectItems() { return this.get('employee/defect-items'); },
   defectReports(status) { return this.getWithQuery('defects', status ? { status: status } : {}); },
   createDefectReport(payload) { return this.post('defects', payload); },
   resolveDefectReport(id, action, notes) {

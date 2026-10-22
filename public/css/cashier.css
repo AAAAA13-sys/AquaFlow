@@ -18,7 +18,7 @@
 }
 
 .cashier-shell .customer-search-panel {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -923,4 +923,28 @@ button.product-item.prod-theme-yellow {
 
 button.product-item.prod-theme-purple {
   border-left: 4px solid #7C3AED;
+}
+/* Keep customer lookup usable when the drawer notice consumes vertical space. */
+.cashier-shell .customer-search-panel > .panel-heading,
+.cashier-shell .customer-search-panel > .cell-sub,
+.cashier-shell .customer-search-panel > label,
+.cashier-shell .customer-search-panel > select {
+  flex-shrink: 0;
+}
+.cashier-shell .customer-search-panel .customer-list-container {
+  flex: 1 1 140px;
+  max-height: none;
+}
+/* The inventory dialog needs room for its table without widening registration. */
+#stocksModal { width: min(720px, calc(100% - 32px)); }
+#stocksModal .auth-card { width: 100% !important; }
+
+.customer-search-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-shrink:0; }
+.customer-search-heading .panel-heading { margin:0 0 4px; }
+.customer-search-heading .cell-sub { margin:0; }
+.customer-order-field { flex:0 0 210px; }
+.customer-order-field label { display:block; margin-bottom:4px; }
+@media (max-width:600px) {
+  .customer-search-heading { align-items:flex-start; flex-wrap:wrap; gap:8px; }
+  .customer-order-field { flex:1 1 100%; }
 }

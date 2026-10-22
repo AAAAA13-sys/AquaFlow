@@ -507,3 +507,11 @@ body.employee-page {
   font-weight: 600;
   border-radius: 8px;
 }
+@media (max-width:420px) {
+  .emp-header { flex-wrap:wrap; gap:12px; }
+  .emp-header .emp-user-info { flex:1 1 100%; }
+  .emp-header > div:last-child { margin-left:auto; }
+  .emp-section-head { flex-wrap:wrap; gap:8px; }
+  .emp-section-title { flex:1 1 100%; }
+  .emp-section-head > button { flex:1; justify-content:center; }
+}

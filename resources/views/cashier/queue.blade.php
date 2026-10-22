@@ -5,8 +5,6 @@
 <main class="admin-main-content cashier-page cashier-orders-page">
  <header class="cashier-page-header">
   <div>
-    <p class="cashier-eyebrow">ORDER HANDOVER</p>
-    <h2>Orders in progress</h2>
     <p>Confirm walk-in pickup after preparation. Riders confirm deliveries; accept their handover and remittances below.</p>
   </div>
   <div>

@@ -35,3 +35,24 @@ document.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') toggleSidebar(false);
 });
+
+// Keep each existing button/handler; available for explicit enhancement.
+function enhanceCrudActions(root = document) {
+  const icons = {History:'i-history', Edit:'i-edit', Delete:'i-trash'};
+  const buttons = [...(root && root.querySelectorAll ? root.querySelectorAll('table button, .table-actions button, .drawer-actions button') : [])];
+  if (root && root.matches && root.matches('table button, .table-actions button, .drawer-actions button')) buttons.unshift(root);
+  for (const button of buttons) {
+    if (button.dataset.actionIcon) continue;
+    const label = button.textContent.trim();
+    if (!icons[label]) continue;
+    button.dataset.actionIcon = icons[label];
+    button.dataset.actionTip = '1';
+    button.dataset.tip = label;
+    button.classList.add('table-icon-action');
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    if (typeof icon === 'function') {
+      button.innerHTML = icon(icons[label]);
+    }
+  }
+}

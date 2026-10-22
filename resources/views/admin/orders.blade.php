@@ -3,9 +3,8 @@
 @section('topbar-title', 'Orders & Deliveries')
 @section('admin-content')
 <section class="admin-page">
-@include('partials.admin-page-header', ['eyebrow' => 'DAILY OPERATIONS', 'heading' => 'Orders & deliveries', 'description' => 'Monitor preparation, delivery issues and cash remittances. Refillers prepare orders; riders confirm delivery.'])
-<a class="btn btn-ghost" href="{{ url('/cashier/queue') }}">Walk-in handover & order history</a>
-@include('partials.fulfillment')
+@include('partials.admin-page-header', ['eyebrow' => 'DAILY OPERATIONS', 'heading' => 'Orders & deliveries', 'description' => 'Monitor preparation, delivery issues, and driver cash remittances.'])
+@include('partials.fulfillment', ['monitor' => true])
 </section>
 @endsection
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Orders & Deliveries'])

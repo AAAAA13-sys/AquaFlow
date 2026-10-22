@@ -10,14 +10,27 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), vm = requ
 (async () => {
  const elements = {};
  for (const id of ['cashDrawerPanel','cashHistory','cashOverview','cashStatus','cashOpenForm','cashCloseForm','cashResultCard','cashSummary','cashResult','cashFloat','cashCounted','cashNote','cashOpenBtn','cashCloseBtn']) elements[id] = {value:'',disabled:false,dataset:{overview:'0'},innerHTML:'',textContent:'',classList:{hidden:false,add(){this.hidden=true;},remove(){this.hidden=false;}}};
- let shift={id:42,is_open:true,expected_cash:200,opening_float:200,total_sales:0,collections:0,pending_collections:0,date:'2026-10-21',cashier:'<Cashier>',status:'open'},fail=false,writes=0,body,resolveConfirm,pending=null;
- const ctx=vm.createContext({document:{getElementById:id=>elements[id]},money:String,esc:s=>String(s).replaceAll('<','&lt;'),Submissions:{pending:()=>pending},appNotice(){},appConfirm:()=>new Promise(r=>resolveConfirm=r),API:{get:async()=>{if(fail)throw Error('offline');return {shift,history:[],shifts:[shift]};},post:async(path,payload)=>{writes++;body=payload;}}});
+ let history=[]; let shift={id:42,is_open:true,expected_cash:200,opening_float:200,total_sales:0,collections:0,pending_collections:0,date:'2026-10-21',cashier:'<Cashier>',status:'open'},fail=false,writes=0,body,resolveConfirm,pending=null;
+ const ctx=vm.createContext({document:{getElementById:id=>elements[id]},money:String,esc:s=>String(s).replaceAll('<','&lt;'),Submissions:{pending:()=>pending},appNotice(){},appConfirm:()=>new Promise(r=>resolveConfirm=r),API:{get:async()=>{if(fail)throw Error('offline');return {shift,history,shifts:[shift]};},post:async(path,payload)=>{writes++;body=payload;}}});
  vm.runInContext(fs.readFileSync('public/js/admin/cash.js','utf8'),ctx);
  await ctx.renderCashShift();assert.match(elements.cashSummary.innerHTML,/&lt;Cashier>/);
  elements.cashCounted.value='200';pending={};await ctx.closeCashDrawer();assert.equal(writes,0);pending=null;
  const close=ctx.closeCashDrawer();await ctx.closeCashDrawer();resolveConfirm(true);await close;assert.equal(writes,1);assert.equal(body.shift_id,42);assert.equal(body.expected_cash,200);
- shift={...shift,is_open:false,status:'balanced'};await ctx.renderCashShift();assert.equal(elements.cashOpenForm.classList.hidden,true);assert.equal(elements.cashCloseForm.classList.hidden,true);
+ shift={...shift,is_open:false,status:'balanced'};history=[shift,{...shift,id:41,cashier:'Earlier cashier'}];await ctx.renderCashShift();assert.doesNotMatch(elements.cashHistory.innerHTML,/&lt;Cashier>/);assert.match(elements.cashHistory.innerHTML,/Earlier cashier/);assert.equal(elements.cashOpenForm.classList.hidden,true);assert.equal(elements.cashCloseForm.classList.hidden,true);
  elements.cashFloat.value='NaN';await ctx.openCashDrawer();assert.equal(writes,1);
+ elements.cashDrawerPanel.dataset.overview='1';
+ elements.cashOverviewSearch={value:''};elements.cashOverviewStatus={value:''};elements.cashOverviewSort={value:'newest'};
+ await ctx.renderCashShift();
+ assert.match(elements.cashOverview.innerHTML,/<table/,'Management reviews drawers in a table');
+ assert.equal((elements.cashOverview.innerHTML.match(/data-shift-id="42"/g)||[]).length,1,'Current/history duplicates appear once');
+ assert.match(elements.cashOverview.innerHTML,/Earlier cashier/);
+ assert.match(elements.cashOverview.innerHTML,/&lt;Cashier>/,'Operator names remain escaped');
+ elements.cashOverview.innerHTML='Expanded notes DOM';await ctx.renderCashShift();
+ assert.equal(elements.cashOverview.innerHTML,'Expanded notes DOM','Unchanged refresh preserves details and focus');
+ elements.cashOverviewSearch.value='missing-person';ctx.renderCashOverviewRows();
+ assert.match(elements.cashOverview.innerHTML,/No drawers match/);
+ elements.cashOverviewSearch.value='';elements.cashOverviewStatus.value='open';ctx.renderCashOverviewRows();
+ assert.match(elements.cashOverview.innerHTML,/No drawers match/,'Closed drawers are excluded by open filter');
  fail=true;await ctx.renderCashShift();assert.match(elements.cashStatus.textContent,/outdated/);assert.equal(elements.cashCloseForm.classList.hidden,true);
  console.log('PASS: cash drawer identity, reviewed totals, pending-payment guard, duplicate clicks, closed controls and offline state.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
@@ -37,14 +50,16 @@ role='super_admin';ctx.renderTill();assert.match(grid.innerHTML,/saveTillPrice/)
 (async()=>{
  const children=[]; const status={textContent:''}; let riders=[];
  const create=tag=>({tag,style:{},elements:{quantity:{}},append(...nodes){this.children=(this.children||[]).concat(nodes);}});
- const c=vm.createContext({document:{hidden:false,activeElement:null,addEventListener(){},createElement:create,getElementById:id=>id==='fulfillmentRows'?{replaceChildren(){children.length=0;},append(n){children.push(n);}}:status},window:{addEventListener(){}},setInterval(){},sessionStorage:{getItem:()=>null},getSession:()=>({u:'cashier'}),API:{request:async()=>({updated_at:new Date().toISOString(),riders,orders:[{id:1,receipt:'OR-1',customer:'Guest',status:'ready',description:'1 refill',issues:[],order_type:'Delivery',rider_id:null,handed_over_at:null}]})}});
+ const root={dataset:{},innerHTML:'',replaceChildren(){children.length=0;},append(n){children.push(n);}};
+ const c=vm.createContext({document:{hidden:false,activeElement:null,addEventListener(){},createElement:create,getElementById:id=>id==='fulfillmentRows'?root:status},window:{addEventListener(){}},setInterval(){},esc:String,money:String,sessionStorage:{getItem:()=>null},getSession:()=>({u:'cashier'}),API:{request:async()=>({updated_at:new Date().toISOString(),riders,orders:[{id:1,receipt:'OR-1',customer:'Guest',status:'ready',description:'1 refill',issues:[],order_type:'Delivery',rider_id:null,handed_over_at:null}]})}});
  vm.runInContext(fs.readFileSync('public/js/fulfillment.js','utf8'),c);await c.refreshFulfillment();
  assert.ok(children[0].children.some(n=>n.tag==='form'),'Ready unassigned delivery must allow cashier handover before rider dispatch');
  riders=[{id:7,name:'Rider One'}]; await c.refreshFulfillment();
  const assignment=children[0].children.find(n=>n.tag==='form' && n.children?.some(child=>child.tag==='button'));
- assert.ok(assignment,'Management receives an assignment form');
- const select=assignment.children[0].children[0]; assert.equal(select.children[1].textContent,'Rider One');
- let action; c.sendFulfillmentAction=async(job,kind,extra)=>{action={kind,...extra};}; assignment.reportValidity=()=>true;select.value='7';assignment.onsubmit({preventDefault(){}});assert.deepEqual(action,{kind:'assign',rider_id:7});
+ assert.equal(assignment,undefined,'Manual rider assignment is not offered');
+ root.dataset.mode='monitor';await c.refreshFulfillment();
+ assert.match(root.innerHTML,/<table/,'Management receives a monitoring table');
+ assert.doesNotMatch(root.innerHTML,/<form|sendFulfillmentAction|acceptDeliveryRemittance|confirmation code/,'Monitoring has no operational controls or buyer secrets');
  console.log('PASS: owner-only catalog controls and unassigned delivery handover.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 
@@ -134,9 +149,10 @@ const summary=ctx.cartRowsHtml(false);
 assert.ok(!summary.includes('<button'), 'payment summary must have read-only quantities');
 assert.ok(ctx.cartRowsHtml().includes('<button'), 'product step must keep quantity controls');
 vm.runInContext(fs.readFileSync('public/js/pos/panels.js','utf8'),ctx);
-assert.equal(ctx.historyVolumeLabel('1R'), '1 Round');
-assert.equal(ctx.historyVolumeLabel('2S+3R'), '2 Slim, 3 Round');
-assert.equal(ctx.historyVolumeLabel('0 gal'), '0');
+assert.equal(ctx.historyVolumeLabel('1R'), '1 × Round 5-Gal Refill');
+assert.equal(ctx.historyVolumeLabel('2S+3R'), '2 × Slim 5-Gal Refill, 3 × Round 5-Gal Refill');
+assert.equal(ctx.historyVolumeLabel('0 gal'), '—');
+assert.equal(ctx.historyVolumeLabel('2 × New Slim 5-Gal Jug'), '2 × New Slim 5-Gal Jug');
 vm.runInContext(fs.readFileSync('public/js/admin/inventory.js','utf8'),ctx);
 ctx.DB.inventory=[{item:'Clear Cover',cat:'Consumable'},{item:'5 Gallon Slim Jug',cat:'Asset'},{item:'Filter Cartridge',cat:'Filtration'}];
 assert.equal(ctx.stockFiltered().length,2,'dashboard excludes unrelated equipment');
@@ -331,11 +347,10 @@ function page(firstRun, employee = false) {
   await failed.ctx.submitLogin();
   assert.equal(failed.element('err').textContent, 'Invalid username or password.');
   assert.equal(visibility.has('hidden'), false);
-  assert.equal([...failed.timers.values()][0].delay, 5000);
+  assert.equal(failed.timers.size, 0, 'Sign-in errors stay readable until the next action');
   failed.ctx.showLoginError('Try again.');
-  assert.equal(failed.timers.size, 1, 'a new error resets the five-second timer');
-  [...failed.timers.values()][0].callback();
-  assert.equal(visibility.has('hidden'), true);
+  assert.equal(failed.element('err').textContent, 'Try again.');
+  assert.equal(visibility.has('hidden'), false);
   // ---- Owner sign-in: username + password, one step -------------------------
   const normal = page(false);
   normal.element('adminEmail').value = 'owner';
@@ -808,6 +823,8 @@ globalThis.testEmployees = async root => {
   await ctx.refreshEmployee();
   const job=(id,status='ready')=>({id,status,version:0,rider_id:7,order_type:'Delivery',receipt:'OR-'+id,customer:'Customer',lines:[{quantity:2,product:'Refill'}],issues:[],handed_over_at:'2026-10-15T01:00:00Z',created_at:'2026-10-15T01:00:00Z'});
   orders=[job(1)];await ctx.refreshEmployee();
+  const stableCard=elements.jobs.children[0];await ctx.refreshEmployee();
+  assert.equal(elements.jobs.children[0],stableCard,'Unchanged refresh preserves the focused order card');
 
   // Lock before confirmation: repeated taps must not open two dialogs or send twice.
   let resolveConfirm;confirm=()=>new Promise(resolve=>{resolveConfirm=resolve;});
@@ -1128,6 +1145,13 @@ globalThis.testHistory = async function checkHistory(root) {
     filterTableRows:rows=>rows, markScrollableTables(){}, downloadCSV:csv=>downloads.push(csv), appNotice:error=>errors.push(error)
   });
   vm.runInContext(fs.readFileSync(path.join(root,'public/js/pos/panels.js'),'utf8'),ctx);
+  let filtersHidden=true;
+  elements.cashierFiltersPanel={classList:{toggle:()=>filtersHidden=!filtersHidden}};
+  elements.toggleFiltersBtn={setAttribute:(name,value)=>{elements.toggleFiltersBtn[name]=value;}};
+  ctx.toggleCashierFilters();
+  assert.equal(elements.toggleFiltersBtn['aria-expanded'],'true');
+  ctx.toggleCashierFilters();
+  assert.equal(elements.toggleFiltersBtn['aria-expanded'],'false');
   await assert.rejects(ctx.historyRows(), /Connection lost/, 'Server failure must not turn a partial cache into a complete report');
   await ctx.exportHistoryCsv();
   assert.equal(downloads.length,0, 'Failed history requests must not export cached transactions');
@@ -1135,12 +1159,16 @@ globalThis.testHistory = async function checkHistory(root) {
   let rejectOld;
   ctx.historyRows=()=>new Promise((resolve,reject)=>{rejectOld=reject;});
   const older=ctx.renderHistoryPage();
-  ctx.historyRows=async()=>[];
+  ctx.historyRows=async()=>[{no:'OR-LINES',type:'Walk-in',gal:'2 × Slim 5-Gal Refill, 1 × Round 5-Gal Refill'}];
   await ctx.renderHistoryPage();
+  assert.match(elements.hBody.innerHTML,/table-item-lines">2 × Slim 5-Gal Refill\n1 × Round 5-Gal Refill/,'Cashier item names stack within one cell');
   const current=elements.hBody.innerHTML;
   rejectOld(new Error('Old request failed'));
   await older;
   assert.equal(elements.hBody.innerHTML,current, 'Old failure must not overwrite newer results');
+  let tableWrites=0, tableMarkup=elements.hBody.innerHTML;
+  Object.defineProperty(elements.hBody,'innerHTML',{get:()=>tableMarkup,set:value=>{tableWrites++;tableMarkup=value;}});
+  ctx.renderHistoryRows();assert.equal(tableWrites,0,'Unchanged history keeps receipt buttons attached');
   elements.hSum.innerHTML='Old totals'; elements.historyPages.innerHTML='Old pages';
   ctx.historyRows=async()=>{throw new Error('<offline>');};
   await ctx.renderHistoryPage();
@@ -1438,8 +1466,9 @@ ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
   await testStock(root);
   await testDates(root);
   elements.salesBody={innerHTML:''};elements.salesSum={innerHTML:''};elements.salesPagination={innerHTML:''};
-  ctx.fetchSalesRows=async()=>Array.from({length:21},(_,i)=>({...rows[0],id:i+1,no:'OR-'+(i+1),cust:'<Ada & Co>',type:i===0?'Debt Payment':'Walk-in',total:i===0?100:35}));
+  ctx.fetchSalesRows=async()=>Array.from({length:21},(_,i)=>({...rows[0],id:i+1,no:'OR-'+(i+1),cust:'<Ada & Co>',gal:'2 × Slim 5-Gal Refill, 1 × Round 5-Gal Refill',type:i===0?'Debt Payment':'Walk-in',total:i===0?100:35}));
   await ctx.renderSalesTable();
+  assert.match(elements.salesBody.innerHTML,/table-item-lines">2 × Slim 5-Gal Refill\n1 × Round 5-Gal Refill/,'Admin item names stack within one cell');
   assert.equal((elements.salesBody.innerHTML.match(/<tr>/g)||[]).length,20);
   assert.ok(elements.salesBody.innerHTML.includes('&lt;Ada &amp; Co&gt;'));
   assert.ok(elements.salesBody.innerHTML.includes('2026-01-01'));
@@ -1477,11 +1506,44 @@ ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
   assert.equal(elements.adminClock.textContent, 'clock time');
   await ctx.exportSalesCSV(); await ctx.exportHistoryCsv();
   assert.equal(downloads[0].type,'text/csv');
-  assert.equal(await downloads[0].text(),'OR,Date,Time,Customer,Type,Gallons,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,35,Cash,Sam');
+  assert.equal(await downloads[0].text(),'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,35,Cash,Sam');
   assert.equal(downloads[1].name,'sales-audit.csv');
-  assert.equal(await downloads[2].text(),'OR,Date,Time,Customer,Type,Gallons,Vatable,VAT,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,31.25,3.75,35,Cash,Sam');
+  assert.equal(await downloads[2].text(),'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,31.25,3.75,35,Cash,Sam');
   assert.equal(downloads[3].name,'cashier-sales.csv');
   console.log('PASS: snapshot insert/replace/remove, strict IDs, supplier fallback IDs, query encoding, HTML escaping, CSV bytes and filenames.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
+})();
+
+// Shared UI affordances preserve actions and keep tap/keyboard tips open.
+(() => {
+  const assert=require('node:assert/strict'), fs=require('node:fs'), vm=require('node:vm');
+  const handler=()=>{};
+  const button={textContent:'Edit',dataset:{},onclick:handler,classList:{add(){}},setAttribute(name,value){this[name]=value;}};
+  const shell=vm.createContext({document:{addEventListener(){}},icon:id=>'<svg data-icon="'+id+'"></svg>'});
+  vm.runInContext(fs.readFileSync('public/js/data/shell.js','utf8'),shell);
+  shell.enhanceCrudActions({querySelectorAll:()=>[button]});
+  assert.equal(button.onclick,handler,'Icon styling keeps the original action');
+  assert.equal(button['aria-label'],'Edit');
+  assert.equal(button.dataset.tip,'Edit');
+  assert.match(button.innerHTML,/i-edit/);
+  shell.enhanceCrudActions({querySelectorAll:()=>[button]});
+  assert.equal(button.dataset.actionIcon,'i-edit','Enhancement is idempotent');
+
+  let scheduled=0;
+  const pop={style:{},offsetWidth:120,offsetHeight:40,isConnected:false,setAttribute(){},addEventListener(){}};
+  const tip=vm.createContext({document:{createElement:()=>pop,body:{appendChild(el){el.isConnected=true;}},addEventListener(){}},window:{innerWidth:390,innerHeight:844},onWindow(){},setTimeout(){scheduled++;return 1;},clearTimeout(){}});
+  const source=fs.readFileSync('public/js/data/store.js','utf8');
+  vm.runInContext(source.slice(source.indexOf('let tipLayer ='),source.indexOf('// Renders the same markup')),tip);
+  const trigger=text=>({attributes:{},closest:()=>({getAttribute:()=>text}),getAttribute:()=>text,setAttribute(name,value){this.attributes[name]=value;},removeAttribute(name){delete this.attributes[name];},getBoundingClientRect:()=>({left:10,top:10,bottom:40,width:40})});
+  const first=trigger('Explanation'),second=trigger('Next explanation');
+  tip.openTip(first);tip.toggleTip(first);
+  assert.equal(pop.hidden,false,'First tap after hover/focus keeps the hint visible');
+  tip.scheduleCloseTip();assert.equal(scheduled,0,'Pinned touch hint survives pointer exit');
+  tip.toggleTip(first);assert.equal(pop.hidden,true,'Second tap closes the hint');
+  tip.openTip(first);tip.openTip(second);
+  assert.equal(first.attributes['aria-expanded'],'false');
+  assert.equal(second.attributes['aria-describedby'],'afTooltip');
+  tip.closeTip();assert.equal(second.attributes['aria-describedby'],undefined);
+  console.log('PASS: shared icon actions keep handlers; tooltip tap, pin, dismiss and accessibility state.');
 })();

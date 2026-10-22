@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\DeliveryProof;
 use App\Models\ProductionQueueItem;
 use App\Models\User;
+use App\Support\ItemDescription;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -60,7 +61,7 @@ class FulfillmentService
                 'submitted_at' => $proof->created_at->toISOString(),
                 'photo_url' => ($user->role === 'rider' ? '/api/employee/orders/' : '/api/deliveries/').$job->id.'/proof',
                 'remittances' => $proof->remittances->map(fn ($remittance) => ['amount' => (float) $remittance->amount, 'cashier_id' => $remittance->cashier_id, 'transaction_id' => $remittance->transaction_id, 'note' => $remittance->note, 'at' => $remittance->created_at])->all()] : null, 'created_at' => $job->created_at->toISOString(), 'lines' => $lines,
-            'description' => $job->items_description,
+            'description' => ItemDescription::fromLines($job->transaction?->items ?? [], $job->items_description),
             'issues' => collect($job->stage_history ?? [])->where('action', 'issue')->pluck('reason')->values()->all(),
             'address' => $user->role === 'rider' ? ($job->transaction?->delivery_address ?: $job->transaction?->customer?->address) : null,
             'contact' => $user->role === 'rider' ? $job->transaction?->customer?->contact : null];
@@ -77,17 +78,11 @@ class FulfillmentService
         try {
             return DB::transaction(function () use ($id, $user, $data, $photo, &$storedPath): array {
                 // Serialize this actor's retries and all FIFO transitions by the same rider.
-                $actorIds = [$user->id];
-                if ($data['action'] === 'assign') {
-                    $actorIds[] = $data['rider_id'];
-                }
-                $actors = User::whereIn('id', $actorIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-                $user = $actors->get($user->id);
+                $user = User::whereKey($user->id)->lockForUpdate()->first();
                 abort_unless($user && $user->is_active, 403);
                 $job = ProductionQueueItem::whereKey($id)->lockForUpdate()->firstOrFail();
                 $action = $data['action'];
                 abort_unless(
-                    ($action === 'assign' && $user->isAdmin()) ||
                     ($action === 'ready' && $user->role === 'refiller') ||
                     (in_array($action, ['handover', 'reset_code'], true) && $user->canHandleCash()) ||
                     (in_array($action, ['dispatch', 'issue']) && $user->role === 'rider' && (! $job->rider_id || (int) $job->rider_id === $user->id)) ||
@@ -118,15 +113,7 @@ class FulfillmentService
                         ->exists();
                     abort_if($older, 422, 'Dispatch the oldest available order first.');
                 }
-                if ($action === 'assign') {
-                    abort_unless($job->order_type === 'Delivery' && in_array($job->fulfillment_status, ['preparing', 'ready'], true) && ! $job->handed_over_at, 422, 'Assign a rider before handover and dispatch.');
-                    $rider = $actors->get($data['rider_id']);
-                    $employee = $rider?->employee()->lockForUpdate()->first();
-                    if (! $rider || $rider->role !== User::ROLE_RIDER || ! $rider->is_active || ! $employee?->is_active) {
-                        throw ValidationException::withMessages(['rider_id' => 'Select an active delivery rider.']);
-                    }
-                    $job->rider_id = $rider->id;
-                } elseif ($action === 'handover') {
+                if ($action === 'handover') {
                     abort_unless($job->order_type === 'Delivery' && $job->fulfillment_status === 'ready' && ! $job->handed_over_at, 422, 'Only ready deliveries can have their handover verified once.');
                     abort_unless((int) $data['handover_quantity'] === (int) $job->transaction?->items->sum('quantity'), 422, 'The handover quantity must match every item on the receipt.');
                     $job->handed_over_by = $user->id;

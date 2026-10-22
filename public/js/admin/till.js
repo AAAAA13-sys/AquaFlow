@@ -47,7 +47,12 @@ function showStockView(view) {
     addButton.textContent = isExpanded ? 'Cancel' : defaultLabel;
     if (addButton.classList) {
       addButton.classList.toggle('btn-secondary', Boolean(isExpanded));
-      addButton.classList.toggle('btn-primary', !isExpanded);
+      if (!isExpanded) {
+        addButton.classList.add(addButton.dataset?.isCta === '1' ? 'btn-cta' : 'btn-primary');
+      } else {
+        addButton.classList.remove('btn-cta');
+        addButton.classList.remove('btn-primary');
+      }
     }
   }
   // The till grid reads the live product list, so draw it the first time it shows.
@@ -102,7 +107,8 @@ function renderTill() {
         (canEdit ? '<input type="number" step="0.01" min="0.01" max="999999.99" class="form-input till-price" ' +
           'value="' + Number(product.price).toFixed(2) + '" ' +
           'aria-label="Price for ' + esc(product.name) + '" ' +
-          'onchange="saveTillPrice(\'' + id + '\', this)">' : '<b>' + Number(product.price).toFixed(2) + '</b>') + '</div>' +
+          'onchange="saveTillPrice(\'' + id + '\', this)" ' +
+          'onkeydown="if(event.key===\'Enter\')this.blur()">' : '<b>' + Number(product.price).toFixed(2) + '</b>') + '</div>' +
       '<div class="insight-row"><span>Stock on hand</span><b>' + esc(String(stock)) + '</b></div>' +
       (canEdit ? '<div class="drawer-actions">' +
         '<button type="button" class="btn btn-ghost btn-sm" onclick="toggleTill(\'' + id + '\', ' + (on ? 'false' : 'true') + ')">' +
@@ -309,7 +315,7 @@ async function createTillItem(event) {
       addButton.setAttribute('aria-expanded', 'false');
       if (addButton.classList) {
         addButton.classList.remove('btn-secondary');
-        addButton.classList.add('btn-primary');
+        addButton.classList.add(addButton.dataset?.isCta === '1' ? 'btn-cta' : 'btn-primary');
       }
     }
   };

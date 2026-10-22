@@ -65,7 +65,7 @@ function renderUsers() {
   const body = document.getElementById('usersBody');
   if (!body) return;
   const summary = document.getElementById('teamSummary');
-  if (summary) summary.innerHTML = '<article><span>Active staff</span><strong>' + DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role) && u.active !== false).length + '</strong><small>Accounts with station access</small></article><article><span>Cashiers</span><strong>' + DB.users.filter(u => u.role === 'cashier').length + '</strong><small>POS access</small></article><article><span>Owners</span><strong>' + DB.users.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>';
+  if (summary) summary.innerHTML = '<article><span>Active accounts</span><strong>' + DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role) && u.active !== false).length + '</strong><small>Accounts with station access</small></article><article><span>Cashiers</span><strong>' + DB.users.filter(u => u.role === 'cashier').length + '</strong><small>POS access</small></article><article><span>Owners</span><strong>' + DB.users.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>';
   body.innerHTML = filterTableRows(DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role)), 'usersBody').map(u => {
     const active = u.active !== false;
     const canManage = u.can_manage === true;

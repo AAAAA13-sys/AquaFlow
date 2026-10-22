@@ -6,7 +6,7 @@
 @section('admin-content')
   <section id="s-approvals" class="admin-page">
     <div class="admin-page-titlebar">
-      @include('partials.admin-page-header', ['eyebrow' => 'MAKER-CHECKER', 'heading' => 'Approval Requests', 'description' => 'Changes that need a decision before they take effect. Nothing on this list has touched your data yet.'])
+      @include('partials.admin-page-header', ['eyebrow' => 'MAKER-CHECKER', 'heading' => 'Approval Requests', 'description' => 'Review and decide on maker-checker change requests before they take effect.'])
     </div>
 
     <div id="approvalSummary" class="admin-summary" aria-label="approval summary"></div>

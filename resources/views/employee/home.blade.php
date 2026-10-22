@@ -12,8 +12,8 @@
   <header class="emp-header">
     <div class="emp-user-info" onclick="openProfileModal()" style="cursor:pointer;" title="Click to view profile and change password" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openProfileModal()">
       @php
-        $names = explode(' ', trim(auth()->user()->name));
-        $initials = strtoupper(substr($names[0] ?? 'E', 0, 1) . substr($names[count($names) - 1] ?? '', 0, 1));
+        $names = preg_split('/\s+/u', trim(preg_replace('/\s*\([^)]*\)\s*/u', ' ', auth()->user()->name)));
+        $initials = mb_strtoupper(mb_substr($names[0] ?? 'E', 0, 1) . (count($names) > 1 ? mb_substr($names[count($names) - 1], 0, 1) : ''));
         $roleName = auth()->user()->role === 'rider' ? 'Delivery Rider' : (auth()->user()->role === 'refiller' ? 'Refiller' : ucfirst(auth()->user()->role));
       @endphp
       <div class="emp-avatar" id="empAvatar">{{ $initials }}</div>
@@ -63,7 +63,7 @@
       </button>
     </div>
     <div id="jobs">
-      <div class="emp-empty-state">Loading assigned orders...</div>
+      <div class="emp-empty-state">Loading work queue...</div>
     </div>
   </section>
 

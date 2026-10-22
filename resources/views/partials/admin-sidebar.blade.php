@@ -1,5 +1,5 @@
 @php
-  // Plain-language label first, technical term kept underneath as a subtitle.
+  // Plain-language labels stay visible; explanations live in accessible tips.
   // A station owner should never need to know what ROP or ARIMA means to use the
   // app, but the thesis still needs the precise term visible to a reviewer.
   //
@@ -25,7 +25,12 @@
       'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
-  $slugs = array_keys($tabs);
+  $groups = [
+      'Daily operations' => ['cash', 'orders', 'sales', 'customers'],
+      'Stock & purchasing' => ['inventory', 'suppliers', 'defects'],
+      'Insights' => ['arima'],
+      'Management' => array_values(array_intersect(['users', 'approvals', 'audit-logs', 'settings'], array_keys($tabs))),
+  ];
 @endphp
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
 
@@ -42,22 +47,32 @@
   </div>
 
   <nav class="sidebar-nav" id="sideNav" aria-label="{{ auth()->user()?->isSuperAdmin() ? 'Owner' : 'Manager' }} page catalog">
-    @foreach ($slugs as $slug)
-    @php($label = $tabs[$slug])
-    <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
-       class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
-       @if ($active === $slug) aria-current="page" @endif
-       @if ($label['badge']) data-has-badge="1" @endif>
-      <span class="sidebar-link-text">
-        <span class="sidebar-link-label">{{ $label['label'] }}</span>
-        @if ($label['hint'])
-          <span class="sidebar-link-hint">{{ $label['hint'] }}</span>
-        @endif
-      </span>
-      @if ($label['badge'])
-        <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
-      @endif
+    <a href="{{ url('/admin/dashboard') }}" data-s="dashboard"
+       class="sidebar-link {{ $active === 'dashboard' ? 'active' : '' }}"
+       @if ($active === 'dashboard') aria-current="page" @endif>
+      <span class="sidebar-link-text"><span class="sidebar-link-label">Overview</span></span>
     </a>
+    @foreach ($groups as $group => $slugs)
+    <details class="sidebar-group" name="admin-navigation" @if(in_array($active, $slugs, true)) open @endif>
+      <summary class="sidebar-group-title">{{ $group }}<span class="sidebar-group-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="sidebar-group-links">
+      @foreach ($slugs as $slug)
+        @php($label = $tabs[$slug])
+        <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
+           class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
+           @if ($active === $slug) aria-current="page" @endif
+           @if ($label['hint']) title="{{ $label['hint'] }}" data-tip="{{ $label['hint'] }}" @endif
+           @if ($label['badge']) data-has-badge="1" @endif>
+          <span class="sidebar-link-text">
+            <span class="sidebar-link-label">{{ $label['label'] }}</span>
+          </span>
+          @if ($label['badge'])
+            <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
+          @endif
+        </a>
+      @endforeach
+      </div>
+    </details>
     @endforeach
   </nav>
 
