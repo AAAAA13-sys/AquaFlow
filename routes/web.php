@@ -85,6 +85,7 @@ Route::prefix('api')->group(function (): void {
     });
 
     Route::middleware(['auth', 'throttle:api'])->group(function (): void {
+        Route::post('voids', [\App\Http\Controllers\VoidController::class, 'store'])->middleware('throttle:10,1');
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
 
         Route::get('bootstrap', BootstrapController::class)->name('api.bootstrap');

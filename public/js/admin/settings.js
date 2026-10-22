@@ -64,9 +64,22 @@ function findUser(id) {
 function renderUsers() {
   const body = document.getElementById('usersBody');
   if (!body) return;
+  const currentRole = typeof getSession === 'function' ? getSession()?.role : null;
+  const isManager = currentRole === 'admin';
+  const visibleUsers = (DB.users || []).filter(u => {
+    if (!['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role)) return false;
+    if (isManager && u.role === 'super_admin') return false;
+    return true;
+  });
   const summary = document.getElementById('teamSummary');
-  if (summary) summary.innerHTML = '<article><span>Active accounts</span><strong>' + DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role) && u.active !== false).length + '</strong><small>Accounts with station access</small></article><article><span>Cashiers</span><strong>' + DB.users.filter(u => u.role === 'cashier').length + '</strong><small>POS access</small></article><article><span>Owners</span><strong>' + DB.users.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>';
-  body.innerHTML = filterTableRows(DB.users.filter(u => ['super_admin', 'admin', 'cashier', 'refiller', 'rider'].includes(u.role)), 'usersBody').map(u => {
+  if (summary) {
+    summary.innerHTML = '<article><span>Active accounts</span><strong>' + visibleUsers.filter(u => u.active !== false).length + '</strong><small>Accounts with station access</small></article>' +
+      '<article><span>Staff</span><strong>' + visibleUsers.filter(u => ['cashier', 'refiller', 'rider'].includes(u.role)).length + '</strong><small>Operational staff</small></article>' +
+      (isManager
+        ? '<article><span>Managers</span><strong>' + visibleUsers.filter(u => u.role === 'admin').length + '</strong><small>Station management</small></article>'
+        : '<article><span>Owners</span><strong>' + visibleUsers.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>');
+  }
+  body.innerHTML = filterTableRows(visibleUsers, 'usersBody').map(u => {
     const active = u.active !== false;
     const canManage = u.can_manage === true;
     return '<tr><td>' + escUser(u.u) + '</td><td>' + escUser(u.name) + '</td>' +

@@ -137,7 +137,7 @@ async function renderHistoryPage() {
   // revenue / excludes debt payments", so the headline figure and the visible
   // rows disagreed. Payments are now broken out and labelled separately.
   const rows = cashierHistoryRows;
-  const sales = rows.filter(t => t.type !== 'Debt Payment');
+  const sales = rows.filter(t => !t.voided && t.type !== 'Debt Payment');
   const payments = rows.filter(t => t.type === 'Debt Payment');
   const revenue = sales.reduce((sum, t) => sum + Number(t.total), 0);
   const collected = payments.reduce((sum, t) => sum + Number(t.total), 0);
@@ -168,13 +168,13 @@ function renderHistoryRows() {
     // sales at a glance, matching the separate summary card above.
     const isPayment = t.type === 'Debt Payment';
     return '<tr' + (isPayment ? ' class="is-payment-row"' : '') + '>' +
-      '<td><b>' + esc(t.no) + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
+      '<td><b>' + esc(t.no) + (t.voided ? ' - VOID' : '') + '</b>' + (isPayment ? '<span class="cell-sub">Debt payment</span>' : '') + '</td>' +
       '<td>' + esc(t.date || '—') + '</td><td>' + esc(t.t) + '</td>' +
       '<td>' + esc(t.cust || 'Walk-in Guest') + '</td>' +
       '<td class="table-item-cell"><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub table-item-lines">' + esc(historyVolumeLabel(t.gal)).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span>' : '') + '</td>' +
       '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
       '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
-      '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button></td></tr>';
+      '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button>' + (!t.voided && t.type !== 'Debt Payment' ? '<button type="button" class="btn btn-ghost btn-sm" onclick="voidSale(' + (start + i) + ')">Void sale</button>' : '') + '</td></tr>';
   }).join('') || '<tr><td colspan="10" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
   // Preserve focused receipt controls when a refresh returns the same rows.
   if (body.innerHTML !== html) body.innerHTML = html;
@@ -199,8 +199,8 @@ async function exportHistoryCsv() {
     return;
   }
 
-  const csv = 'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier\n' +
-    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
+  const csv = 'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier,Status\n' +
+    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.vatable || 0, t.vat || 0, t.total, t.pay, t.by, t.voided ? 'Void' : 'Posted'].map(csvCell).join(',')).join('\n');
 
   downloadCSV(csv, 'cashier-sales.csv');
 }

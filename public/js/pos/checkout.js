@@ -406,14 +406,14 @@ function receiptContents(tx) {
   const line = (label, value, total = false) => '<div class="receipt-line' + (total ? ' total' : '') + '"><span>' + esc(label) + '</span><span>' + esc(value) + '</span></div>';
   const debtPayment = tx.type === 'Debt Payment';
   const isWalkIn = (!tx.cust || tx.cust === 'Walk-in Guest' || tx.type === 'Walk-in') && !tx.customer_id;
-  return line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
+  return (tx.voided ? line('Status', 'VOID - original receipt, no longer a sale') : '') + line('Customer', tx.cust || 'Walk-in Guest') + line('Order type', tx.type) +
     (tx.delivery_address ? line('Delivery address', tx.delivery_address) : '') +
     (tx.items || []).map(item => line(item.quantity + ' × ' + item.name + ' @ ' + money(item.unit_price), money(item.line_total))).join('') +
     (debtPayment ? '' : line('Vatable sales', money(tx.vatable || 0)) + line('12% VAT (inclusive)', money(tx.vat || 0))) +
     line(debtPayment ? 'Payment received' : 'Total', money(tx.total), true) +
     (tx.pay === 'Cash' && tx.cash_tendered != null && Number(tx.cash_tendered) >= Number(tx.total) ? line('Cash tendered', money(tx.cash_tendered)) + line('Change', money(tx.cash_change || 0)) : '') +
     (tx.balance_after != null && !isWalkIn ? line('Account balance after transaction', money(tx.balance_after)) : '') +
-    line('Cashier', tx.by || '—');
+    line('Cashier', tx.by || '—') + (tx.void ? line('Void reason', tx.void.reason) + line('Approved by', tx.void.approved_by || 'Manager') : '');
 }
 
 function displayTransactionReceipt(tx, reprint = false) {

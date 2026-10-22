@@ -55,10 +55,11 @@ class ApprovalRequestResource extends JsonResource
                 && $this->isPending()
                 && (int) $this->requested_by !== (int) $viewer->id
                 && $viewer->is_active
+                && $this->requester && $viewer->canApproveActor($this->requester)
                 && ApprovalTypes::canDecide($viewer, $this->type),
             'can_cancel' => $viewer !== null
                 && $this->isPending()
-                && ((int) $this->requested_by === (int) $viewer->id || ApprovalTypes::canDecide($viewer, $this->type)),
+                && ((int) $this->requested_by === (int) $viewer->id || ($this->requester && $viewer->canApproveActor($this->requester) && ApprovalTypes::canDecide($viewer, $this->type))),
             'events' => $this->whenLoaded('events', fn () => $this->events->map(fn ($event) => [
                 'actor' => $event->actor?->name,
                 'actor_role' => $event->actor_role,

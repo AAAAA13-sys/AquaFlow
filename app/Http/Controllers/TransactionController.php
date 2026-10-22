@@ -21,7 +21,7 @@ class TransactionController extends Controller
 
     public function index(TransactionIndexRequest $request): JsonResponse
     {
-        $query = Transaction::query()->visibleTo($request->user())->with(['customer', 'cashier', 'items']);
+        $query = Transaction::query()->visibleTo($request->user())->with(['customer', 'cashier', 'items', 'voidRecord.approver']);
 
         $days = $request->integer('days', 0);
         if (! $request->filled('from') && ! $request->filled('to') && $request->has('days')) {

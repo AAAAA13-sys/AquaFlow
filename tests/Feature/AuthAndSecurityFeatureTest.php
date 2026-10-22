@@ -225,7 +225,11 @@ class AuthAndSecurityFeatureTest extends TestCase
         $this->patchJson('/api/users/'.$staff->id, ['name' => 'Updated Staff'])->assertOk();
         $this->assertSame('super_admin', $owner->fresh()->role);
         $this->assertSame('cashier', $staff->fresh()->role);
-        $this->getJson('/api/users')->assertOk()->assertJsonPath('users.0.can_manage', false);
+        $managerUsers = $this->getJson('/api/users')->assertOk()->json('users');
+        $this->assertFalse(collect($managerUsers)->contains('role', 'super_admin'));
+        $this->assertTrue(collect($managerUsers)->contains('role', 'cashier'));
+        $ownerUsers = $this->actingAs($owner)->getJson('/api/users')->assertOk()->json('users');
+        $this->assertTrue(collect($ownerUsers)->contains('role', 'super_admin'));
     }
 
     public function test_restored_staff_accounts_get_links_and_password_onboarding(): void

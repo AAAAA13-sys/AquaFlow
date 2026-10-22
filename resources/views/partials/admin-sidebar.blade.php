@@ -26,9 +26,8 @@
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
-      'Daily operations' => ['cash', 'orders', 'sales', 'customers'],
+      'Daily operations' => ['arima', 'orders', 'sales', 'customers'],
       'Stock & purchasing' => ['inventory', 'suppliers', 'defects'],
-      'Insights' => ['arima'],
       'Management' => array_values(array_intersect(['users', 'approvals', 'audit-logs', 'settings'], array_keys($tabs))),
   ];
 @endphp
@@ -50,21 +49,28 @@
     <a href="{{ url('/admin/dashboard') }}" data-s="dashboard"
        class="sidebar-link {{ $active === 'dashboard' ? 'active' : '' }}"
        @if ($active === 'dashboard') aria-current="page" @endif>
-      <span class="sidebar-link-text"><span class="sidebar-link-label">Overview</span></span>
+      <span class="sidebar-link-text">
+        <span class="sidebar-link-label">Overview</span>
+        @if (!empty($tabs['dashboard']['hint']))
+          <span class="sidebar-hint-icon af-tip-btn" data-tip="{{ $tabs['dashboard']['hint'] }}" title="{{ $tabs['dashboard']['hint'] }}" aria-label="{{ $tabs['dashboard']['hint'] }}">?</span>
+        @endif
+      </span>
     </a>
     @foreach ($groups as $group => $slugs)
     <details class="sidebar-group" name="admin-navigation" @if(in_array($active, $slugs, true)) open @endif>
-      <summary class="sidebar-group-title">{{ $group }}<span class="sidebar-group-chevron" aria-hidden="true">⌄</span></summary>
+      <summary class="sidebar-group-title">{{ $group }}<span class="sidebar-group-chevron" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></summary>
       <div class="sidebar-group-links">
       @foreach ($slugs as $slug)
         @php($label = $tabs[$slug])
         <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
            class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
            @if ($active === $slug) aria-current="page" @endif
-           @if ($label['hint']) title="{{ $label['hint'] }}" data-tip="{{ $label['hint'] }}" @endif
            @if ($label['badge']) data-has-badge="1" @endif>
           <span class="sidebar-link-text">
             <span class="sidebar-link-label">{{ $label['label'] }}</span>
+            @if (!empty($label['hint']))
+              <span class="sidebar-hint-icon af-tip-btn" data-tip="{{ $label['hint'] }}" title="{{ $label['hint'] }}" aria-label="{{ $label['hint'] }}">?</span>
+            @endif
           </span>
           @if ($label['badge'])
             <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>

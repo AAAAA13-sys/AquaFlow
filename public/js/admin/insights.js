@@ -243,7 +243,7 @@ function renderInsights() {
   if (grid) grid.removeAttribute('aria-busy');
 
   const today = (DB.meta?.generated_at || new Date().toISOString()).slice(0, 10);
-  const sales = (DB.transactions || []).filter(t => t.date === today && t.type !== 'Debt Payment');
+  const sales = (DB.transactions || []).filter(t => t.date === today && !t.voided && t.type !== 'Debt Payment');
 
   // Direction for the revenue KPI: today's figure against the recorded run.
   // Appended after the KPI text is set, because setting textContent on the

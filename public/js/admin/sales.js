@@ -61,13 +61,13 @@ async function renderSalesTable() {
   if (results) results.textContent = salesRows.length.toLocaleString() + ' matching records';
   renderSalesPage();
 
-  const sales = salesRows.filter(t => t.type !== 'Debt Payment');
+  const sales = salesRows.filter(t => !t.voided && t.type !== 'Debt Payment');
   const total = rows => rows.reduce((sum, t) => sum + Number(t.total || 0), 0);
   const summary = document.getElementById('salesSum');
   if (summary) {
     const card = (label, value, note) => '<article class="sales-summary-card"><p>' + label + '</p><strong>' + value + '</strong><span>' + note + '</span></article>';
     summary.innerHTML = card('Sales revenue', money(total(sales)), 'Excludes debt payments') +
-      card('Cash recorded', money(total(salesRows.filter(t => t.pay === 'Cash'))), 'Includes cash debt payments') +
+      card('Cash recorded', money(total(salesRows.filter(t => !t.voided && t.pay === 'Cash'))), 'Includes cash debt payments') +
       card('Account sales', money(total(sales.filter(t => t.pay === 'Account'))), 'Sales charged to customer accounts') +
       card('Transactions', salesRows.length.toLocaleString(), 'Records matching your filters');
   }
@@ -80,7 +80,7 @@ function renderSalesPage() {
   const start = (salesPage - 1) * SALES_PAGE_SIZE;
   if (body) {
     body.innerHTML = salesRows.slice(start, start + SALES_PAGE_SIZE).map(t =>
-      '<tr><td><b>' + esc(t.no) + '</b></td><td><span>' + esc(t.date || '—') + '</span><small class="cell-sub">' + esc(t.t) + '</small></td><td><b>' + esc(t.cust || 'Walk-in Guest') + '</b></td><td><span class="sales-type ' + (t.type === 'Delivery' ? 'sales-type--delivery' : '') + '">' + esc(t.type) + '</span></td><td class="table-item-cell"><span class="table-item-lines">' + esc(t.gal || '—').replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span></td><td class="num sales-amount">' + money(Number(t.total)) + '</td><td><span class="sales-payment">' + esc(t.pay) + '</span>' + (t.pay === 'Account' && t.payment_status ? '<small class="cell-sub">' + (t.payment_status === 'paid' ? 'Paid' : 'Unpaid') + '</small>' : '') + '</td><td class="sales-cashier">' + esc(t.by) + '</td></tr>'
+      '<tr><td><b>' + esc(t.no) + (t.voided ? ' - VOID' : '') + '</b></td><td><span>' + esc(t.date || '—') + '</span><small class="cell-sub">' + esc(t.t) + '</small></td><td><b>' + esc(t.cust || 'Walk-in Guest') + '</b></td><td><span class="sales-type ' + (t.type === 'Delivery' ? 'sales-type--delivery' : '') + '">' + esc(t.type) + '</span></td><td class="table-item-cell"><span class="table-item-lines">' + esc(t.gal || '—').replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span></td><td class="num sales-amount">' + money(Number(t.total)) + '</td><td><span class="sales-payment">' + esc(t.pay) + '</span>' + (t.pay === 'Account' && t.payment_status ? '<small class="cell-sub">' + (t.payment_status === 'paid' ? 'Paid' : 'Unpaid') + '</small>' : '') + '</td><td class="sales-cashier">' + esc(t.by) + '</td></tr>'
     ).join('');
     if (!salesRows.length) body.innerHTML = '<tr><td colspan="8" class="sales-empty"><b>No transactions found</b><span>Try another period or clear your search and filters.</span></td></tr>';
   }
@@ -104,7 +104,7 @@ async function exportSalesCSV() {
   let rows;
   try { rows = filterTableRows(filterSalesCashier(await fetchSalesRows()), 'salesBody'); }
   catch(error) { appNotice(error.message || 'Could not export transactions.'); return; }
-  const csv = 'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier\n' +
-    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by].map(csvCell).join(',')).join('\n');
+  const csv = 'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier,Status\n' +
+    rows.map(t => [t.no, t.date || '', t.t, t.cust, t.type, t.gal, t.total, t.pay, t.by, t.voided ? 'Void' : 'Posted'].map(csvCell).join(',')).join('\n');
   downloadCSV(csv, 'sales-audit.csv');
 }

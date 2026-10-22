@@ -319,7 +319,7 @@ button {
    working area staying light grey and white.
    --------------------------------------------------------------------- */
 .admin-sidebar {
-  width: 260px;
+  width: 280px;
   background-color: var(--sidebar-surface);
   color: #FFFFFF;
   display: flex;
@@ -2325,9 +2325,10 @@ th .term-hint {
 
 .sidebar-link-text {
   display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+  align-items: center;
+  gap: 0.45rem;
   min-width: 0;
+  flex: 1;
 }
 
 .sidebar-link-label {
@@ -2335,13 +2336,61 @@ th .term-hint {
   line-height: 1.25;
 }
 
+.sidebar-hint-icon {
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  font-family: inherit;
+  cursor: help;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.sidebar-hint-icon:hover,
+.sidebar-hint-icon:focus-visible,
+.sidebar-hint-icon[aria-expanded='true'] {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--brand-primary);
+  transform: scale(1.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  opacity: 1;
+}
+
+.sidebar-link.active .sidebar-hint-icon {
+  border-color: rgba(29, 78, 216, 0.35);
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--brand-primary);
+}
+
+.sidebar-link.active .sidebar-hint-icon:hover,
+.sidebar-link.active .sidebar-hint-icon:focus-visible,
+.sidebar-link.active .sidebar-hint-icon[aria-expanded='true'] {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+  transform: scale(1.18);
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
 .sidebar-link-hint {
   font-size: 0.7rem;
   font-weight: 500;
   line-height: 1.2;
-  /* Was `opacity: 0.62`, which washed the hint toward the background. Explicit
-     translucent white instead - the rail is royal blue, so the dark text token
-     this inherited measured 1.1:1 and was effectively invisible. */
   color: rgba(255, 255, 255, 0.76);
   letter-spacing: 0.01em;
 }

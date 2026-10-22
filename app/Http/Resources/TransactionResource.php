@@ -19,6 +19,12 @@ class TransactionResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'voided' => $this->voided_at !== null,
+            'void' => $this->whenLoaded('voidRecord', fn () => $this->voidRecord ? [
+                'reason' => $this->voidRecord->reason,
+                'approved_by' => $this->voidRecord->approver?->name,
+                'at' => $this->voidRecord->created_at?->toIso8601String(),
+            ] : null),
             'no' => $this->receipt_number,
             'date' => $this->transaction_date?->format('Y-m-d'),
             't' => substr((string) $this->transaction_time, 0, 5),

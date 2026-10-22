@@ -101,7 +101,7 @@ class CustomerLedgerService
             $locked->debt_balance = round($locked->debt_balance - $applied, 2);
             $locked->save();
             if ($locked->debt_balance <= 0) {
-                Transaction::where('customer_id', $locked->id)->where('payment_method', 'Account')->update(['payment_status' => 'paid']);
+                Transaction::whereNull('voided_at')->where('customer_id', $locked->id)->where('payment_method', 'Account')->update(['payment_status' => 'paid']);
             }
 
             // Record the settlement so it appears in the cashier's history.

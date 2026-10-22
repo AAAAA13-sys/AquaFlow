@@ -72,6 +72,13 @@ class User extends Authenticatable
         return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
+    /** A privileged approval always requires a different, strictly higher rank. */
+    public function canApproveActor(self $actor): bool
+    {
+        return $this->id !== $actor->id && $this->isAdmin()
+            && ($this->isSuperAdmin() ? ! $actor->isSuperAdmin() : in_array($actor->role, self::STAFF_ROLES, true));
+    }
+
     public function canManageUser(self $user): bool
     {
         return ! $user->is_bootstrap && ($this->isSuperAdmin() || ($this->isAdmin() && in_array($user->role, self::STAFF_ROLES, true)));

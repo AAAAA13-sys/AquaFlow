@@ -44,7 +44,7 @@ def daily_refill_gallons(connection: Connection, days: int) -> dict[date, float]
         FROM transactions t
         JOIN transaction_items ti ON ti.transaction_id = t.id
         JOIN products p ON p.id = ti.product_id
-        WHERE p.category = 'refill'
+        WHERE t.voided_at IS NULL AND p.category = 'refill'
           AND t.transaction_date >= (%s - INTERVAL %s DAY)
         GROUP BY t.transaction_date
         ORDER BY t.transaction_date
@@ -62,7 +62,7 @@ def fill_calendar(connection: Connection, observed: dict[date, float], days: int
     # Only count days since the station's first recorded sale; do not invent
     # 90 days of history when a fresh station has only operated for a week.
     with connection.cursor() as cursor:
-        cursor.execute("SELECT MIN(transaction_date) AS first_day FROM transactions WHERE order_type != 'Debt Payment'")
+        cursor.execute("SELECT MIN(transaction_date) AS first_day FROM transactions WHERE voided_at IS NULL AND order_type != 'Debt Payment'")
         row = cursor.fetchone()
     first_day = row["first_day"] if row else None
     if first_day is None:
@@ -82,7 +82,7 @@ def daily_consumable_usage(connection: Connection, name: str, days: int) -> list
         FROM transactions t JOIN transaction_items ti ON ti.transaction_id=t.id
         JOIN product_consumables pc ON pc.product_id=ti.product_id
         JOIN inventory i ON i.id=pc.inventory_item_id
-        WHERE i.item_name=%s AND t.transaction_date >= (%s - INTERVAL %s DAY)
+        WHERE t.voided_at IS NULL AND i.item_name=%s AND t.transaction_date >= (%s - INTERVAL %s DAY)
         GROUP BY t.transaction_date ORDER BY t.transaction_date
     """
     with connection.cursor() as cursor:

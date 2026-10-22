@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\DB;
  */
 class Transaction extends Model
 {
+    public function voidRecord(): HasOne
+    {
+        return $this->hasOne(VoidRecord::class);
+    }
+
     protected $fillable = [
         'receipt_number',
         'customer_id',

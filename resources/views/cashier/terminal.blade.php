@@ -26,6 +26,7 @@
           <input id="custSearch" oninput="queueCustSearch()" class="form-input stage-search"
                  aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <div class="stage-secondary">
+            <button type="button" onclick="voidCart()" class="btn btn-secondary btn-sm">Void order</button>
             <button type="button" onclick="openStocksModal()" class="btn btn-secondary btn-sm" title="View live stock levels">Stocks</button>
             <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
             <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>

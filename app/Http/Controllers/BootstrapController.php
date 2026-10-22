@@ -63,7 +63,7 @@ class BootstrapController extends Controller
                 Supplier::query()->orderBy('id')->get()
             ),
             'transactions' => TransactionResource::collection(
-                Transaction::query()
+                Transaction::query()->whereNull('voided_at')
                     ->visibleTo($request->user())
                     ->with(['customer', 'cashier', 'items'])
                     ->newestFirst()
@@ -91,8 +91,8 @@ class BootstrapController extends Controller
             'meta' => [
                 'generated_at' => now()->toIso8601String(),
                 'history_source' => $historySource,
-                'sales_today_total' => (float) Transaction::whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->sum('total_amount'),
-                'sales_today_count' => Transaction::whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->count(),
+                'sales_today_total' => (float) Transaction::whereNull('voided_at')->whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->sum('total_amount'),
+                'sales_today_count' => Transaction::whereNull('voided_at')->whereDate('transaction_date', today())->where('order_type', '!=', 'Debt Payment')->count(),
                 // Additive: a short daily revenue series so the KPI cards can
                 // draw a trend line and answer "is today up or down?". Existing
                 // consumers of this payload are unaffected.
@@ -102,8 +102,12 @@ class BootstrapController extends Controller
         ];
 
         if ($request->user()?->isAdmin()) {
+            $userQuery = User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES);
+            if (! $request->user()->isSuperAdmin()) {
+                $userQuery->where('role', '!=', User::ROLE_SUPER_ADMIN);
+            }
             $payload['users'] = UserResource::collection(
-                User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES)->orderBy('id')->get()
+                $userQuery->orderBy('id')->get()
             );
         }
 
@@ -130,7 +134,7 @@ class BootstrapController extends Controller
         $from = today()->subDays($days - 1);
 
         $byDate = [];
-        foreach (Transaction::query()
+        foreach (Transaction::query()->whereNull('voided_at')
             ->where('order_type', '!=', 'Debt Payment')
             ->whereDate('transaction_date', '>=', $from)
             ->get(['transaction_date', 'gallons_volume']) as $transaction) {
@@ -168,7 +172,7 @@ class BootstrapController extends Controller
         $from = today()->subDays($days - 1);
 
         $byDate = [];
-        foreach (Transaction::query()
+        foreach (Transaction::query()->whereNull('voided_at')
             ->where('order_type', '!=', 'Debt Payment')
             ->whereDate('transaction_date', '>=', $from)
             ->get(['transaction_date', 'total_amount']) as $transaction) {

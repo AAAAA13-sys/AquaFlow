@@ -8,6 +8,9 @@ const DB = {
   // offline fallback for the Users & Access table.
   users: [
     { u: 'cashier', role: 'cashier', name: 'Juan Dela Cruz (Cashier #01)' },
+    { u: 'refiller', role: 'refiller', name: 'Marco Reyes (Refiller)' },
+    { u: 'rider', role: 'rider', name: 'Luis Garcia (Rider)' },
+    { u: 'manager', role: 'admin', name: 'Station Manager (Admin)' },
     { u: 'admin', role: 'super_admin', name: 'Yuri Soliven (Station Owner)' }
   ],
   products: [

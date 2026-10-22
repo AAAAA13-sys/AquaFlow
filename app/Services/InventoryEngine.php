@@ -154,7 +154,7 @@ class InventoryEngine
             return $this->recentContainersCache['recentDailyContainers'];
         }
 
-        $transactions = Transaction::query()
+        $transactions = Transaction::query()->whereNull('voided_at')
             ->where('order_type', '!=', 'Debt Payment')
             ->whereDate('transaction_date', '>=', today()->subDays($days - 1))
             ->get(['gallons_volume']);

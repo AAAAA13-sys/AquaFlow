@@ -158,6 +158,7 @@ class ApprovalService
             // Self-approval is refused on identity, not on role, so a promoted
             // manager cannot approve work they themselves submitted.
             abort_if((int) $request->requested_by === (int) $approver->id, 403, 'You cannot approve your own request.');
+            abort_unless($approver->canApproveActor($maker), 403, 'This request requires a higher-ranked approver.');
 
             // Route check against the approver's CURRENT role.
             abort_unless(
@@ -216,7 +217,9 @@ class ApprovalService
     public function cancel(ApprovalRequest $request, User $actor, ?string $note = null): ApprovalRequest
     {
         return DB::transaction(function () use ($request, $actor, $note): ApprovalRequest {
-            $actor = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            $actors = User::whereIn('id', [$actor->id, $request->requested_by])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $actor = $actors[$actor->id];
+            $maker = $actors->get($request->requested_by);
             abort_unless($actor->is_active, 403, 'This account is inactive.');
 
             /** @var ApprovalRequest $request */
@@ -225,7 +228,7 @@ class ApprovalService
 
             $isMaker = (int) $request->requested_by === (int) $actor->id;
             abort_unless(
-                $isMaker || ApprovalTypes::canDecide($actor, $request->type),
+                $isMaker || ($maker && $actor->canApproveActor($maker) && ApprovalTypes::canDecide($actor, $request->type)),
                 403,
                 'You cannot cancel this request.'
             );

@@ -16,9 +16,16 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
+        $actor = request()->user();
+        $query = User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES);
+
+        if ($actor && ! $actor->isSuperAdmin()) {
+            $query->where('role', '!=', User::ROLE_SUPER_ADMIN);
+        }
+
         return response()->json([
             'users' => UserResource::collection(
-                User::query()->where('is_bootstrap', false)->whereIn('role', User::ROLES)->orderBy('id')->get()
+                $query->orderBy('id')->get()
             ),
         ]);
     }

@@ -6,6 +6,7 @@
 <script src="{{ asset('js/auth/auth.js') }}?v={{ asset_version('js/auth/auth.js') }}"></script>
 <script src="{{ asset('js/data/submissions.js') }}?v={{ asset_version('js/data/submissions.js') }}"></script>
 <script src="{{ asset('js/data/dialog.js') }}?v={{ asset_version('js/data/dialog.js') }}"></script>
+<script src="{{ asset('js/data/void.js') }}?v={{ asset_version('js/data/void.js') }}"></script>
 <script src="{{ asset('js/data/profile.js') }}?v={{ asset_version('js/data/profile.js') }}"></script>
 
 @if(($panel ?? '') === 'admin')

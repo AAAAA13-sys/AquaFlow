@@ -533,6 +533,8 @@ ctx.renderPOS=()=>{};
   assert.ok(elements.custList.innerHTML.includes('Second Query'), 'newer result kept');
   assert.ok(!elements.custList.innerHTML.includes('First Query'), 'stale response discarded');
 
+  // Mock the manager approval boundary; cancellation must keep the draft.
+  ctx.voidCart = async () => { if (!confirmed) return false; ctx.POS.cart = []; return true; };
   // --- Customer switching, draft reset and the pending-payment guard. -------
   ctx.API.customers = async ()=>({customers:[]});
   ctx.POS.custId=1; ctx.POS.cart=[{id:'slim',q:2}];
@@ -1506,9 +1508,9 @@ ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
   assert.equal(elements.adminClock.textContent, 'clock time');
   await ctx.exportSalesCSV(); await ctx.exportHistoryCsv();
   assert.equal(downloads[0].type,'text/csv');
-  assert.equal(await downloads[0].text(),'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,35,Cash,Sam');
+  assert.equal(await downloads[0].text(),'OR,Date,Time,Customer,Type,Items,Total,Pay,Cashier,Status\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,35,Cash,Sam,Posted');
   assert.equal(downloads[1].name,'sales-audit.csv');
-  assert.equal(await downloads[2].text(),'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,31.25,3.75,35,Cash,Sam');
+  assert.equal(await downloads[2].text(),'OR,Date,Time,Customer,Type,Items,Vatable,VAT,Total,Pay,Cashier,Status\nOR-1,2026-01-01,12:00,Ada,Walk-in,1S,31.25,3.75,35,Cash,Sam,Posted');
   assert.equal(downloads[3].name,'cashier-sales.csv');
   console.log('PASS: snapshot insert/replace/remove, strict IDs, supplier fallback IDs, query encoding, HTML escaping, CSV bytes and filenames.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -247,7 +247,7 @@ function renderCustList() {
 async function pickCust(id) {
   if (POS.custId === id) return true;
   if (!posChangeAllowed()) return false;
-  if (POS.cart.length && !await appConfirm('Discard the current order and switch customers?', 'Discard and switch')) return false;
+  if (POS.cart.length && !await voidCart()) return false;
   if (!POS.cart.length && !await appConfirm('Select ' + (DB.customers.find(c => c.id === id)?.name || 'this customer') + ' for this order?', 'Select customer')) return false;
   POS.cart = []; POS.custId = id; POS.type = 'Walk-in'; POS.deliveryPay = 'rider';
   ['tender', 'debtPay'].forEach(key => { const el = document.getElementById(key); if (el) el.value = 0; });
@@ -366,6 +366,7 @@ async function chgQty(i, d) {
     return;
   }
   if (d > 0 && !await allowStockIncrement(POS.cart[i].id, d)) return;
+  if (d < 0 && !await approveCartReduction(i, -d)) return;
   POS.cart[i].q = Math.min(MAX_QTY_PER_ITEM, POS.cart[i].q + d);
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);
   savePOSState();
@@ -390,6 +391,7 @@ async function addQty(i, step) {
     if (!await allowStockIncrement(POS.cart[i].id, allowed)) return;
     POS.cart[i].q += allowed;
   } else {
+    if (amount < 0 && !await approveCartReduction(i, -amount)) return;
     POS.cart[i].q += amount;
   }
   if (POS.cart[i].q <= 0) POS.cart.splice(i, 1);

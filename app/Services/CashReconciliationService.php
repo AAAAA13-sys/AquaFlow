@@ -20,7 +20,7 @@ class CashReconciliationService
     /** Physical cash includes collections; sales revenue and count exclude them. */
     public function cashMovement(CashShift $shift): array
     {
-        $sales = Transaction::query()
+        $sales = Transaction::query()->whereNull('voided_at')
             ->where('cashier_id', $shift->user_id)
             ->whereDate('transaction_date', $shift->business_date)
             ->where('payment_method', 'Cash')
