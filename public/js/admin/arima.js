@@ -1,34 +1,28 @@
 // Series Mapping & Selectors
+// Only the two primary demand series are fitted. Consumables and new-jug
+// stock are recipe projections stored beside them, not separate models.
 const ARIMA_SERIES = {
-  'Refill gallons': 'Refill Gallons',
-  'Heat Shrink Seals': 'Heat Shrink Seals',
-  'Non-Spill Caps': 'Non-Spill Caps',
-  'SHRINK_SLIM': 'SHRINK_SLIM',
-  'SHRINK_ROUND': 'SHRINK_ROUND',
-  'CLEAR_COVER': 'CLEAR_COVER',
-  'Sediment Filters': 'Sediment Filters'
+  'Refill jugs': 'Refill Jugs',
+  'New jugs': 'New Jugs'
 };
 
 function currentSeriesName() {
   const select = document.getElementById('fSeries');
-  const label = select ? select.value : 'Refill gallons';
-  return ARIMA_SERIES[label] || 'Refill Gallons';
+  const label = select ? select.value : 'Refill jugs';
+  return ARIMA_SERIES[label] || 'Refill Jugs';
 }
 
 function currentSeriesRecord() {
   const name = currentSeriesName();
   if (DB.forecasts && DB.forecasts[name]) return DB.forecasts[name];
-  if (name === 'Refill Gallons') {
+  if (name === 'Refill Jugs') {
     return { series: name, history: DB.history || DB.history30 || [], forecast: DB.forecast7 || [], model: DB.model || {} };
   }
   return null;
 }
 
 function currentSeriesUnit() {
-  const name = currentSeriesName();
-  if (name === 'Refill Gallons') return 'gallons';
-  if (name === 'Sediment Filters') return 'units';
-  return 'pcs';
+  return 'jugs';
 }
 
 
@@ -162,7 +156,7 @@ function renderDemandChart() {
       // autoSkip: false here.
       plugins: {
         legend: { display: true },
-        tooltip: { mode: 'index', intersect: false, callbacks: { label: context => context.dataset.label + ': ' + Number(context.parsed.y).toLocaleString() + ' Gallons' } }
+        tooltip: { mode: 'index', intersect: false, callbacks: { label: context => context.dataset.label + ': ' + Number(context.parsed.y).toLocaleString() + ' jugs' } }
       },
       scales: {
         y: { beginAtZero: true },
@@ -319,8 +313,8 @@ async function exportReportPDF() {
     popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AquaFlow Forecast Report</title><style>@page{size:A4;margin:14mm}body{font:12px Arial,sans-serif;color:#172033;line-height:1.5}h1{margin-bottom:4px}h2{margin:22px 0 8px;font-size:17px}table{border-collapse:collapse;width:100%;margin-bottom:18px}th,td{border:1px solid #ccd3df;padding:6px;text-align:left}th{background:#eef3fa}thead{display:table-header-group}tr,.arima-insight-item{break-inside:avoid}.demand-chart{display:block;width:100%;height:auto}.insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.arima-insight-item{padding:10px;border:1px solid #ccd3df;border-radius:6px}.arima-insight-badge{font-weight:bold;margin-bottom:6px}.forecast-demo-note{grid-column:1/-1;padding:8px;background:#fff5d6}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><h1>AquaFlow Forecast Report</h1><p>' + esc(source) + '<br>Generated ' + esc(new Date().toLocaleString()) + '</p>' +
       table('Model validation', ['Measure', 'Result'], [['Series', record.series], ['Model', model.order], ['Method', model.method], ['Held-out MAPE', mape == null ? 'Not validated' : mape.toFixed(2) + '%'], ['Implied accuracy (100% minus MAPE)', accuracy], ['Target', 'MAPE <10%; implied accuracy >90%'], ['MAE', model.mae], ['RMSE', model.rmse]]) +
       '<h2>Demand outlook</h2>' + chartImage + '<h2>Insights and actions</h2><div class="insights">' + (document.getElementById('forecastInsights')?.innerHTML || '') + '</div>' +
-      table('Seven-day forecast', ['Day', 'Refill gallons'], (record.forecast || []).map((value,index)=>[index+1,value])) +
-      table('Historical demand', ['Day', 'Refill gallons'], (record.history || []).map((value,index)=>[index+1,value])) +
+      table('Seven-day forecast', ['Day', 'Jugs'], (record.forecast || []).map((value,index)=>[index+1,value])) +
+      table('Historical demand', ['Day', 'Jugs'], (record.history || []).map((value,index)=>[index+1,value])) +
       table('Inventory', ['Item','On hand','Unit','Safety stock','Reorder point','Supplier'], DB.inventory.map(v=>[v.item,v.on,v.unit,v.ss,v.rop,v.supplier])) +
       table('Restock advisories', ['Item','Supplier','Order quantity'], (DB.advisories||[]).map(a=>[a.item,a.supplier,a.order_quantity ?? a.order_qty])) +
       table('All stored forecasts', ['Series','Day','Demand','MAPE'], forecasts) +

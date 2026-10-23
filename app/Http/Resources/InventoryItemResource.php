@@ -67,6 +67,7 @@ class InventoryItemResource extends JsonResource
             'days_left' => $cover['days_left'],
             'daily_demand' => $cover['daily_demand'],
             'demand_source' => $cover['demand_source'],
+            'forecast_stale' => $cover['forecast_stale'] ?? false,
 
             'supplier' => $this->whenLoaded('supplier', fn () => $this->supplier?->name ?? '-', '-'),
             'status' => $this->status(),

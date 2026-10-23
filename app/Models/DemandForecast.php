@@ -10,6 +10,12 @@ use Illuminate\Support\Collection;
  */
 class DemandForecast extends Model
 {
+    /**
+     * Fallback when config/analytics.php is unavailable (for example in a
+     * unit test). Two days tolerates one missed nightly run.
+     */
+    public const DEFAULT_MAX_AGE_DAYS = 2;
+
     protected $fillable = [
         'model_diagnostics',
         'series_name',
@@ -71,6 +77,31 @@ class DemandForecast extends Model
             ->orderByDesc('forecast_date')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /** Configured age after which a forecast must not drive planning. */
+    public function maxAgeDays(): int
+    {
+        return max(1, (int) config('analytics.forecast_max_age_days', self::DEFAULT_MAX_AGE_DAYS));
+    }
+
+    /** Whole days since the forecast was produced. Missing dates are stale. */
+    public function ageInDays(): int
+    {
+        if ($this->forecast_date === null) {
+            return PHP_INT_MAX;
+        }
+
+        return max(0, (int) $this->forecast_date->startOfDay()->diffInDays(today()->startOfDay(), false));
+    }
+
+    /**
+     * True when the nightly job has not refreshed this series recently enough
+     * for its thresholds to be trusted.
+     */
+    public function isStale(?int $maxAgeDays = null): bool
+    {
+        return $this->ageInDays() > ($maxAgeDays ?? $this->maxAgeDays());
     }
 
     /** Mean of the projected series (used as the daily demand rate). */

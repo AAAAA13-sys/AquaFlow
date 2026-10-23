@@ -32,7 +32,7 @@ class BootstrapController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $forecasts = DemandForecast::latestPerSeries();
-        $refill = $forecasts->get('Refill Gallons');
+        $refill = $forecasts->get('Refill Jugs');
         $refillModel = $refill ? (new DemandForecastResource($refill))->resolve($request)['model'] : [];
 
         // The forecast tier is optional, so a station that has never run the
@@ -120,7 +120,7 @@ class BootstrapController extends Controller
     }
 
     /**
-     * Daily refill gallons for the last 30 days, oldest first.
+     * Daily refill jugs for the last 30 days, oldest first.
      *
      * Days with no recorded sales are kept as zero so the series stays a
      * continuous run of calendar days: the charts and the weekday/weekend
@@ -142,7 +142,7 @@ class BootstrapController extends Controller
             if ($date === null) {
                 continue;
             }
-            $byDate[$date] = ($byDate[$date] ?? 0.0) + Transaction::gallonsFromLabel($transaction->gallons_volume);
+            $byDate[$date] = ($byDate[$date] ?? 0.0) + Transaction::refillJugsFromLabel($transaction->gallons_volume);
         }
 
         // A store with no sales at all still gets the honest empty state.

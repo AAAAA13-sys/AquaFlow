@@ -37,9 +37,12 @@ class RefreshForecasts extends Command
                 $summary = $analytics->run($days, $horizon);
             } catch (RuntimeException $exception) {
                 $this->error('Forecast refresh failed: ' . $exception->getMessage());
-                $this->warn('Recomputing inventory thresholds from the forecasts already stored.');
+                // Cached forecasts may already be stale - the very reason this
+                // job exists. Rebuild from recorded sales instead of freezing
+                // the old buffers in place.
+                $this->warn('Recomputing inventory thresholds from recorded sales; cached forecasts are not used.');
 
-                $updated = $engine->recalculateAll();
+                $updated = $engine->recalculateAll(false);
                 $this->info("Inventory items updated: {$updated}");
 
                 return self::FAILURE;

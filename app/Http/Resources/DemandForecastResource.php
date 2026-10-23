@@ -31,6 +31,10 @@ class DemandForecastResource extends JsonResource
             'series' => $this->series_name,
             'horizon' => $this->horizon_type,
             'date' => $this->forecast_date?->format('Y-m-d'),
+            // Planning ignores a stale forecast; the UI needs to say so rather
+            // than presenting an old line as current.
+            'stale' => $this->isStale(),
+            'age_days' => min($this->ageInDays(), 9999),
             'history' => $this->historical_data ?? [],
             'forecast' => $this->forecasted_data ?? [],
             'model' => [

@@ -51,7 +51,8 @@ class InventoryAndCatalogFeatureTest extends TestCase
     private function seedForecasts(): void
     {
         $series = [
-            'Refill Gallons' => [200, 210, 220, 230, 400, 410, 220],
+            'Refill Jugs' => [200, 210, 220, 230, 400, 410, 220],
+            'New Jugs' => [5, 6, 5, 7, 12, 14, 6],
             'Clear Cover' => [200, 210, 220, 230, 400, 410, 220],
             'Shrink Seal (Circle Top Slim)' => [200, 210, 220, 230, 400, 410, 220],
             '5 Gallon Slim Jug' => [0.1, 0.1, 0.1, 0.1, 0.2, 0.2, 0.1],
@@ -269,8 +270,9 @@ class InventoryAndCatalogFeatureTest extends TestCase
 
         $caps = $this->item('Clear Cover');
 
-        // Forecast error variance accumulates across lead time: sigma=40, L=2.
-        $this->assertSame((int) ceil(1.65 * 40 * sqrt(2) * 1.25), $caps->safety_stock);
+        // Demand noise (sigma=40, L=2) is widened 2x for the seasonal peak day.
+        $this->assertSame((int) ceil(1.65 * (40 * 2) * sqrt(2) * 1.25), $caps->safety_stock);
+        $this->assertSame(234, $caps->safety_stock);
         $this->assertGreaterThan($caps->safety_stock, $caps->reorder_point);
     }
 
@@ -297,10 +299,15 @@ class InventoryAndCatalogFeatureTest extends TestCase
 
     public function test_u_s43_cumulative_forecast_error_variance_sets_the_buffer(): void
     {
-        DemandForecast::latestFor('Clear Cover')->update(['model_diagnostics' => ['forecast_error_variances' => [100, 400]]]);
+        DemandForecast::latestFor('Clear Cover')->update(['model_diagnostics' => [
+            'forecast_error_variances' => [100, 400],
+            'seasonal' => true,
+        ]]);
         $item = $this->item('Clear Cover');
         app(InventoryEngine::class)->recalculateItem($item);
-        $this->assertSame((int) ceil(1.65 * sqrt(500) * 1.25), $item->fresh()->safety_stock);
+        // 2 * (40 * 2)^2 demand noise + 100 + 400 forecast error = 13,300.
+        $this->assertSame((int) ceil(1.65 * sqrt(13300) * 1.25), $item->fresh()->safety_stock);
+        $this->assertSame(238, $item->fresh()->safety_stock);
     }
 
     // --- From LegacyInventoryTest.php ---

@@ -15,7 +15,7 @@ class ForecastService
         $result = app(AnalyticsClient::class)->forecast($history, 7, today()->dayOfWeekIso - 1);
         $result['model_diagnostics']['data_source'] = 'synthetic_demo';
         return $this->store($result + [
-            'series_name' => 'Refill Gallons',
+            'series_name' => 'Refill Jugs',
             'historical' => $history,
             'forecasted' => $result['forecast'],
             'model_order' => $result['order'],
