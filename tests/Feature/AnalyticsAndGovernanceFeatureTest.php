@@ -1171,7 +1171,9 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
                 $document = new \DOMDocument;
                 @$document->loadHTML($response->getContent());
                 $xpath = new \DOMXPath($document);
-                $this->assertSame(4, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
+                // Daily operations, Stock & purchasing and Management. The
+                // single-item Insights group was removed on 2026-10-22.
+                $this->assertSame(3, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
                 $this->assertSame($tab === 'dashboard' ? 0 : 1, $xpath->query('//nav[@id="sideNav"]/details[@open]')->length);
                 $overview = $xpath->query('//nav[@id="sideNav"]/*[1][self::a and @data-s="dashboard"]');
                 $this->assertSame(1, $overview->length);
