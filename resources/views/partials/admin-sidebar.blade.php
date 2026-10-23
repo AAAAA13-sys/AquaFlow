@@ -10,24 +10,25 @@
   // centrepiece of the system, so it reads ahead of the operational screens it
   // feeds rather than trailing behind them as an equal-weight list item.
   $tabs = [
-      'cash' => ['label' => 'Cash Drawers', 'hint' => 'Starting cash & closing counts', 'badge' => null, 'featured' => false],
-      'dashboard'  => ['label' => 'Overview',        'hint' => null,             'badge' => null, 'featured' => false],
-      'orders' => ['label' => 'Orders & Deliveries', 'hint' => 'Handover & remittances', 'badge' => null, 'featured' => false],
-      'arima'      => ['label' => 'Demand Forecast', 'hint' => 'ARIMA model',    'badge' => null, 'featured' => false],
-      'sales'      => ['label' => 'Sales History',   'hint' => 'POS logs',       'badge' => null, 'featured' => false],
-      'customers'  => ['label' => 'Customer Balances','hint' => 'Customer accounts',   'badge' => 'badgeBalances', 'featured' => false],
-      'inventory'  => ['label' => 'Stock & Prices',  'hint' => 'Supplies & what the cashier sells', 'badge' => 'badgeStock', 'featured' => false],
-      'suppliers'  => ['label' => 'Suppliers',       'hint' => null,             'badge' => null, 'featured' => false],
-      'defects'    => ['label' => 'Defect Reports', 'hint' => 'Damaged stock', 'badge' => 'badgeDefects', 'featured' => false],
-      'users'      => ['label' => 'Team & Access',   'hint' => 'People & permissions', 'badge' => null, 'featured' => false],
-      'approvals'  => ['label' => 'Approval Requests','hint' => 'Changes awaiting a decision', 'badge' => 'badgeApprovals', 'featured' => false],
-      'audit-logs' => ['label' => 'Audit Log',       'hint' => 'Who changed what', 'badge' => null, 'featured' => false],
-      'settings'   => ['label' => 'Settings',        'hint' => null,             'badge' => null, 'featured' => false],
+      'cash'       => ['label' => 'Cash Drawers',      'hint' => 'Starting cash & closing counts', 'badge' => null,             'icon' => 'i-vault'],
+      'dashboard'  => ['label' => 'Overview',          'hint' => null,                             'badge' => null,             'icon' => 'i-dashboard'],
+      'orders'     => ['label' => 'Orders & Deliveries','hint' => 'Handover & remittances',        'badge' => null,             'icon' => 'i-truck'],
+      'arima'      => ['label' => 'Demand Forecast',   'hint' => 'ARIMA model',                    'badge' => null,             'icon' => 'i-chart'],
+      'sales'      => ['label' => 'Sales History',     'hint' => 'POS logs',                       'badge' => null,             'icon' => 'i-receipt'],
+      'customers'  => ['label' => 'Customer Balances', 'hint' => 'Customer accounts',             'badge' => 'badgeBalances',  'icon' => 'i-users'],
+      'inventory'  => ['label' => 'Stock & Prices',    'hint' => 'Supplies & what cashier sells', 'badge' => 'badgeStock',     'icon' => 'i-package'],
+      'suppliers'  => ['label' => 'Suppliers',         'hint' => null,                             'badge' => null,             'icon' => 'i-truck'],
+      'defects'    => ['label' => 'Defect Reports',   'hint' => 'Damaged stock',                  'badge' => 'badgeDefects',   'icon' => 'i-alert'],
+      'users'      => ['label' => 'Team & Access',     'hint' => 'People & permissions',           'badge' => null,             'icon' => 'i-walkin'],
+      'approvals'  => ['label' => 'Approval Requests', 'hint' => 'Changes awaiting a decision',   'badge' => 'badgeApprovals', 'icon' => 'i-check-circle'],
+      'audit-logs' => ['label' => 'Audit Log',         'hint' => 'Who changed what',               'badge' => null,             'icon' => 'i-orders'],
+      'settings'   => ['label' => 'Settings',          'hint' => null,                             'badge' => null,             'icon' => 'i-terminal'],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
-      'Daily operations' => ['arima', 'orders', 'sales', 'customers'],
-      'Stock & purchasing' => ['inventory', 'suppliers', 'defects'],
+      'Analytics' => ['arima'],
+      'Daily operations' => ['orders', 'cash', 'sales'],
+      'Stock & purchasing' => ['inventory', 'suppliers', 'defects', 'customers'],
       'Management' => array_values(array_intersect(['users', 'approvals', 'audit-logs', 'settings'], array_keys($tabs))),
   ];
 @endphp
@@ -49,28 +50,26 @@
     <a href="{{ url('/admin/dashboard') }}" data-s="dashboard"
        class="sidebar-link {{ $active === 'dashboard' ? 'active' : '' }}"
        @if ($active === 'dashboard') aria-current="page" @endif>
+      <svg class="sidebar-icon" width="18" height="18" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-dashboard"></use></svg>
       <span class="sidebar-link-text">
         <span class="sidebar-link-label">Overview</span>
-        @if (!empty($tabs['dashboard']['hint']))
-          <span class="sidebar-hint-icon af-tip-btn" data-tip="{{ $tabs['dashboard']['hint'] }}" title="{{ $tabs['dashboard']['hint'] }}" aria-label="{{ $tabs['dashboard']['hint'] }}">?</span>
-        @endif
       </span>
     </a>
     @foreach ($groups as $group => $slugs)
     <details class="sidebar-group" name="admin-navigation" @if(in_array($active, $slugs, true)) open @endif>
-      <summary class="sidebar-group-title">{{ $group }}<span class="sidebar-group-chevron" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></summary>
+      <summary class="sidebar-group-title">{{ $group }}</summary>
       <div class="sidebar-group-links">
       @foreach ($slugs as $slug)
         @php($label = $tabs[$slug])
         <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
-           class="sidebar-link {{ $active === $slug ? 'active' : '' }} {{ $label['featured'] ? 'is-featured' : '' }}"
+           class="sidebar-link {{ $active === $slug ? 'active' : '' }}"
            @if ($active === $slug) aria-current="page" @endif
            @if ($label['badge']) data-has-badge="1" @endif>
+          @if (!empty($label['icon']))
+            <svg class="sidebar-icon" width="18" height="18" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#{{ $label['icon'] }}"></use></svg>
+          @endif
           <span class="sidebar-link-text">
             <span class="sidebar-link-label">{{ $label['label'] }}</span>
-            @if (!empty($label['hint']))
-              <span class="sidebar-hint-icon af-tip-btn" data-tip="{{ $label['hint'] }}" title="{{ $label['hint'] }}" aria-label="{{ $label['hint'] }}">?</span>
-            @endif
           </span>
           @if ($label['badge'])
             <span class="sidebar-badge" id="{{ $label['badge'] }}" hidden></span>
