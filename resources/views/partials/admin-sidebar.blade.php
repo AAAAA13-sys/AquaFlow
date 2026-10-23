@@ -88,7 +88,7 @@
   <div class="sidebar-footer">
     <div class="sidebar-user-card">
       <span class="sidebar-user-label">Active Session</span>
-      <b class="sidebar-user-name" id="who">{{ auth()->user()?->name ?? 'Owner' }}</b>
+      <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Owner' }}">{{ auth()->user()?->name ?? 'Owner' }}</b>
     </div>
     <div class="sidebar-action-row">
       <button onclick="logout()" class="sidebar-logout-btn">Logout</button>

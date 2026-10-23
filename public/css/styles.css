@@ -555,17 +555,43 @@ button {
   gap: 0.15rem;
 }
 
-.sidebar-user-card-with-gear {
+.sidebar-user-card > .sidebar-user-meta {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .sidebar-user-meta {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.sidebar-user-name {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sidebar-role-chip {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sidebar-gear-btn {
@@ -610,6 +636,10 @@ button {
   font-size: 0.825rem;
   font-weight: 600;
   color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .sidebar-action-row {

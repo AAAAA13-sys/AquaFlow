@@ -35,36 +35,15 @@
 
 
   <div class="sidebar-footer">
-    <div class="sidebar-user-card sidebar-user-card-with-gear">
+    <div class="sidebar-user-card">
       <div class="sidebar-user-meta">
         <span class="sidebar-user-label">Active Session</span>
-        <b class="sidebar-user-name" id="who">{{ auth()->user()?->name ?? 'Cashier' }}</b>
+        <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Cashier' }}">{{ auth()->user()?->name ?? 'Cashier' }}</b>
         <span class="sidebar-role-chip">{{ auth()->user()?->roleLabel() ?? 'Cashier' }}</span>
       </div>
-      {{-- Profile settings button removed --}}
-      @if (auth()->user()?->isSuperAdmin())
-      <button type="button" class="sidebar-gear-btn" onclick="openProfileModal()" aria-label="Profile Settings" title="Profile Settings">
-        <svg class="sidebar-gear-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-      </button>
-      @endif
     </div>
 
-    {{-- Sits beside Logout, mirroring the owner portal's "POS Terminal |
-         Logout" row, so leaving the terminal is a control in the same place a
-         cashier expects. Owner/admin sessions only: a real cashier never sees
-         a link into a portal they cannot use. --}}
     <div class="sidebar-action-row">
-      @if (auth()->user()?->isAdmin())
-        <a href="{{ url('/admin/dashboard') }}" class="sidebar-back-link">
-          {{-- A text glyph rather than a sprite symbol: the sprite has no
-               i-arrow-left, and a missing <use> renders as an empty box. --}}
-          <span class="sidebar-back-arrow" aria-hidden="true">&larr;</span>
-          <span>{{ auth()->user()?->isSuperAdmin() ? 'Owner Portal' : 'Manager Portal' }}</span>
-        </a>
-      @endif
       <button onclick="confirmCashierLogout()" class="sidebar-logout-btn">Logout</button>
     </div>
   </div>
