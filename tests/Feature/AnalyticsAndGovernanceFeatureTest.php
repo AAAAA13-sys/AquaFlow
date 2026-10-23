@@ -68,7 +68,7 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
 
     
 
-    private function storeForecast(string $series = 'Refill Gallons'): DemandForecast
+    private function storeForecast(string $series = 'Refill Jugs'): DemandForecast
     {
         return DemandForecast::query()->create([
             'series_name' => $series,
@@ -97,11 +97,11 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
         $response = $this->actingAs($this->cashier)->getJson('/api/forecast');
 
         $response->assertOk()->assertJsonStructure([
-            'forecasts' => ['Refill Gallons' => ['series', 'history', 'forecast', 'model' => ['order', 'method', 'mape', 'ljung_box_pvalue']]],
+            'forecasts' => ['Refill Jugs' => ['series', 'history', 'forecast', 'model' => ['order', 'method', 'mape', 'ljung_box_pvalue']]],
         ]);
 
-        $this->assertCount(7, $response->json('forecasts.Refill Gallons.forecast'));
-        $this->assertSame(10.15, $response->json('forecasts.Refill Gallons.model.mape'));
+        $this->assertCount(7, $response->json('forecasts.Refill Jugs.forecast'));
+        $this->assertSame(10.15, $response->json('forecasts.Refill Jugs.model.mape'));
     }
 
     public function test_a_single_series_can_be_requested(): void
@@ -124,7 +124,7 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
     public function test_only_the_owner_can_store_a_forecast(): void
     {
         $payload = [
-            'series_name' => 'Refill Gallons',
+            'series_name' => 'Refill Jugs',
             'historical' => [250, 260, 255],
             'forecasted' => [245, 250, 255],
             'model_order' => 'ARIMA(1,0,1)',
@@ -159,7 +159,7 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
     public function test_storing_a_forecast_requires_series_values(): void
     {
         $this->actingAs($this->owner)
-            ->postJson('/api/forecast', ['series_name' => 'Refill Gallons', 'historical' => [], 'forecasted' => []])
+            ->postJson('/api/forecast', ['series_name' => 'Refill Jugs', 'historical' => [], 'forecasted' => []])
             ->assertStatus(422);
     }
     public function test_presentation_refresh_uses_demo_history_without_running_sales_analytics(): void
@@ -177,23 +177,23 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
 
         $this->actingAs($this->owner)->postJson('/api/forecast/run')
             ->assertOk()
-            ->assertJsonPath('forecasts.Refill Gallons.model.diagnostics.data_source', 'synthetic_demo');
+            ->assertJsonPath('forecasts.Refill Jugs.model.diagnostics.data_source', 'synthetic_demo');
 
-        $original = DemandForecast::latestFor('Refill Gallons');
+        $original = DemandForecast::latestFor('Refill Jugs');
         $this->assertCount(30, $original->historical_data);
 
         $this->travel(1)->days();
         $this->actingAs($this->owner)->postJson('/api/forecast/run')
             ->assertOk()
-            ->assertJsonCount(30, 'forecasts.Refill Gallons.history');
+            ->assertJsonCount(30, 'forecasts.Refill Jugs.history');
         $this->artisan('aquaflow:forecast')->assertSuccessful();
-        $latest = DemandForecast::latestFor('Refill Gallons');
+        $latest = DemandForecast::latestFor('Refill Jugs');
         $this->assertSame($original->historical_data, $latest->historical_data);
         $this->assertCount(7, $latest->forecasted_data);
         $this->assertTrue($original->fresh()->exists);
         $this->travelBack();
         $this->assertSame($sales, \App\Models\Transaction::count());
-        $this->assertSame('synthetic_demo', DemandForecast::latestFor('Refill Gallons')->model_diagnostics['data_source']);
+        $this->assertSame('synthetic_demo', DemandForecast::latestFor('Refill Jugs')->model_diagnostics['data_source']);
     }
 
     public function test_demo_seeder_preserves_synthetic_source_and_measured_metrics(): void
@@ -210,7 +210,7 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
         $sales = \App\Models\Transaction::count();
         $this->seed(\Database\Seeders\ForecastDemoSeeder::class);
         $this->assertSame($sales, \App\Models\Transaction::count());
-        $forecast = DemandForecast::latestFor('Refill Gallons');
+        $forecast = DemandForecast::latestFor('Refill Jugs');
         $this->assertSame(8.0, $forecast->mape_score);
         $this->assertCount(30, $forecast->historical_data);
         $this->assertSame('synthetic_demo', $forecast->model_diagnostics['data_source']);
@@ -1171,7 +1171,9 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
                 $document = new \DOMDocument;
                 @$document->loadHTML($response->getContent());
                 $xpath = new \DOMXPath($document);
-                $this->assertSame(4, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
+                // Daily operations, Stock & purchasing and Management. The
+                // single-item Insights group was removed on 2026-10-22.
+                $this->assertSame(3, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
                 $this->assertSame($tab === 'dashboard' ? 0 : 1, $xpath->query('//nav[@id="sideNav"]/details[@open]')->length);
                 $overview = $xpath->query('//nav[@id="sideNav"]/*[1][self::a and @data-s="dashboard"]');
                 $this->assertSame(1, $overview->length);

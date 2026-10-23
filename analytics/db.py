@@ -9,18 +9,38 @@ from pymysql.connections import Connection
 
 from config import Settings, station_today
 
-# Demand Series Definitions
+# Primary Demand Series
+#
+# Only these two series are fitted with ARIMA. Everything else in inventory
+# planning is a recipe projection from one or both of them. Units are jugs:
+# one POS quantity is one 5-gallon container, never a monetary amount.
+PRIMARY_SERIES: tuple[str, ...] = ("Refill Jugs", "New Jugs")
+
 SERIES_DEFINITIONS: dict[str, dict[str, Any]] = {
-    "Refill Gallons": {"factor": 1.0, "unit": "gal", "label": "Refilled water (gallons)"},
-    "Non-Spill Caps": {"factor": 1.0, "unit": "pcs", "label": "Non-spill caps"},
-    "Heat Shrink Seals": {"factor": 1.0, "unit": "pcs", "label": "Heat shrink seals"},
-    "SHRINK_SLIM": {"factor": 1.0, "unit": "pcs", "label": "Slim shrink wraps"},
-    "SHRINK_ROUND": {"factor": 1.0, "unit": "pcs", "label": "Round shrink wraps"},
-    "CLEAR_COVER": {"factor": 1.0, "unit": "pcs", "label": "Clear covers"},
-    "Sediment Filters": {"factor": 1.0 / 2000.0, "unit": "units", "label": "Sediment filter cartridges"},
+    "Refill Jugs": {"factor": 1.0, "unit": "jugs", "label": "Refill jugs sold"},
+    "New Jugs": {"factor": 1.0, "unit": "jugs", "label": "Brand-new jugs sold"},
 }
 
+# A refill/new POS quantity is one five-gallon jug. Filter capacity is rated in
+# gallons, so convert jugs to gallons before applying the rating. Treating a
+# jug as a gallon (the previous behaviour) overstated filter demand 5x.
+JUG_GALLONS = 5
 FILTER_GALLON_RATING = 2000
+JUGS_PER_FILTER = FILTER_GALLON_RATING / JUG_GALLONS
+
+# Derived material series. They are persisted for inventory planning but are
+# never fitted independently: their forecast is the primary forecast multiplied
+# by the recorded recipe usage per jug sold.
+DERIVED_SERIES: dict[str, dict[str, Any]] = {
+    "Clear Cover": {"unit": "pcs", "sources": ("Refill Jugs", "New Jugs"), "usage": "recorded"},
+    "Shrink Seal (Circle Top Slim)": {"unit": "pcs", "sources": ("Refill Jugs", "New Jugs"), "usage": "recorded"},
+    "Shrink Seal (Circle Back)": {"unit": "pcs", "sources": ("Refill Jugs", "New Jugs"), "usage": "recorded"},
+    "Shrink Seal (Circle Nozzle)": {"unit": "pcs", "sources": ("Refill Jugs", "New Jugs"), "usage": "recorded"},
+    "Shrink Seal (Circle Top Round)": {"unit": "pcs", "sources": ("Refill Jugs", "New Jugs"), "usage": "recorded"},
+    "5 Gallon Slim Jug": {"unit": "jugs", "sources": ("New Jugs",), "usage": "recorded"},
+    "5 Gallon Round Jug": {"unit": "jugs", "sources": ("New Jugs",), "usage": "recorded"},
+    "Sediment Filters": {"unit": "units", "sources": ("Refill Jugs",), "usage": "demand", "scale": 1.0 / JUGS_PER_FILTER},
+}
 
 
 # Connection Manager
@@ -38,24 +58,35 @@ def connect(settings: Settings) -> Connection:
 
 
 # Sales Data Extraction
-def daily_refill_gallons(connection: Connection, days: int) -> dict[date, float]:
+#
+# Demand is counted from transaction quantities only. Revenue, discounts, VAT
+# and prices never enter the planning path.
+def _daily_product_units(connection: Connection, category: str, days: int) -> dict[date, float]:
     sql = """
-        SELECT t.transaction_date AS day, SUM(ti.quantity) AS gallons
+        SELECT t.transaction_date AS day, SUM(ti.quantity) AS jugs
         FROM transactions t
         JOIN transaction_items ti ON ti.transaction_id = t.id
         JOIN products p ON p.id = ti.product_id
-        WHERE t.voided_at IS NULL AND p.category = 'refill'
+        WHERE t.voided_at IS NULL AND p.category = %s
           AND t.transaction_date >= (%s - INTERVAL %s DAY)
         GROUP BY t.transaction_date
         ORDER BY t.transaction_date
     """
     with connection.cursor() as cursor:
-        cursor.execute(sql, (station_today(), days))
+        cursor.execute(sql, (category, station_today(), days))
         rows = cursor.fetchall()
 
-    observed: dict[date, float] = {row["day"]: float(row["gallons"] or 0) for row in rows}
+    observed: dict[date, float] = {row["day"]: float(row["jugs"] or 0) for row in rows}
 
     return fill_calendar(connection, observed, days)
+
+
+def daily_refill_jugs(connection: Connection, days: int) -> dict[date, float]:
+    return _daily_product_units(connection, "refill", days)
+
+
+def daily_new_jugs(connection: Connection, days: int) -> dict[date, float]:
+    return _daily_product_units(connection, "container", days)
 
 
 def fill_calendar(connection: Connection, observed: dict[date, float], days: int) -> dict[date, float]:
@@ -76,35 +107,44 @@ def fill_calendar(connection: Connection, observed: dict[date, float], days: int
     return series
 
 
-def daily_consumable_usage(connection: Connection, name: str, days: int) -> list[float]:
+def daily_consumable_usage(
+    connection: Connection,
+    name: str,
+    days: int,
+    product_category: str | None = None,
+) -> list[float]:
+    """Recorded recipe usage for one inventory item.
+
+    ``product_category`` narrows the history to demand sourced from refills or
+    from brand-new jugs, so a material consumed by both is not double-counted.
+    """
     sql = """
         SELECT t.transaction_date AS day, SUM(ti.quantity * pc.qty_per_sale) AS used
         FROM transactions t JOIN transaction_items ti ON ti.transaction_id=t.id
         JOIN product_consumables pc ON pc.product_id=ti.product_id
+        JOIN products p ON p.id=ti.product_id
         JOIN inventory i ON i.id=pc.inventory_item_id
-        WHERE t.voided_at IS NULL AND i.item_name=%s AND t.transaction_date >= (%s - INTERVAL %s DAY)
-        GROUP BY t.transaction_date ORDER BY t.transaction_date
+        WHERE t.voided_at IS NULL AND i.item_name=%s
+          AND t.transaction_date >= (%s - INTERVAL %s DAY)
     """
+    params: list[Any] = [name, station_today(), days]
+    if product_category is not None:
+        sql += " AND p.category=%s"
+        params.append(product_category)
+    sql += " GROUP BY t.transaction_date ORDER BY t.transaction_date"
+
     with connection.cursor() as cursor:
-        cursor.execute(sql, (name, station_today(), days))
+        cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
     return list(fill_calendar(connection, {row["day"]: float(row["used"] or 0) for row in rows}, days).values())
 
 
 def daily_series_for(connection: Connection, series_name: str, days: int) -> list[float]:
-    definition = SERIES_DEFINITIONS.get(series_name)
-    if definition is None:
-        raise ValueError(f"Unknown series: {series_name}")
+    if series_name not in SERIES_DEFINITIONS:
+        raise ValueError(f"Unknown primary series: {series_name}")
 
-    if series_name in {"SHRINK_SLIM", "SHRINK_ROUND", "CLEAR_COVER", "Non-Spill Caps", "Heat Shrink Seals"}:
-        return daily_consumable_usage(connection, series_name, days)
-
-    gallons = daily_refill_gallons(connection, days)
-
-    if series_name == "Sediment Filters":
-        return [round(value / FILTER_GALLON_RATING, 4) for value in gallons.values()]
-
-    return [value * float(definition["factor"]) for value in gallons.values()]
+    values = daily_refill_jugs(connection, days) if series_name == "Refill Jugs" else daily_new_jugs(connection, days)
+    return list(values.values())
 
 
 # Forecast Persistence & Querying

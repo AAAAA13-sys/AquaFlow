@@ -24,18 +24,18 @@ def test_health_closes_connection(monkeypatch: pytest.MonkeyPatch, failure: bool
     connection.close.assert_called_once_with()
 
 
-@pytest.mark.parametrize("row", [None, {"series_name": "Refill Gallons", "forecasted_data": [35.0]}])
+@pytest.mark.parametrize("row", [None, {"series_name": "Refill Jugs", "forecasted_data": [35.0]}])
 def test_stored_forecast_contract_and_cleanup(monkeypatch: pytest.MonkeyPatch, row: dict[str, object] | None) -> None:
     connection = Mock()
     monkeypatch.setattr(service, "_connection", lambda: connection)
     query = Mock(return_value=row)
     monkeypatch.setattr(service.db, "latest_forecast", query)
 
-    response = service.app.test_client().get("/forecast/Refill%20Gallons")
+    response = service.app.test_client().get("/forecast/Refill%20Jugs")
 
     assert response.status_code == (404 if row is None else 200)
     assert response.get_json() == (row if row is not None else {"error": "No stored forecast for that series."})
-    query.assert_called_once_with(connection, "Refill Gallons")
+    query.assert_called_once_with(connection, "Refill Jugs")
     connection.close.assert_called_once_with()
 
 
@@ -44,7 +44,7 @@ def test_stored_forecast_closes_connection_on_error(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(service, "_connection", lambda: connection)
     monkeypatch.setattr(service.db, "latest_forecast", Mock(side_effect=RuntimeError("query failed")))
 
-    response = service.app.test_client().get("/forecast/Refill%20Gallons")
+    response = service.app.test_client().get("/forecast/Refill%20Jugs")
 
     assert response.status_code == 500
     connection.close.assert_called_once_with()

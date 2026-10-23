@@ -257,13 +257,13 @@ function renderInsights() {
   }
   setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
   setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
-  // An absent forecast is not zero demand. Saying "0 gallons" next to a live
+  // An absent forecast is not zero demand. Saying "0 jugs" next to a live
   // revenue figure reads as "you sold nothing", so name the missing forecast
   // instead of reporting a number that was never calculated.
   const hasForecast = (DB.forecast7 || []).length > 0;
-  setText('kGal', hasForecast ? Math.round(I.fTotal).toLocaleString() + ' gallons' : 'Not forecast yet');
+  setText('kGal', hasForecast ? Math.round(I.fTotal).toLocaleString() + ' jugs' : 'Not forecast yet');
   setText('kGalSub', hasForecast
-    ? '7-day forecast ' + I.band(I.fAvg) + ' gallons/day'
+    ? '7-day forecast ' + I.band(I.fAvg) + ' jugs/day'
     : 'Run the demand forecast to see next week');
   // Counts only genuinely actionable items. Unconfigured items are surfaced as
 // a separate "set a threshold" prompt so they never read as emergencies.
@@ -298,8 +298,8 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
     const hasHistory = (DB.history || DB.history30 || []).length > 0;
     insDemand.innerHTML = hasHistory ?
       '<div class="insight-row"><span>Sales trend · last 7 vs previous 7 days</span><b class="' + (I.trend >= 0 ? 'text-green-700' : 'text-red-600') + '">' + (I.trend >= 0 ? '+' : '−') + Math.abs(I.trend).toFixed(1) + '%</b></div>' +
-      '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' gallons</b></div>' +
-      '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' gallons</b></div>' +
+      '<div class="insight-row"><span>Daily average · last 30 days</span><b>' + Math.round(I.avg30).toLocaleString() + ' jugs</b></div>' +
+      '<div class="insight-row"><span>Busiest / quietest day</span><b>' + I.peak.toLocaleString() + ' / ' + I.low.toLocaleString() + ' jugs</b></div>' +
       '<p class="insight-note">Forecasts are estimates. Review the demand forecast before planning filling and delivery work.</p>' :
       '<p class="overview-empty">No sales history yet. Sales patterns will appear as transactions are recorded.</p>';
   }

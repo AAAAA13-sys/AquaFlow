@@ -25,4 +25,9 @@ return [
 
     'horizon_days' => (int) env('ANALYTICS_HORIZON_DAYS', 7),
 
+    // A stored forecast older than this is ignored by inventory planning.
+    // The nightly job runs daily; two days allows one missed run before the
+    // engine rebuilds thresholds from recorded sales.
+    'forecast_max_age_days' => (int) env('ANALYTICS_FORECAST_MAX_AGE_DAYS', 2),
+
 ];

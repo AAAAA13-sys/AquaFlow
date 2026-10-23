@@ -351,7 +351,7 @@ def _naive_result(
         method=method,
         cleaning=cleaning,
         seasonal=False,
-        model_diagnostics={"validation_available": False},
+        model_diagnostics={"validation_available": False, "seasonal": False, "peak_day_factor": 1.0},
     )
 
 
@@ -413,7 +413,13 @@ def analyze(
             "validation_days": max(3, min(horizon, len(history) // 4)) if mape is not None else 0,
             "candidates": outcome.candidates,
             "bic": round(float(outcome.fitted.bic), 2),
+            # Per-day variance of the fitted mean. Inventory adds the residual
+            # demand-noise term separately when it turns this into safety stock.
             "forecast_error_variances": [max(0.0, float(value)) for value in outcome.fitted.get_forecast(horizon).var_pred_mean],
+            "seasonal": outcome.seasonal,
+            # Peak day relative to an average day. Safety stock uses this to
+            # widen the buffer for weekend/peak-day swings.
+            "peak_day_factor": round(max(outcome.factors) / fmean(outcome.factors), 4) if outcome.factors else 1.0,
             "differenced_series": np.diff(history, n=outcome.order[1]).tolist() if outcome.order[1] else history,
             "stationarity": {"raw_adf_statistic": statistic, "raw_adf_pvalue": pvalue,
                 "differenced_adf": list(adf_test(np.diff(history, n=outcome.order[1]).tolist())) if outcome.order[1] else [statistic, pvalue]},

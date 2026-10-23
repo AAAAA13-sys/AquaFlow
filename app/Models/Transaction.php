@@ -90,14 +90,14 @@ class Transaction extends Model
     }
 
     /**
-     * Count the refill containers recorded in a volume label.
+     * Count the refill jugs recorded in a volume label.
      *
      * Labels are written by CheckoutService::volumeLabel() and look like
-     * "17S+2R", "3S" or "0 gal". A refill container counts as one gallon, so
+     * "17S+2R", "3S" or "0 gal". Each letter count is one five-gallon jug, so
      * the total is the sum of every count in the label. Anything that does not
      * follow that shape (including debt payments, stored as "0 gal") is zero.
      */
-    public static function gallonsFromLabel(?string $label): float
+    public static function refillJugsFromLabel(?string $label): float
     {
         if ($label === null || $label === '') {
             return 0.0;

@@ -87,13 +87,13 @@ The source scan covered application, UI, schema, analytics, configuration, deplo
 | Tickets | No dedicated approval model in source inventory | Minimal typed tickets and decision history |
 | Cash drawer | Historical remnants remain; current cash-shift routes removed | Do not restore drawer merely for reporting |
 | Delivery | Proof, buyer codes and remittance already exist | Preserve accountability during role restoration |
-| Forecast batch | runner runs Refill Gallons; recipe projection helper exists separately | Integrate material projections into actual run |
+| Forecast batch | runner fits primary series (Refill Jugs, New Jugs); recipe projections generated from them | Integrate material projections into actual run |
 | Seasonal model | Weekday adjustment around nonseasonal ARIMA | Do not label as full SARIMA/monthly seasonality |
 | Dates | Python date.today and SQL CURDATE alongside Laravel dates | Explicit station business-date policy |
 
 - [ ] Revalidate old audit findings against current code; several were already fixed on 16 October.
 - [ ] Inspect schema and role counts read-only before choosing migration mappings.
-- [ ] Resolve units: series names say gallons but extraction sums refill quantities; label containers or convert explicitly.
+- [x] Resolve units: primary series are refill/new jugs; units aligned and filter conversion corrected (400 jugs per 2000-gallon filter).
 - [ ] Verify canonical inventory IDs/recipes rather than relying on editable item names.
 - [ ] Preserve unavailable forecast metrics; Python persistence currently coerces absent metric values to zero.
 
