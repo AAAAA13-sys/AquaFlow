@@ -288,6 +288,10 @@ button {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   background: transparent;
   overflow: hidden;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .defect-dialog::backdrop {
