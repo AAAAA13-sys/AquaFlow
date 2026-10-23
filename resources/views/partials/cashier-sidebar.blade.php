@@ -38,8 +38,10 @@
     <div class="sidebar-user-card">
       <div class="sidebar-user-meta">
         <span class="sidebar-user-label">Active Session</span>
-        <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Cashier' }}">{{ auth()->user()?->name ?? 'Cashier' }}</b>
-        <span class="sidebar-role-chip">{{ auth()->user()?->roleLabel() ?? 'Cashier' }}</span>
+        <div class="sidebar-user-info">
+          <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Cashier' }}">{{ auth()->user()?->name ?? 'Cashier' }}</b>
+          <span class="sidebar-role-chip">{{ auth()->user()?->roleLabel() ?? 'Cashier' }}</span>
+        </div>
       </div>
     </div>
 
