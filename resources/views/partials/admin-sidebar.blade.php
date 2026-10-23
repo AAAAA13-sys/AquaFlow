@@ -23,6 +23,8 @@
       'approvals'  => ['label' => 'Approval Requests', 'hint' => 'Changes awaiting a decision',   'badge' => 'badgeApprovals', 'icon' => 'i-check-circle'],
       'audit-logs' => ['label' => 'Audit Log',         'hint' => 'Who changed what',               'badge' => null,             'icon' => 'i-orders'],
       'settings'   => ['label' => 'Settings',          'hint' => null,                             'badge' => null,             'icon' => 'i-terminal'],
+      'cashier-pos' => ['label' => 'Cashier POS',      'hint' => 'Point of sale terminal',         'badge' => null,             'icon' => 'i-terminal', 'url' => '/cashier'],
+      'staff-workspace' => ['label' => 'Rider & Refiller', 'hint' => 'Delivery & refill interface', 'badge' => null,           'icon' => 'i-walkin', 'url' => '/employee'],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
@@ -30,6 +32,7 @@
       'Daily operations' => ['orders', 'cash', 'sales'],
       'Stock & purchasing' => ['inventory', 'suppliers', 'defects', 'customers'],
       'Management' => array_values(array_intersect(['users', 'approvals', 'audit-logs', 'settings'], array_keys($tabs))),
+      'Staff Interfaces' => array_values(array_intersect(['cashier-pos', 'staff-workspace'], array_keys($tabs))),
   ];
 @endphp
 @php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
@@ -61,7 +64,8 @@
       <div class="sidebar-group-links">
       @foreach ($slugs as $slug)
         @php($label = $tabs[$slug])
-        <a href="{{ url('/admin/' . $slug) }}" data-s="{{ $slug }}"
+        <?php $linkUrl = !empty($label['url']) ? url($label['url']) : url('/admin/' . $slug); ?>
+        <a href="{{ $linkUrl }}" data-s="{{ $slug }}"
            class="sidebar-link {{ $active === $slug ? 'active' : '' }}"
            @if ($active === $slug) aria-current="page" @endif
            @if ($label['badge']) data-has-badge="1" @endif>
