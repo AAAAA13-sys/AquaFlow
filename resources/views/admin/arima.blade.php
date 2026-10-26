@@ -19,7 +19,8 @@
       <div class="filter-group">
         <label class="form-label" for="fSeries">Forecast series</label>
         <select id="fSeries" onchange="renderArimaChart(); renderForecast()">
-          <option>Refill gallons</option>
+          <option>Refill jugs</option>
+          <option>New jugs</option>
         </select>
       </div>
       <button id="btnRunForecast" onclick="runForecast()" class="btn btn-primary">Update Forecast</button>

@@ -256,7 +256,7 @@ ACF/PACF + Ljung-Box residual diagnostics → hold-out backtest → 7-day foreca
 
 | Series | Method | MAPE | Ljung-Box p |
 |---|---|---|---|
-| Refill Gallons | ARIMA + weekly seasonality | **10.15%** | 0.98 |
+| Refill Jugs | ARIMA + weekly seasonality | **10.15%** | 0.98 |
 | Heat Shrink Seals | ARIMA + weekly seasonality | 10.15% | 0.98 |
 | Non-Spill Caps | ARIMA + weekly seasonality | 10.15% | 0.98 |
 | Sediment Filters | ARIMA + weekly seasonality | 6.71% | 0.98 |
@@ -433,7 +433,7 @@ now that the sidebar handles navigation.
 **2026-09-28 — Till narrowed to four buttons.** Slim refill (₱35), Round refill
 (₱35), New Slim jug (₱250), New Round jug (₱250). Caps, heat-shrink seals and
 cleaning soap & sponge were taken off the till: they remain in the catalogue and
-in inventory, and caps/seals are still auto-deducted one per refilled gallon,
+in inventory, and caps/seals are still auto-deducted one per refilled jug,
 but the cashier can no longer ring them up and the API rejects them (422).
 
 **2026-09-28 — MSME Edition: zero station-owned jugs, inclusive VAT, GCash.**
@@ -502,7 +502,7 @@ so they cannot be understated from the client.
 offers only the four items a cashier actually sells — Slim refill, Round refill,
 New Slim jug and New Round jug. Caps, seals and cleaning supplies moved out of
 the till entirely: they are owner-managed inventory (still auto-deducted per
-refilled gallon) and the API now rejects them at checkout. Receipt printing was
+refilled jug) and the API now rejects them at checkout. Receipt printing was
 also fixed — `window.print()` was dumping the entire terminal; a print
 stylesheet now hides the page and lifts only the receipt to the top of the
 sheet.
@@ -525,7 +525,7 @@ Compose deployment. The Python ARIMA tier and its accuracy are unchanged.
 
 Earlier: split the terminal per wizard step, consolidated the stylesheet and
 module tree, added the dynamic inventory engine, and fixed bottle deposits
-counting as refill gallons.
+counting as refill jugs.
 
 Last updated: 2026-10-06
 # Distributing AquaFlow to a store

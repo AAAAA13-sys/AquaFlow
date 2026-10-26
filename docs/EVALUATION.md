@@ -74,7 +74,7 @@ model must score at or below it for the test to pass.
 
 | Series | Method | Order | MAPE | Ljung-Box p |
 |---|---|---|---|---|
-| Refill Gallons | ARIMA + weekly seasonality | ARIMA(0,0,1) | 10.15% | 0.98 |
+| Refill Jugs | ARIMA + weekly seasonality | ARIMA(0,0,1) | 10.15% | 0.98 |
 | Heat Shrink Seals | ARIMA + weekly seasonality | ARIMA(0,0,1) | 10.15% | 0.98 |
 | Non-Spill Caps | ARIMA + weekly seasonality | ARIMA(0,0,1) | 10.15% | 0.98 |
 | Sediment Filters | ARIMA + weekly seasonality | ARIMA(0,0,1) | 6.71% | 0.98 |
