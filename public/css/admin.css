@@ -2353,7 +2353,7 @@
 .sidebar-link:hover .sidebar-icon,
 .sidebar-link.active .sidebar-icon {
   opacity: 1;
-} }
+}
 .delivery-monitor-totals>div { display:grid; grid-template-columns:1fr auto; gap:4px 16px; min-width:160px; }
 .delivery-monitor-totals b { font-variant-numeric:tabular-nums; }
 .delivery-monitor-totals small { grid-column:1/-1; color:var(--text-muted); }
