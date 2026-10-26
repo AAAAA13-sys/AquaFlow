@@ -164,7 +164,7 @@
 
           {{-- Delivery: charged to the customer ledger --}}
           <div id="deliveryPanel" class="hidden">
-            <div class="ledger-notice" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;padding:10px;border-radius:8px;font-size:12px;">
+            <div class="ledger-notice ledger-notice-info">
               Automatically charged to customer account. Delivery confirmation does not record a payment; record collections separately.
             </div>
 
@@ -350,17 +350,17 @@ async function checkDrawerGuard() {
       banner.style.display = 'flex';
       banner.style.alignItems = 'center';
       banner.style.justifyContent = 'space-between';
-      banner.style.background = '#FEF3C7';
-      banner.style.color = '#92400E';
-      banner.style.border = '1px solid #FCD34D';
+      banner.style.background = 'var(--warning-bg)';
+      banner.style.color = 'var(--warning-text)';
+      banner.style.border = '1px solid var(--warning-border)';
       banner.innerHTML = '<span>⚠️ <b>Cash drawer is not open today.</b> Record starting cash float to activate register.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">Open Drawer</a>';
     } else if (!shift.is_open) {
       banner.style.display = 'flex';
       banner.style.alignItems = 'center';
       banner.style.justifyContent = 'space-between';
-      banner.style.background = '#FEF2F2';
-      banner.style.color = '#991B1B';
-      banner.style.border = '1px solid #FECACA';
+      banner.style.background = 'var(--danger-bg)';
+      banner.style.color = 'var(--danger-text)';
+      banner.style.border = '1px solid var(--danger-border)';
       banner.innerHTML = '<span>🔒 <b>Cash drawer closed for today.</b> Reconciled at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString() : 'end of shift') + '. Further sales are disabled.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">View Shift</a>';
     } else {
       banner.style.display = 'none';

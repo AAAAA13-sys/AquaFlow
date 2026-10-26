@@ -258,9 +258,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  min-height: 0;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
   border-radius: 6px;
   border: 1px solid var(--border-line, #CBD5E1);
@@ -282,7 +282,7 @@
 
 .table-icon-btn:hover {
   background: #F1F5F9;
-  border-color: #94A3B8;
+  border-color: #64748B;
   color: #0F172A;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
@@ -555,7 +555,7 @@
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -638,7 +638,7 @@
 
 .admin-page td .table-actions .btn:hover {
   background: #F8FAFC;
-  border-color: #94A3B8;
+  border-color: #64748B;
   color: #0F172A;
 }
 
@@ -1690,7 +1690,7 @@
 }
 
 #s-dash .overview-advisory-head span {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   padding: 2px 7px;
   border: 1px solid currentColor;

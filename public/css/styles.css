@@ -9,8 +9,8 @@
   --brand-active: #1E3A8A;
   --brand-dark: #0F172A;
   --brand-light: #DBEAFE;
-  --brand-tint: #EFF6FF;
-  --brand-ring: rgba(29, 78, 216, 0.25);
+  --brand-tint: #EFF4FF;
+  --brand-ring: rgba(29, 78, 216, 0.38);
 
   /* The canvas is a real light grey, not near-white. */
   --surface-white: #FFFFFF;
@@ -74,7 +74,20 @@ button {
 input:focus,
 select:focus {
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
+}
+
+/* Global keyboard focus indicator (covers the cashier POS, which has no
+   focus rules of its own). */
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 button {
@@ -179,6 +192,8 @@ button {
 ============================================================================= */
 .auth-page {
   min-height: 100vh;
+min-height: 100dvh;
+height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,6 +407,8 @@ button {
 .admin-layout {
   display: flex;
   min-height: 100vh;
+min-height: 100dvh;
+height: 100dvh;
   background-color: var(--surface-bg);
 }
 
@@ -414,6 +431,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+height: 100dvh;
   flex-shrink: 0;
   z-index: 30;
 }
@@ -827,6 +845,7 @@ button {
     width: 280px;
     max-width: 85vw;
     height: 100vh;
+height: 100dvh;
     z-index: 999;
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1471,6 +1490,8 @@ table.clean td {
 /* Terminal is a flex page; individual steps are allowed to scroll */
 body.pos-lock {
   min-height: 100vh;
+min-height: 100dvh;
+height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -1921,13 +1942,19 @@ button.product-item .product-info-price {
 .cashier-viewport,
 .cashier-viewport .admin-sidebar {
   height: 100vh;
+height: 100dvh;
   max-height: 100vh;
+max-height: 100dvh;
+height: 100dvh;
   overflow: hidden;
 }
 
 .cashier-viewport .admin-main-container {
   height: 100vh;
+height: 100dvh;
   max-height: 100vh;
+max-height: 100dvh;
+height: 100dvh;
   overflow: hidden;
   min-height: 0;
 }
@@ -3882,7 +3909,7 @@ body {
    ========================================================================== */
 
 .af-stamp {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.86);
   white-space: nowrap;
 }
@@ -3956,7 +3983,7 @@ body {
      failed AA at every value tried (0.5 -> 4.34:1, 0.72 -> still short).
      #475569 reads as secondary through its size, not through being washed out. */
   color: #334155;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   font-family: inherit;
@@ -4066,7 +4093,7 @@ body {
   flex-shrink: 0;
   margin: 10px 12px 2px;
   color: #ffffffc9;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -4178,7 +4205,7 @@ dialog::backdrop {
   --text-dark: #0B1220;
   --text-slate: #1E293B;
   --text-muted: #334155;
-  --text-dim: #64748B;
+  --text-dim: #475569;
   --border-line: #D3DAE5;
   --border-subtle: #BFC8D6;
   --surface: var(--surface-white);

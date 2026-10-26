@@ -8,7 +8,7 @@
   @hasSection('meta-description')
     <meta name="description" content="@yield('meta-description')">
   @endif
-  <script src="{{ asset('vendor/chartjs/chart.umd.js') }}"></script>
+  <script src="{{ asset('vendor/chartjs/chart.umd.js') }}" defer></script>
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}?v={{ asset_version('css/styles.css') }}">
   @stack('styles')
   <script>window.SPRITE_URL = @json(asset('icons/sprite.svg'));</script>

@@ -1,4 +1,17 @@
 /* Cashier workspace and receipts. */
+
+.ledger-notice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ledger-notice-info {
+  background: var(--brand-tint, #EFF4FF);
+  border: 1px solid var(--brand-light, #DBEAFE);
+  color: var(--brand-active, #1E3A8A);
+}
 .customer-dialog {
   position: fixed;
   inset: 0;
@@ -155,7 +168,7 @@
 
 .cashier-page-header .cashier-eyebrow {
   color: #1D4ED8;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 1.5px;
 }
@@ -462,7 +475,7 @@
 }
 
 #receipt .receipt-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: #475569;
   margin-top: 2px;
 }
@@ -470,7 +483,7 @@
 #receipt .receipt-meta {
   white-space: nowrap;
   line-height: 1.4;
-  font-size: 11px;
+  font-size: 13px;
   margin-top: 6px;
   color: #475569;
 }
@@ -537,7 +550,7 @@
 
   .cashier-shell .pos-step {
     padding: 10px 8px;
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .cashier-page>.card {

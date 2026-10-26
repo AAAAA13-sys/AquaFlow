@@ -13,6 +13,7 @@ body.employee-page {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -61,7 +62,7 @@ body.employee-page {
 .employee-page .admin-sidebar .sidebar-section-title {
   margin: 14px 4px 8px;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
