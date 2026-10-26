@@ -2320,6 +2320,10 @@
   transform: rotate(90deg);
   opacity: 1;
 }
+.sidebar-group[open] .sidebar-group-title {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
 .sidebar-group-links {
   padding-left: 8px;
   display: flex;
@@ -2336,7 +2340,20 @@
   .sidebar-group-chevron { transition: none; }
   .sidebar-group[open] .sidebar-group-links { animation: none; }
 }
-.delivery-monitor-totals { display:flex; gap:24px; flex-wrap:wrap; padding:20px 0; }
+.sidebar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: currentColor;
+  opacity: 0.85;
+}
+.sidebar-link:hover .sidebar-icon,
+.sidebar-link.active .sidebar-icon {
+  opacity: 1;
+} }
 .delivery-monitor-totals>div { display:grid; grid-template-columns:1fr auto; gap:4px 16px; min-width:160px; }
 .delivery-monitor-totals b { font-variant-numeric:tabular-nums; }
 .delivery-monitor-totals small { grid-column:1/-1; color:var(--text-muted); }
