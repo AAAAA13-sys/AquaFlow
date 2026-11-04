@@ -913,7 +913,8 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
     {
         $this->loginAsRole('super_admin');
         $this->get('/admin/dashboard')->assertOk()->assertSee('Overview')->assertSee('Business controls');
-        $this->get('/cashier/stocks')->assertOk()->assertSee('Owner Portal');
+        $this->get('/cashier/stocks')->assertOk()->assertSee('Owner Portal')
+            ->assertSee('href="http://localhost/admin/dashboard"', false)->assertDontSee('Manager Portal');
     }
 
     public function test_manager_is_not_shown_owner_setup_links(): void
@@ -921,13 +922,15 @@ class OperationsAndFulfillmentFeatureTest extends TestCase
         $this->loginAsRole('admin');
         $this->get('/admin/dashboard')->assertOk()->assertDontSee('href="http://localhost/admin/settings"', false)
             ->assertDontSee('id="stepSettings"', false)->assertDontSee('Business controls');
-        $this->get('/cashier/stocks')->assertOk()->assertSee('Manager Portal');
+        $this->get('/cashier/stocks')->assertOk()->assertSee('Manager Portal')
+            ->assertSee('href="http://localhost/admin/dashboard"', false)->assertDontSee('Owner Portal');
     }
 
     public function test_cashier_stock_page_is_read_only_and_has_no_planning_columns(): void
     {
         $this->loginAsRole('cashier');
         $this->get('/cashier/stocks')->assertOk()->assertSee('Stock Availability')
+            ->assertDontSee('href="http://localhost/admin/dashboard"', false)
             ->assertDontSee('Safety Stock')->assertDontSee('Reorder Point')->assertDontSee('Owner Portal');
         $this->postJson('/api/inventory', [])->assertForbidden();
         $this->putJson('/api/settings', [])->assertForbidden();

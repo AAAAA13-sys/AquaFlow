@@ -66,11 +66,11 @@ class DefectReportController extends Controller
 
     public function approve(ResolveDefectReportRequest $request, DefectReport $defectReport): JsonResponse
     {
-        if (! $defectReport->isPending()) {
-            throw ValidationException::withMessages(['status' => 'This report has already been resolved.']);
-        }
-
         $report = DB::transaction(function () use ($request, $defectReport): DefectReport {
+            $defectReport = DefectReport::whereKey($defectReport->id)->lockForUpdate()->firstOrFail();
+            if (! $defectReport->isPending()) {
+                throw ValidationException::withMessages(['status' => 'This report has already been resolved.']);
+            }
             $locked = InventoryItem::whereKey($defectReport->inventory_item_id)->lockForUpdate()->firstOrFail();
 
             if ($locked->retired_at !== null) {
@@ -112,15 +112,20 @@ class DefectReportController extends Controller
 
     public function reject(ResolveDefectReportRequest $request, DefectReport $defectReport): JsonResponse
     {
-        if (! $defectReport->isPending()) {
-            throw ValidationException::withMessages(['status' => 'This report has already been resolved.']);
-        }
+        $defectReport = DB::transaction(function () use ($request, $defectReport): DefectReport {
+            $defectReport = DefectReport::whereKey($defectReport->id)->lockForUpdate()->firstOrFail();
+            if (! $defectReport->isPending()) {
+                throw ValidationException::withMessages(['status' => 'This report has already been resolved.']);
+            }
 
-        $defectReport->status = DefectReport::STATUS_REJECTED;
-        $defectReport->resolved_by = $request->user()->id;
-        $defectReport->resolved_at = now();
-        $defectReport->notes = $request->validated()['notes'] ?? null;
-        $defectReport->save();
+            $defectReport->status = DefectReport::STATUS_REJECTED;
+            $defectReport->resolved_by = $request->user()->id;
+            $defectReport->resolved_at = now();
+            $defectReport->notes = $request->validated()['notes'] ?? null;
+            $defectReport->save();
+
+            return $defectReport;
+        });
 
         return response()->json([
             'report' => new DefectReportResource($defectReport->load(['inventoryItem', 'reporter', 'resolver'])),

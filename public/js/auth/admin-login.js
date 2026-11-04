@@ -26,7 +26,7 @@ function finishAdmin(result) {
   if (firstRun) field('setupStep').textContent = 'Setup complete. Your station and owner account are ready.';
   ['adminForm', 'setupForm'].forEach(id => field(id)?.classList.add('hidden'));
   ['p', 'setupPassword', 'setupConfirm', 'otp'].forEach(id => { if (field(id)) field(id).value = ''; });
-  field('loginDescription').classList.add('hidden');
+  field('loginDescription')?.classList.add('hidden');
   window.location.href = result.redirect || result.user.home_url || roleHome(result.user.role);
 }
 

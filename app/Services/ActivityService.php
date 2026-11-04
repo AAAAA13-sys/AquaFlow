@@ -204,6 +204,7 @@ class ActivityService
             }
 
             $lines = $sale->items->map(fn ($line) => $line->quantity.' × '.$line->item_name)->all();
+            $isCash = $sale->payment_method === 'Cash' && $sale->voided_at === null;
             $entries[] = [
                 'kind' => $sale->order_type === 'Debt Payment' ? 'payment' : 'sale',
                 'at' => $at->toISOString(),
@@ -216,6 +217,7 @@ class ActivityService
                 'amount_label' => $sale->order_type === 'Debt Payment' ? 'Collected' : 'Total',
                 'note' => $sale->payment_method === 'Cash' ? null : 'Paid by '.$sale->payment_method,
                 'address' => $sale->delivery_address,
+                'is_cash' => $isCash,
             ];
         }
 
@@ -302,7 +304,7 @@ class ActivityService
             if ($entry['kind'] === 'damage') {
                 $counts['damage']++;
             }
-            if (in_array($entry['kind'], ['sale', 'payment', 'remittance'], true)) {
+            if (! empty($entry['is_cash'])) {
                 $counts['cash'] += (float) ($entry['amount'] ?? 0);
             }
         }

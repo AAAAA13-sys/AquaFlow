@@ -5,9 +5,9 @@
   @php($firstRun = \App\Models\User::where('is_bootstrap', true)->exists() && ! \App\Models\User::where('role', \App\Models\User::ROLE_SUPER_ADMIN)->where('is_bootstrap', false)->exists())
   <main class="auth-card" id="adminLogin" data-first-run="{{ $firstRun ? '1' : '0' }}">
     <header class="auth-header"><div class="auth-logo">AF</div><div><h1 class="auth-title">Sign in</h1><p class="auth-subtitle">{{ $stationName ?? 'AquaFlow' }} · Workspace</p></div></header>
-    <p class="auth-description" id="loginDescription">{{ $firstRun ? 'First-time setup: enter the setup code printed by Setup on the store host. You then create your own Super Admin account before the store can be used.' : 'Sign in to your station workspace.' }}</p>
     <div id="err" class="auth-error hidden" role="alert"></div>
     @if($firstRun)
+    <p class="auth-description" id="loginDescription">First-time setup: enter the setup code printed by Setup on the store host. You then create your own Super Admin account before the store can be used.</p>
     <ol class="setup-progress" aria-label="Store setup steps"><li>Unlock installation</li><li>Enter station and owner details</li></ol>
     <p id="setupStep" class="setup-step-note" role="status">Step 1 of 2: Unlock installation</p>
     @endif
@@ -44,7 +44,7 @@
       <label for="setupEmail">Recovery email</label><input id="setupEmail" type="email" required class="form-input" autocomplete="email" maxlength="255">
       <button type="submit" class="btn btn-primary btn-block">Finish setup</button>
     </form>
-    <p class="auth-footer-text">Super Admin, Admin, Cashier, Refiller and Delivery Rider use this sign-in.</p>
+    <p class="auth-footer-text">Authorized personnel only.</p>
   </main>
   @include('partials.scripts')
   <script src="{{ asset('js/auth/password-recovery.js') }}?v={{ asset_version('js/auth/password-recovery.js') }}"></script>

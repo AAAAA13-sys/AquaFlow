@@ -14,7 +14,10 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), vm = requ
  const ctx=vm.createContext({document:{getElementById:id=>elements[id]},money:String,esc:s=>String(s).replaceAll('<','&lt;'),Submissions:{pending:()=>pending},appNotice(){},appConfirm:()=>new Promise(r=>resolveConfirm=r),API:{get:async()=>{if(fail)throw Error('offline');return {shift,history,shifts:[shift]};},post:async(path,payload)=>{writes++;body=payload;}}});
  vm.runInContext(fs.readFileSync('public/js/admin/cash.js','utf8'),ctx);
  await ctx.renderCashShift();assert.match(elements.cashSummary.innerHTML,/&lt;Cashier>/);
+ const confirmDrawer=ctx.appConfirm;ctx.appConfirm=async()=>true;
+ elements.cashFloat.value='1000001';await ctx.openCashDrawer();assert.equal(writes,0,'Opening float above the limit cannot reach the API');ctx.appConfirm=confirmDrawer;
  elements.cashCounted.value='200';pending={};await ctx.closeCashDrawer();assert.equal(writes,0);pending=null;
+ const cancelled=ctx.closeCashDrawer();resolveConfirm(false);await cancelled;assert.equal(writes,0,'Cancelling drawer close must not write');assert.equal(elements.cashCloseBtn.disabled,false,'Cancellation releases the button');
  const close=ctx.closeCashDrawer();await ctx.closeCashDrawer();resolveConfirm(true);await close;assert.equal(writes,1);assert.equal(body.shift_id,42);assert.equal(body.expected_cash,200);
  shift={...shift,is_open:false,status:'balanced'};history=[shift,{...shift,id:41,cashier:'Earlier cashier'}];await ctx.renderCashShift();assert.doesNotMatch(elements.cashHistory.innerHTML,/&lt;Cashier>/);assert.match(elements.cashHistory.innerHTML,/Earlier cashier/);assert.equal(elements.cashOpenForm.classList.hidden,true);assert.equal(elements.cashCloseForm.classList.hidden,true);
  elements.cashFloat.value='NaN';await ctx.openCashDrawer();assert.equal(writes,1);
@@ -32,6 +35,11 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), vm = requ
  elements.cashOverviewSearch.value='';elements.cashOverviewStatus.value='open';ctx.renderCashOverviewRows();
  assert.match(elements.cashOverview.innerHTML,/No drawers match/,'Closed drawers are excluded by open filter');
  fail=true;await ctx.renderCashShift();assert.match(elements.cashStatus.textContent,/outdated/);assert.equal(elements.cashCloseForm.classList.hidden,true);
+ elements.cashDrawerPanel.dataset.overview='0';
+ let resolveOldRead;ctx.API.get=()=>new Promise(resolve=>{resolveOldRead=resolve;});const oldRead=ctx.renderCashShift();
+ ctx.API.get=async()=>({shift,history:[]});await ctx.renderCashShift();
+ resolveOldRead({shift:{...shift,is_open:true,status:'open'},history:[]});await oldRead;
+ assert.equal(elements.cashCloseForm.classList.hidden,true,'An older open-drawer response cannot replace the newer closed drawer');
  console.log('PASS: cash drawer identity, reviewed totals, pending-payment guard, duplicate clicks, closed controls and offline state.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
@@ -175,8 +183,12 @@ console.log('PASS: editable product cart, read-only payment summary, readable ju
   flow.renderUsers=()=>{}; flow.showStageError=()=>{};
   el('regName').value='Ana Santos'; el('regAddr').value='Test address';
   await flow.saveNewCustomer(); assert.equal(writes,0, 'missing mobile number prevents customer creation');
+  el('regContact').value='+639123456789'; await flow.saveNewCustomer();
+  assert.equal(writes,0, 'terminal accepts only the local 11-digit form');
+  el('regContact').value='09a12 345-6789'; flow.filterRegistrationMobile(el('regContact'));
+  assert.equal(el('regContact').value,'09123456789','letters and punctuation are removed on input');
   el('regContact').value='09123456789'; await flow.saveNewCustomer();
-  assert.equal(writes,1); assert.equal(posted.contact,'09123456789');
+  assert.equal(writes,1); assert.equal(posted.contact,'09123456789'); assert.equal(posted.context,'terminal');
   el('usrName').value='New Cashier'; el('usrUsername').value='newcashier'; el('usrRole').value='cashier'; el('usrEmail').value='newcashier@example.com';
   await flow.createUser(); assert.equal('password' in posted,false,'server supplies the default password'); assert.equal('job_title' in posted,false);
   flow.guardAdmin=flow.guardCashier=()=>({name:'New Cashier',must_change_password:true});
@@ -488,6 +500,7 @@ ctx.renderPOS=()=>{};
   };
   await ctx.searchCustomers();
   assert.equal(lastParams.exclude_guest, 1, 'the guest must be excluded server-side');
+  assert.equal(lastParams.context, 'terminal', 'search only the name and address displayed by the terminal');
   assert.equal(lastParams.limit, 50, 'the terminal lists every customer available');
   assert.equal(lastParams.order, 'oldest', 'default ordering is oldest first');
   assert.equal(lastParams.q, '', 'empty search browses the first page');

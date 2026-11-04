@@ -8,13 +8,10 @@ class StoreCustomerRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if (! is_string($this->input('contact'))) {
+        if ($this->input('context') === 'terminal' || ! is_string($this->input('contact'))) {
             return;
         }
         $contact = preg_replace('/[\s()-]+/', '', $this->input('contact'));
-        if (preg_match('/^09[0-9]{9}$/', $contact)) {
-            $contact = '+63'.substr($contact, 1);
-        }
         $this->merge(['contact' => $contact]);
     }
 
@@ -31,13 +28,17 @@ class StoreCustomerRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150', 'regex:/^(?=.*\p{L})[\p{L}\s.\'-]+$/u'],
             'address' => ['nullable', 'string', 'max:255'],
-            'contact' => ['required', 'string', 'regex:/^\+639[0-9]{9}$/'],
+            'contact' => ['required', 'string', $this->input('context') === 'terminal'
+                ? 'regex:/^09[0-9]{9}\z/'
+                : 'regex:/^(?:09|\+639)[0-9]{9}\z/'],
         ];
     }
 
     public function messages(): array
     {
         return ['contact.required' => 'A mobile number is required for SMS reminders.',
-            'contact.regex' => 'Enter a Philippine mobile number starting with 09 or +639.'];
+            'contact.regex' => $this->input('context') === 'terminal'
+                ? 'Enter an 11-digit mobile number starting with 09.'
+                : 'Enter a Philippine mobile number starting with 09 or +639.'];
     }
 }

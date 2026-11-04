@@ -7,7 +7,7 @@
 @section('cashier-body')
   @include('partials.cashier-steps')
 
-  <div id="posDrawerBanner" style="display:none;margin:0.5rem 1.25rem 0.75rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.875rem;"></div>
+  <div id="posDrawerBanner" class="drawer-big-notif" style="display:none;"></div>
 
   <main class="pos-layout">
 
@@ -27,7 +27,6 @@
                  aria-label="Search customers by name or address" placeholder="Search name or address..." autocomplete="off">
           <div class="stage-secondary">
             <button type="button" onclick="voidCart()" class="btn btn-secondary btn-sm">Void order</button>
-            <button type="button" onclick="openStocksModal()" class="btn btn-secondary btn-sm" title="View live stock levels">Stocks</button>
             <button onclick="openRegisterModal()" class="btn btn-secondary btn-sm">+ New Customer</button>
             <button onclick="toggleDebtSettle()" class="btn btn-secondary btn-sm">Settle Debt</button>
           </div>
@@ -230,7 +229,9 @@
              inputmode="text" pattern="^[^0-9]+$" title="Letters only — numbers are not allowed"
              oninput="this.value = this.value.replace(/[0-9]/g, '')">
       <label class="form-label" for="regContact">Mobile number</label>
-      <input id="regContact" type="tel" class="form-input" required maxlength="13" autocomplete="tel" placeholder="09XXXXXXXXX or +639XXXXXXXXX">
+      <input id="regContact" type="tel" class="form-input" required maxlength="11" autocomplete="tel" placeholder="09XXXXXXXXX"
+             inputmode="numeric" pattern="^09[0-9]{9}$" title="11-digit mobile number starting with 09"
+             oninput="filterRegistrationMobile(this)">
       <label class="form-label" for="regAddr">Address</label>
       <input id="regAddr" maxlength="255" class="form-input" placeholder="e.g. Barangay San Isidro">
       <div class="button-grid-2" style="margin-top:1rem;">
@@ -345,23 +346,19 @@ async function checkDrawerGuard() {
   try {
     const data = await API.get('cash-shift');
     const shift = data?.shift;
+    window.drawerOpen = shift ? Boolean(shift.is_open) : false;
+    const walkInBtn = document.querySelector('.stage-fasttrack');
+    if (walkInBtn) walkInBtn.disabled = !window.drawerOpen;
     if (!banner) return;
+
     if (!shift) {
       banner.style.display = 'flex';
-      banner.style.alignItems = 'center';
-      banner.style.justifyContent = 'space-between';
-      banner.style.background = '#FEF3C7';
-      banner.style.color = '#92400E';
-      banner.style.border = '1px solid #FCD34D';
-      banner.innerHTML = '<span>⚠️ <b>Cash drawer is not open today.</b> Record starting cash float to activate register.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">Open Drawer</a>';
+      banner.className = 'drawer-big-notif';
+      banner.innerHTML = '<div class="drawer-big-notif-content"><span class="drawer-big-notif-icon">⚠️</span><div><h3 class="drawer-big-notif-title">Cash Drawer is Closed</h3><p class="drawer-big-notif-desc">Today\'s cash drawer has not been opened yet. You must record your starting cash float before processing sales or orders.</p></div></div><a href="{{ url('/cashier/cash') }}" class="btn btn-primary btn-sm" style="white-space:nowrap;">Open Cash Drawer &rarr;</a>';
     } else if (!shift.is_open) {
       banner.style.display = 'flex';
-      banner.style.alignItems = 'center';
-      banner.style.justifyContent = 'space-between';
-      banner.style.background = '#FEF2F2';
-      banner.style.color = '#991B1B';
-      banner.style.border = '1px solid #FECACA';
-      banner.innerHTML = '<span>🔒 <b>Cash drawer closed for today.</b> Reconciled at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString() : 'end of shift') + '. Further sales are disabled.</span><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-xs" style="margin-left:1rem;">View Shift</a>';
+      banner.className = 'drawer-big-notif drawer-closed-shift';
+      banner.innerHTML = '<div class="drawer-big-notif-content"><span class="drawer-big-notif-icon">🔒</span><div><h3 class="drawer-big-notif-title">Cash Drawer Closed for Today</h3><p class="drawer-big-notif-desc">Reconciled at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString() : 'end of shift') + '. Further transactions are disabled.</p></div></div><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-sm" style="white-space:nowrap;">View Drawer Shift &rarr;</a>';
     } else {
       banner.style.display = 'none';
     }

@@ -65,7 +65,7 @@ function renderInvTable() {
         '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span></td>' +
         '<td class="num">' + minVal + '</td>' +
         '<td class="num" id="rop' + i + '">' + ropVal + '</td>' +
-        '<td class="text-center"><input type="number" value="' + v.lead + '" min="1" max="14" class="table-inline-input" onchange="updLead(' + i + ',this.value)"></td>' +
+        '<td class="text-center">' + Number(v.lead) + (Number(v.lead) === 1 ? ' day' : ' days') + '</td>' +
         '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
         '<td class="text-center" style="white-space:nowrap;">' +
         (v.id ? '<div class="table-actions">' +
@@ -127,41 +127,6 @@ function renderInvTable() {
 }
 
 
-// Lead Time Updates
-async function updLead(i, val) {
-  const v = DB.inventory[i];
-  const lead = Math.min(14, Math.max(1, +val || 1));
-
-  if (v.id) {
-    try {
-      const result = await API.updateInventoryLead(v.id, lead);
-      API.replaceInventory(result.item);
-      renderInvTable(); renderInsights(); saveDB();
-      return;
-    } catch (error) {
-      appNotice(error.message || 'Could not update the lead time.');
-      renderInvTable();
-      return;
-    }
-  }
-
-  v.lead = lead;
-  if (v.item.includes('Caps')) {
-    v.rop = 150 + 225 * v.lead;
-  } else if (v.item.includes('Seals')) {
-    v.rop = 300 + 450 * v.lead;
-  } else if (v.item.includes('Filter')) {
-    v.rop = Math.round(v.ss + 1 * v.lead);
-  } else {
-    v.rop = Math.round(dailyUse(v.item) * v.lead + v.ss);
-  }
-  renderInvTable();
-  renderInsights();
-  saveDB();
-}
-
-
-// Stock Adjustments
 // Consumable Insert + Full Edit + Delete (DOM manipulation over the table)
 function fillInventorySupplierOptions() {
   const sel = document.getElementById('invSupplier');
@@ -230,7 +195,7 @@ function openInventoryEditor(id) {
     '<div style="height:.5rem"></div><label class="cell-sub">Category</label><select id="invEditCat" class="form-input">' +
     ['Consumable', 'Filtration', 'Cleaning', 'Asset'].map(c => '<option value="' + c + '"' + (v.cat === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>' +
     '<div style="height:.5rem"></div><label class="cell-sub">On-hand</label><input id="invEditOn" type="number" min="0" class="form-input" value="' + v.on + '">' +
-    '<div style="height:.5rem"></div><label class="cell-sub">Unit</label><input id="invEditUnit" class="form-input" value="' + esc(v.unit) + '" maxlength="20">' +
+    '<div style="height:.5rem"></div><label class="cell-sub">Unit</label><input id="invEditUnit" list="stockUnits" class="form-input" value="' + esc(v.unit) + '" maxlength="20">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Lead time (days)</label><input id="invEditLead" type="number" min="1" max="14" class="form-input" value="' + v.lead + '">' +
     '<div style="height:.5rem"></div><label class="cell-sub">Supplier</label><select id="invEditSupplier" class="form-input">' + supplierOptions + '</select>' +
     '<div class="drawer-actions" style="margin-top:.75rem;"><button onclick="saveInventoryEdit(' + v.id + ')" class="btn btn-primary btn-sm">Save</button>' +

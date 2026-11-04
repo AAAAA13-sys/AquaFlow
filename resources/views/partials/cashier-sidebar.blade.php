@@ -31,6 +31,12 @@
         @endif
       </a>
     @endforeach
+    @if(auth()->user()?->isAdmin())
+      <a href="{{ url('/admin/dashboard') }}" class="sidebar-link">
+        <span aria-hidden="true">&larr;</span>
+        <span>{{ auth()->user()->isSuperAdmin() ? 'Owner Portal' : 'Manager Portal' }}</span>
+      </a>
+    @endif
   </nav>
 
 

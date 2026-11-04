@@ -757,6 +757,19 @@ class SalesAndCheckoutFeatureTest extends TestCase
     }
 
     // --- From CashReconciliationTest.php ---
+    public function test_unopened_drawer_blocks_new_cash_and_account_sales(): void
+    {
+        $this->actingAs($this->cashier);
+        $before = InventoryItem::pluck('stock_on_hand', 'id')->all();
+        $receipts = Transaction::count();
+        foreach (['Walk-in', 'Delivery'] as $type) {
+            $payload = $this->payload(['order_type' => $type, 'customer_id' => Customer::where('name', 'Santos Family')->value('id')]);
+            $this->postJson('/api/transactions', $payload)->assertUnprocessable()->assertJsonValidationErrors('drawer');
+        }
+        $this->assertSame($receipts, Transaction::count());
+        $this->assertSame($before, InventoryItem::pluck('stock_on_hand', 'id')->all());
+    }
+
     public function test_drawer_close_is_scoped_replayable_and_blocks_new_sales(): void
     {
         $this->seed();

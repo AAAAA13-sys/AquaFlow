@@ -348,11 +348,17 @@ async function confirmCashierLogout() {
   } finally { confirmCashierLogout.busy = false; }
 }
 
+function filterRegistrationMobile(field) {
+  if (!field) return;
+  field.value = String(field.value || '').replace(/\D/g, '').slice(0, 11);
+}
+
 async function saveNewCustomer() {
   if (saveNewCustomer.busy) return;
   const nameEl = document.getElementById('regName');
   const addrEl = document.getElementById('regAddr');
   const contactEl = document.getElementById('regContact');
+  filterRegistrationMobile(contactEl);
   const contact = (contactEl?.value || '').trim();
   const name = ((nameEl && nameEl.value) || '').trim();
 
@@ -362,8 +368,8 @@ async function saveNewCustomer() {
     if (registrationError) registrationError.textContent = 'Enter a customer name using letters only — numbers are not allowed (maximum 150 characters).';
     nameEl?.focus(); return;
   }
-  if (!/^(09\d{9}|\+639\d{9})$/.test(contact)) {
-    if (registrationError) registrationError.textContent = 'Enter a mobile number: 09XXXXXXXXX or +639XXXXXXXXX.';
+  if (!/^09\d{9}$/.test(contact)) {
+    if (registrationError) registrationError.textContent = 'Enter an 11-digit mobile number: 09XXXXXXXXX.';
     contactEl?.focus(); return;
   }
   saveNewCustomer.busy = true;
@@ -374,6 +380,7 @@ async function saveNewCustomer() {
       name: name,
       contact,
       address: ((addrEl && addrEl.value) || '').trim(),
+      context: 'terminal',
     });
 
     API.replaceCustomer(result.customer);

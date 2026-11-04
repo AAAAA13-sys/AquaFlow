@@ -30,7 +30,7 @@
 
     <div class="dashboard-row-2col forecast-layout">
       <div class="card">
-        <h3 class="panel-heading">Demand outlook <span class="term-hint">ARIMA demand forecast</span>@include('partials.tip', [
+        <h3 class="panel-heading">Demand outlook <span class="term-hint">ARIMA model demand forecast</span>@include('partials.tip', [
           'text' => 'ARIMA estimates future sales from past patterns in level, trend and seasonality. Treat the seven-day projection as an estimate, not a guarantee.',
           'label' => 'What does ARIMA mean?',
         ])</h3>

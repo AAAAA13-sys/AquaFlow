@@ -126,8 +126,15 @@ class UserService
             if (\App\Models\CashShift::where('user_id', $user->id)->exists() || $user->transactions()->exists()
                 || ProductionQueueItem::where('rider_id', $user->id)->orWhere('handed_over_by', $user->id)->exists()
                 || DB::table('fulfillment_events')->where('user_id', $user->id)->exists()
-                || StockMovement::where('user_id', $user->id)->exists()) {
-                throw ValidationException::withMessages(['user' => 'This account has transaction or fulfillment history. Deactivate it instead.']);
+                || StockMovement::where('user_id', $user->id)->exists()
+                || \App\Models\DefectReport::where('reported_by', $user->id)->orWhere('resolved_by', $user->id)->exists()
+                || \App\Models\ApprovalRequest::where('requester_id', $user->id)->orWhere('decided_by', $user->id)->exists()
+                || DB::table('approval_events')->where('actor_id', $user->id)->exists()
+                || \App\Models\AuditLog::where('user_id', $user->id)->exists()
+                || \App\Models\VoidRecord::where('cashier_id', $user->id)->orWhere('approved_by', $user->id)->exists()
+                || \App\Models\DeliveryProof::where('rider_id', $user->id)->exists()
+                || \App\Models\DeliveryRemittance::where('cashier_id', $user->id)->exists()) {
+                throw ValidationException::withMessages(['user' => 'This account has transaction, audit or operational history. Deactivate it instead.']);
             }
             $user->delete();
         });

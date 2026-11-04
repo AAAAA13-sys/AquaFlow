@@ -18,7 +18,7 @@
 # Run the tests:
 #   docker compose --profile test up -d test
 #   docker compose exec test php artisan test
-#   docker compose exec test php artisan test --filter=AuthTest
+#   docker compose exec test php artisan test --filter=AuthAndSecurityFeatureTest
 
 services:
   db:
@@ -168,7 +168,7 @@ services:
     image: node:24-alpine
     profiles: ["test"]
     working_dir: /app
-    command: ["node", "tests/frontend-shared.cjs"]
+    command: ["node", "tests/frontend.cjs"]
     volumes:
       - ./public:/app/public:ro
       - ./tests:/app/tests:ro

@@ -27,7 +27,7 @@
           <option value="Asset">Asset</option>
         </select></div>
         <div class="admin-entry-field"><label class="form-label" for="invOn">Opening quantity</label><input id="invOn" type="number" class="form-input" placeholder="On-hand" min="0" value="0" aria-label="Opening stock"></div>
-        <div class="admin-entry-field"><label class="form-label" for="invUnit">Stock unit</label><input id="invUnit" class="form-input" placeholder="Unit" value="pcs" maxlength="20" aria-label="Unit"></div>
+        <div class="admin-entry-field"><label class="form-label" for="invUnit">Stock unit</label><input list="stockUnits" id="invUnit" class="form-input" placeholder="Unit" value="pcs" maxlength="20" aria-label="Unit"><datalist id="stockUnits"><option value="pcs"></option><option value="units"></option><option value="packs"></option><option value="boxes"></option><option value="liters"></option></datalist></div>
         <div class="admin-entry-field"><label class="form-label" for="invLead">Restock time (days)</label><input id="invLead" type="number" class="form-input" placeholder="Lead" min="1" max="14" value="2" aria-label="Restock days"></div>
         <div class="admin-entry-field"><label class="form-label" for="invSupplier">Supplier</label><select id="invSupplier" class="form-input" aria-label="Supplier"><option value="">No supplier</option></select></div>
         <div class="form-actions" style="display: flex; gap: 8px; align-items: center;">
@@ -39,7 +39,7 @@
 
     <div class="filter-toolbar no-print table-filters stock-filters">
       <div class="filter-group"><label for="invType">Type</label><select id="invType" onchange="renderInvTable()"><option value="">All types</option><option>Consumable</option><option>Filtration</option><option>Cleaning</option><option>Asset</option></select></div>
-      <div class="filter-group"><label for="invBodySearch">Search</label><input id="invBodySearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()"></div>
+      <div class="filter-group"><label for="invBodySearch">Search</label><input id="invBodySearch" type="search" class="form-input" placeholder="Search item names" oninput="renderInvTable()"></div>
       <div class="filter-group"><label for="invBodyOrder">Sort</label><select id="invBodyOrder" onchange="renderInvTable()"><option value="lowest">Least to most stock</option><option value="highest">Most to least stock</option></select></div>
     </div>
 

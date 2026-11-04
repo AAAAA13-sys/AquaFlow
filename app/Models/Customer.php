@@ -66,16 +66,17 @@ class Customer extends Model
         return $this->pendingSlim() + $this->pendingRound();
     }
 
-    public function scopeSearch(Builder $query, ?string $term): Builder
+    public function scopeSearch(Builder $query, ?string $term, bool $includeContact = true): Builder
     {
         if ($term === null || $term === '') {
             return $query;
         }
 
-        return $query->where(function (Builder $inner) use ($term): void {
-            $inner->where('name', 'like', '%'.$term.'%')
-                ->orWhere('contact', 'like', '%'.$term.'%')
-                ->orWhere('address', 'like', '%'.$term.'%');
+        return $query->where(function (Builder $inner) use ($term, $includeContact): void {
+            $inner->where('name', 'like', '%'.$term.'%')->orWhere('address', 'like', '%'.$term.'%');
+            if ($includeContact) {
+                $inner->orWhere('contact', 'like', '%'.$term.'%');
+            }
         });
     }
 

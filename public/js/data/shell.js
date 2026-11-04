@@ -25,6 +25,18 @@ function toggleSidebar(force) {
   document.body.classList.toggle('sidebar-open', open);
 }
 
+// Clean typed and pasted text before each screen's search handler reads it.
+document.addEventListener('input', event => {
+  const field = event.target;
+  if (!field.matches?.('#custSearch, #invBodySearch, #invBodyDashSearch, #supGridSearch, #defectBodySearch, #custBodySearch, #cashOverviewSearch, #setStation, #setupStation') || event.isComposing) return;
+  const clean = text => text.replace(/[^\p{L}\p{M}\p{N} .,'’&-]/gu, '');
+  const value = clean(field.value);
+  if (value === field.value) return;
+  const caret = clean(field.value.slice(0, field.selectionStart)).length;
+  field.value = value;
+  field.setSelectionRange(caret, caret);
+}, true);
+
 // Choosing a destination closes the drawer, so it cannot cover the next page.
 document.addEventListener('click', (event) => {
   const link = event.target.closest && event.target.closest('#adminSidebar a');
@@ -34,6 +46,18 @@ document.addEventListener('click', (event) => {
 // Escape closes it too.
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') toggleSidebar(false);
+});
+
+// Reveal back-to-admin links in cashier and employee workspaces for owner/manager sessions
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const s = typeof getSession === 'function' ? getSession() : null;
+    if (s && (s.role === 'super_admin' || s.role === 'admin')) {
+      const topBack = document.getElementById('topbarBackToAdmin');
+      if (topBack) topBack.classList.remove('hidden');
+      document.querySelectorAll('.back-to-admin').forEach(el => el.classList.remove('hidden'));
+    }
+  } catch (e) {}
 });
 
 // Keep each existing button/handler; available for explicit enhancement.

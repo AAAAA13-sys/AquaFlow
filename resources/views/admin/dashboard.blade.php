@@ -153,7 +153,7 @@
         <div class="filter-toolbar table-filters stock-filters no-print">
           <div id="invFilterTabs" class="filter-group"></div>
           <div class="filter-group"><label for="invBodyDashSearch">Search</label>
-            <input id="invBodyDashSearch" type="search" class="form-input" placeholder="Search stock" oninput="renderInvTable()" aria-label="Search stock">
+            <input id="invBodyDashSearch" type="search" class="form-input" placeholder="Search item names" oninput="renderInvTable()" aria-label="Search stock by item name">
           </div>
           <div class="filter-group"><label for="invBodyDashOrder">Sort</label>
             <select id="invBodyDashOrder" onchange="renderInvTable()" aria-label="Sort stock">

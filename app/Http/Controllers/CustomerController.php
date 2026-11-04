@@ -20,7 +20,10 @@ class CustomerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Customer::query()->search($request->string('q')->toString());
+        $query = Customer::query()->search(
+            $request->string('q')->toString(),
+            includeContact: $request->input('context') !== 'terminal',
+        );
 
         match ($request->string('filter')->toString()) {
             'bottles' => $query->withBottles(),
@@ -65,7 +68,7 @@ class CustomerController extends Controller
         $customer = Customer::query()->create([
             'name' => $data['name'],
             'address' => ($data['address'] ?? null) ?: '-',
-            'contact' => ($data['contact'] ?? null) ?: '-',
+            'contact' => str_starts_with($data['contact'], '09') ? '+63'.substr($data['contact'], 1) : $data['contact'],
         ]);
 
         return response()->json(['customer' => new CustomerResource($customer)], 201);

@@ -15,8 +15,9 @@ class StockMovementService
     public function deleteItem(InventoryItem $item): void
     {
         if (StockMovement::where('inventory_item_id', $item->id)->exists()
-            || DB::table('product_consumables')->where('inventory_item_id', $item->id)->exists()) {
-            throw ValidationException::withMessages(['inventory' => 'This item has recipes or audit history and cannot be deleted.']);
+            || DB::table('product_consumables')->where('inventory_item_id', $item->id)->exists()
+            || \App\Models\DefectReport::where('inventory_item_id', $item->id)->exists()) {
+            throw ValidationException::withMessages(['inventory' => 'This item has recipes, defect reports or audit history and cannot be deleted.']);
         }
         $item->delete();
     }

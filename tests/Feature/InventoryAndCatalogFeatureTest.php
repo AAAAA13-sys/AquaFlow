@@ -868,6 +868,44 @@ class InventoryAndCatalogFeatureTest extends TestCase
             ->assertJsonValidationErrors('status');
     }
 
+    #[\PHPUnit\Framework\Attributes\DataProvider('staleDefectDecisions')]
+    public function test_stale_defect_decision_cannot_overwrite_a_resolution(string $first, string $second): void
+    {
+        $before = $this->item->stock_on_hand;
+        $report = DefectReport::create([
+            'reported_by' => $this->rider->id,
+            'inventory_item_id' => $this->item->id,
+            'quantity' => 2,
+            'reason' => 'Torn seal',
+            'status' => 'pending',
+        ]);
+        $stale = clone $report;
+        $this->actingAs($this->admin)
+            ->patchJson('/api/defects/'.$report->id.'/'.$first, ['notes' => 'First decision'])
+            ->assertOk();
+
+        // Another request already bound this pending model before the first
+        // decision committed. Exercise the real endpoint with that snapshot.
+        \Illuminate\Support\Facades\Route::bind('defectReport', fn () => $stale);
+        $this->patchJson('/api/defects/'.$report->id.'/'.$second, ['notes' => 'Stale decision'])
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+
+        $this->assertSame($first === 'approve' ? 'approved' : 'rejected', $report->refresh()->status);
+        $this->assertSame('First decision', $report->notes);
+        $this->assertSame($before - ($first === 'approve' ? 2 : 0), $this->item->refresh()->stock_on_hand);
+        $this->assertSame($first === 'approve' ? 1 : 0, $this->item->stockMovements()->where('type', 'damage')->count());
+    }
+
+    public static function staleDefectDecisions(): array
+    {
+        return [
+            'approve then approve' => ['approve', 'approve'],
+            'approve then reject' => ['approve', 'reject'],
+            'reject then approve' => ['reject', 'approve'],
+            'reject then reject' => ['reject', 'reject'],
+        ];
+    }
+
     public function test_admin_cannot_approve_when_stock_has_dropped_below_the_reported_quantity(): void
     {
         // File a report for more than what is currently on hand: the row is

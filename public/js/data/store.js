@@ -159,7 +159,8 @@ function filterTableRows(rows, target) {
     const parsed = Date.parse(date);
     return Number.isFinite(parsed) ? parsed : Number(row.id) || 0;
   };
-  const filtered = rows.filter(row => Object.values(row).some(value =>
+  const stockNameSearch = target === 'invBody' || target === 'invBodyDash';
+  const filtered = rows.filter(row => (stockNameSearch ? [row.item] : Object.values(row)).some(value =>
     value != null && typeof value !== 'object' && String(value).toLowerCase().includes(query)
   ));
   if (order) {

@@ -2354,8 +2354,8 @@
 .sidebar-link.active .sidebar-icon {
   opacity: 1;
 }
-.delivery-monitor-totals>div { display:grid; grid-template-columns:1fr auto; gap:4px 16px; min-width:160px; }
+.delivery-monitor-totals { display:flex; flex-wrap:wrap; gap:6px 20px; margin-bottom:12px; }
+.delivery-monitor-totals > span { white-space:nowrap; }
 .delivery-monitor-totals b { font-variant-numeric:tabular-nums; }
-.delivery-monitor-totals small { grid-column:1/-1; color:var(--text-muted); }
-[aria-label="Order and delivery monitoring"] table { min-width:920px; }
+[aria-label="Order and delivery monitoring"] table.clean { width:100%; min-width:46rem; }
 [aria-label="Order and delivery monitoring"] td { vertical-align:top; }

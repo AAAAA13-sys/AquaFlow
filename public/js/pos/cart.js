@@ -132,6 +132,10 @@ function debtBadge(debt) {
  * order type (walk-in => cash), which the API re-derives regardless.
  */
 function pickWalkIn() {
+  if (typeof window !== 'undefined' && window.drawerOpen === false) {
+    showStageError('Open your cash drawer before starting sales.');
+    return;
+  }
   const guest = DB.customers.find(c => c.is_guest === true);
   if (!guest) {
     showStageError('Walk-in setup is incomplete. Ask the owner to run the store update.');
@@ -170,6 +174,7 @@ async function searchCustomers() {
 
   try {
     const data = await API.customers({
+      context: 'terminal',
       q: term,
       order: order,
       limit: CUST_PAGE_SIZE,
@@ -245,6 +250,10 @@ function renderCustList() {
 }
 
 async function pickCust(id) {
+  if (typeof window !== 'undefined' && window.drawerOpen === false) {
+    showStageError('Open your cash drawer before starting sales.');
+    return false;
+  }
   if (POS.custId === id) return true;
   if (!posChangeAllowed()) return false;
   if (POS.cart.length && !await voidCart()) return false;
