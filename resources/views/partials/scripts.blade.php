@@ -1,3 +1,4 @@
+<script src="{{ asset('js/data/level-meter.js') }}?v={{ asset_version('js/data/level-meter.js') }}"></script>
 {{-- Base Data & Auth Scripts --}}
 <script src="{{ asset('js/data/initial-data.js') }}?v={{ asset_version('js/data/initial-data.js') }}"></script>
 <script src="{{ asset('js/data/api.js') }}?v={{ asset_version('js/data/api.js') }}"></script>

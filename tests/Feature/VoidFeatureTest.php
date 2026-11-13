@@ -15,6 +15,7 @@ class VoidFeatureTest extends TestCase
     public function test_a_sale_void_requires_a_senior_password_and_is_idempotent(): void
     {
         $this->seed();
+        $this->openDrawer();
         $stockBefore = \App\Models\InventoryItem::pluck('stock_on_hand', 'id')->all();
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $manager = User::create(['username' => 'void-manager', 'name' => 'Void Manager', 'role' => 'admin', 'is_active' => true, 'password' => 'Manager123!']);
@@ -59,6 +60,7 @@ class VoidFeatureTest extends TestCase
     public function test_account_void_reverses_debt_and_prepared_sales_are_rejected(): void
     {
         $this->seed();
+        $this->openDrawer();
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $manager = User::create(['username' => 'void-manager', 'name' => 'Manager', 'role' => 'admin', 'is_active' => true, 'password' => 'Manager123!']);
         $customer = Customer::where('name', 'Santos Family')->firstOrFail();

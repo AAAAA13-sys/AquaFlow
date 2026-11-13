@@ -38,6 +38,7 @@
         <span class="sidebar-user-label">Active session</span>
         <b class="sidebar-user-name" id="who">{{ auth()->user()?->name ?? 'Employee' }}</b>
         <span class="sidebar-role-chip">{{ auth()->user()?->roleLabel() ?? 'Employee' }}</span>
+        <span id="employeeClock" class="sidebar-clock"></span>
       </div>
     </div>
 

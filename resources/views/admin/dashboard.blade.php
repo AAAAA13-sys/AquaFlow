@@ -7,31 +7,90 @@
 
 @section('admin-content')
   <section id="s-dash">
-    <header class="workspace-heading">
-      <div>
-
-        <p>Review sales, customer balances and stock needs, then open the task that needs attention.</p>
+    {{-- Command centre order: what is waiting on a decision, then today's
+         money, then next week's demand. Every element id used by insights.js,
+         inventory.js and tests/frontend.cjs is kept (kRev, kRevSub, kRevTrend,
+         kGal, kGalSub, invHealth, kStockSub, kStockAction, kLia, kLiaSub,
+         kLiaTop, kpiGrid, dashChartRow, advisoryRail, advisory, chDemand). --}}
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">{{ now()->timezone(config('app.timezone'))->format('l, j F') }}</h2>
+        <p class="page-head__purpose">Decide what is waiting on you, check today's money, then plan next week's stock.</p>
       </div>
-      <a href="{{ url('/cashier/queue') }}" class="btn btn-secondary">View active orders</a>
+      <div class="page-head__actions">
+        <a href="{{ url('/admin/orders') }}" class="btn btn-secondary">View active orders</a>
+      </div>
     </header>
-    @if(auth()->user()?->isSuperAdmin())
-    <nav class="owner-controls card" aria-label="Business controls">
-      <div><h2>Business controls</h2><p>Manage access, selling prices and your station settings.</p></div>
-      <div class="owner-control-links">
-        <a class="btn btn-secondary" href="{{ url('/admin/users') }}">Team &amp; access</a>
-        <a class="btn btn-secondary" href="{{ url('/admin/inventory?view=prices') }}">Catalog &amp; prices</a>
-        <a class="btn btn-secondary" href="{{ url('/admin/settings') }}">Station settings</a>
+
+    <section class="overview-block" aria-labelledby="decisionTitle">
+      <div class="overview-block__head">
+        <h2 id="decisionTitle" class="overview-block__title">Needs a decision today</h2>
+        <p id="decisionSummary" class="overview-block__note" role="status">Checking what is waiting&hellip;</p>
       </div>
-    </nav>
-    @endif
+      <div class="stat-strip" id="decisionStrip">
+        <div class="stat" id="decApprovalsCell">
+          <span class="stat__label">Approval requests</span>
+          <span class="stat__value" id="decApprovals"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="decApprovalsSub">Price, stock and account changes</span>
+          <a class="stat__action" href="{{ url('/admin/approvals') }}">Review requests</a>
+        </div>
+        <div class="stat" id="decDefectsCell">
+          <span class="stat__label">Defect reports</span>
+          <span class="stat__value" id="decDefects"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="decDefectsSub">Damaged stock to approve or reject</span>
+          <a class="stat__action" href="{{ url('/admin/defects') }}">Review reports</a>
+        </div>
+        <div class="stat" id="decStockCell">
+          <span class="stat__label">Items to reorder</span>
+          <span class="stat__value" id="invHealth"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="kStockSub">Stock levels are loading</span>
+          <a class="stat__action" id="kStockAction" href="{{ url('/admin/inventory') }}">View stock</a>
+        </div>
+        <div class="stat" id="decRemitCell">
+          <span class="stat__label">Rider cash to collect</span>
+          <span class="stat__value" id="decRemit"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="decRemitSub">Delivery cash not yet handed in</span>
+          <a class="stat__action" href="{{ url('/admin/orders') }}">Open orders</a>
+        </div>
+      </div>
+    </section>
 
-
+    <section class="overview-block" aria-labelledby="moneyTitle">
+      <div class="overview-block__head">
+        <h2 id="moneyTitle" class="overview-block__title">Today's money</h2>
+        <a class="overview-block__link" href="{{ url('/admin/sales') }}">Sales history</a>
+      </div>
+      {{-- Values start as skeletons rather than a literal "-": a dash reads as
+           a real zero to an owner glancing at the screen. renderInsights()
+           overwrites each element's textContent, which discards the skeleton. --}}
+      <div class="stat-strip" id="kpiGrid" aria-busy="true">
+        <div class="stat">
+          <span class="stat__label">Sales Revenue Today</span>
+          <span class="stat__value" id="kRev"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub stat__sub--trend"><span id="kRevSub"><span class="skeleton skeleton--text"></span></span>
+            {{-- Trend lives outside #kRev because that element is replaced by textContent. --}}
+            <span class="kpi-trend" id="kRevTrend" aria-hidden="true"></span></span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Balance payments today</span>
+          <span class="stat__value" id="kCollected"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="kCollectedSub">Customer balance payments and rider cash; excludes cash sales</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Customers owe</span>
+          <span class="stat__value" id="kLia"><span class="skeleton skeleton--figure"></span></span>
+          <span class="stat__sub" id="kLiaSub"><span class="skeleton skeleton--text"></span></span>
+          <span class="stat__sub" id="kLiaTop"></span>
+          <a class="stat__action" href="{{ url('/admin/customers') }}">View balances</a>
+        </div>
+      </div>
+    </section>
 
     @if(auth()->user()?->isSuperAdmin())
     <section class="card onboarding-checklist-card" id="onboardingChecklist">
       <div class="onboarding-card-head">
         <div>
-          <h3 class="onboarding-card-title">Getting Started</h3>
+          <h2 class="onboarding-card-title">Getting started</h2>
           <p class="onboarding-card-desc">Essential setup steps for launching your water station operations.</p>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -43,7 +102,7 @@
         <a href="{{ url('/admin/inventory') }}" class="onboarding-step-item" id="stepInventory">
           <div class="onboarding-step-icon" aria-hidden="true">1</div>
           <div class="onboarding-step-text">
-            <span class="onboarding-step-label">Stock & Supplies</span>
+            <span class="onboarding-step-label">Stock &amp; Prices</span>
             <span class="onboarding-step-sub">Check gallon catalog, caps, and water inventory items.</span>
           </div>
         </a>
@@ -80,58 +139,25 @@
 
     @endif
 
-    {{-- KPI values start as skeletons rather than a literal "-". A dash reads as
-             a real zero to an owner glancing at the screen; a shimmer reads as
-             "not loaded yet". The ids are kept: renderInsights() overwrites
-             each element's textContent, which discards the skeleton span. --}}
-    <div class="kpi-cards-grid" id="kpiGrid" aria-busy="true">
-      <div class="kpi-card-body kpi-blue">
-        <p class="kpi-label">Sales Revenue Today</p>
-        <p class="kpi-value" id="kRev"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
-        <p class="kpi-subtext" id="kRevSub"><span class="af-skeleton" style="width:12ch"></span></p>
-        {{-- Trend direction lives outside #kRev because that element is replaced
-             by textContent when the figure arrives. --}}
-        <span class="kpi-trend" id="kRevTrend" aria-hidden="true"></span>
-        <a class="kpi-action" href="{{ url('/admin/sales') }}">View sales &rarr;</a>
-      </div>
-      <div class="kpi-card-body kpi-green">
-        <p class="kpi-label">Expected Sales Next 7 Days</p>
-        <p class="kpi-value" id="kGal"><span class="af-skeleton" style="width:7ch;height:1.2em"></span></p>
-        <p class="kpi-subtext" id="kGalSub"><span class="af-skeleton" style="width:22ch"></span></p>
-        <a class="kpi-action" href="{{ url('/admin/arima') }}">View forecast &rarr;</a>
-      </div>
-      <div class="kpi-card-body kpi-red">
-        <p class="kpi-label">Needs Your Attention</p>
-        <p class="kpi-value" id="invHealth"><span class="af-skeleton" style="width:3ch;height:1.2em"></span></p>
-        <p class="kpi-subtext" id="kStockSub">Stock levels are loading</p>
-        <a class="kpi-action" id="kStockAction" href="{{ url('/admin/inventory') }}">View stock &rarr;</a>
-      </div>
-      <div class="kpi-card-body kpi-yellow">
-        <p class="kpi-label">Customers Who Owe Money</p>
-        <p class="kpi-value" id="kLia"><span class="af-skeleton" style="width:8ch;height:1.2em"></span></p>
-        <p class="kpi-subtext" id="kLiaSub"><span class="af-skeleton" style="width:16ch"></span></p>
-        <p class="kpi-micro" id="kLiaTop"></p>
-        <a class="kpi-action" href="{{ url('/admin/customers') }}">View balances &rarr;</a>
-      </div>
-    </div>
-
-    {{-- The "Today's priorities" strip used to sit here. It restated the four KPI
-         cards directly above it - the same stock state, the same customer debt,
-         the same forecast total, each with a sentence of explanation - so the
-         owner read every figure twice before reaching anything new. The KPI cards
-         now carry the matching action link and this band is gone. --}}
-
     <div class="dash-row-chart" id="dashChartRow">
       <div class="card">
-        <h3 class="panel-heading">Expected Sales Next Week</h3>
-        <p class="auto-deduct-caption">Compare the last 30 days of refill sales with the upcoming forecast.</p>
+        <div class="forecast-head">
+          <div>
+            <h2 class="panel-heading">Expected sales next week</h2>
+            <p class="auto-deduct-caption">The last 30 days of refill sales against the upcoming forecast.</p>
+          </div>
+          <div class="forecast-head__figure">
+            <span class="stat__value" id="kGal"><span class="skeleton skeleton--figure"></span></span>
+            <span class="stat__sub" id="kGalSub"><span class="skeleton skeleton--text"></span></span>
+          </div>
+        </div>
         {{-- Canvas is invisible to assistive tech without a name. The figures
              behind it are already rendered as text in #insDemand below, so the
              label points there rather than restating them. --}}
         <canvas id="chDemand" height="120" role="img"
                 aria-label="Demand outlook chart: 30 days of refill sales against the next 7 days of forecast. Sales trends and averages are listed below under How Sales Are Going."></canvas>
         <div id="fcMetaDash" class="orders-queue-list order-type-selector"></div>
-        <h4 class="panel-heading">How Sales Are Going</h4>
+        <h3 class="panel-heading">How sales are going</h3>
         <div id="insDemand"></div>
         {{-- Tertiary: this is a deep jump into analytics, not a committed
              action. It must not compete visually with "Make a Purchase Request". --}}
@@ -139,7 +165,7 @@
       </div>
       {{-- The forecast sets this row's height; the advisory list scrolls within it. --}}
       <div class="card card--rail" id="advisoryRail">
-        <h3 class="panel-heading">Things to Buy</h3>
+        <h2 class="panel-heading">Things to buy</h2>
         <div id="advisory" class="overview-advisories" tabindex="0" role="region" aria-label="Things to buy"></div>
         <button type="button" onclick="draftPO()" class="btn btn-secondary btn-sm overview-purchase">Make a Purchase Request</button>
       </div>
@@ -148,7 +174,7 @@
     {{-- 3. REFERENCE. The tables behind the cards above. --}}
     <div class="dashboard-row-2col overview-reference">
       <div class="card">
-        <h3 class="panel-heading">Jug Stock &amp; Refill Supplies</h3>
+        <h2 class="panel-heading">Jug stock &amp; refill supplies</h2>
         <p class="auto-deduct-caption">New Slim Jugs: <strong id="ledgerSlim">Loading</strong> &middot; New Round Jugs: <strong id="ledgerRound">Loading</strong></p>
         <div class="filter-toolbar table-filters stock-filters no-print">
           <div id="invFilterTabs" class="filter-group"></div>
@@ -188,7 +214,7 @@
       </div>
 
       <div class="card">
-        <h3 class="panel-heading">Outstanding Customer Balances</h3>
+        <h2 class="panel-heading">Outstanding Customer Balances</h2>
         <div class="customer-balances-toolbar no-print">
           <div class="customer-search-group">
             <input id="topLiaBodySearch" type="search" class="form-input" placeholder="Search customer balances" oninput="renderLedger()" aria-label="Search customer balances">
@@ -216,6 +242,19 @@
         </div>
       </div>
     </div>
+
+    {{-- The sidebar holds these same links on wide screens, so this card is
+         only shown below 1025px, where the sidebar is collapsed. --}}
+    @if(auth()->user()?->isSuperAdmin())
+    <nav class="owner-controls card" aria-label="Business controls">
+      <div><h2>Business controls</h2><p>Manage access, selling prices and your station settings.</p></div>
+      <div class="owner-control-links">
+        <a class="btn btn-secondary" href="{{ url('/admin/users') }}">Team &amp; access</a>
+        <a class="btn btn-secondary" href="{{ url('/admin/inventory?view=prices') }}">Catalog &amp; prices</a>
+        <a class="btn btn-secondary" href="{{ url('/admin/settings') }}">Station settings</a>
+      </div>
+    </nav>
+    @endif
   </section>
   @include('partials.fulfillment', ['monitor' => true])
 @endsection
@@ -254,6 +293,7 @@
 renderInvTable();
 renderInsights();
 renderDemandChart();
-startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderInsights(); renderDemandChart(); renderSidebarBadges(); renderStamp(); });
+refreshOverviewDecisions();
+startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderInsights(); renderDemandChart(); renderSidebarBadges(); renderStamp(); refreshOverviewDecisions(); });
 @endcomponent
 <script src="{{ asset('js/admin/dashboard-onboarding.js') }}?v={{ asset_version('js/admin/dashboard-onboarding.js') }}"></script>

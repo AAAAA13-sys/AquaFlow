@@ -125,3 +125,41 @@ Active development is Admin/Manager and Cashier only. Super Admin work belongs t
 Reviewed shared operational pages in the signed-in browser: overview, orders, sales, inventory, customers, suppliers, team, forecasts, cashier POS, queue, history and stocks. The current session is Super Admin, so this is shared-page visual coverage, not a real manager/cashier login test. Manager/cashier restrictions were covered by the feature tests above. No console errors appeared during this pass. Customer registration dialog was centered; filters opened correctly.
 
 Fixed the cashier stock table inheriting a 920px receipt-table minimum, and added a clear empty state to the order/remittance list. No live store records were changed. At the user's request, further local validation is deferred to CI for this final UI-only increment.
+
+## AquaFlow ERP MVP and Precision Ops System — 13 November 2026
+
+The station platform was expanded to incorporate complete ERP operational capabilities (Purchasing, Expenses, Customer Statements, and Financial Profitability Reports) along with the "Precision ops" unified design system across all five station roles.
+
+### 1. Purchase Orders (`/admin/purchasing`)
+- **Role Capabilities**: Owners and Managers can draft purchase orders, add inventory supplies with negotiated unit costs, transition drafts to `ordered`, and record goods receipts.
+- **Stock Integration**: Receiving an ordered PO (`ReceivePurchaseOrderRequest`) increments physical stock quantities, logs an immutable `restock` movement referencing `purchase_order_id`, and updates supplier delivery timestamps. Supports partial receipt with automatic remaining quantity tracking.
+- **Owner-Only Guard**: Once marked as `ordered`, a purchase order cannot be cancelled by a manager; only the Super Admin / Owner can cancel an ordered PO, and a cancellation reason is mandatory.
+- **Isolation**: Cashier, refiller, and rider roles are strictly forbidden (HTTP 403).
+
+### 2. Operational Expenses (`/admin/expenses`)
+- **Role Capabilities**: Owners and Managers can record and track station overhead across standard categories: Utilities, Maintenance, Supplies, Salaries, Rent, Fuel, and Other.
+- **Payment Rails**: Supports Cash (attributed to register/station cash flow), Bank Transfer, and Check.
+- **Voiding & Auditability**: Erroneous expenses can be voided by management with a required reason. Voiding neutralizes expense calculations in financial reports while retaining immutable audit log records.
+- **Isolation**: Cashier, refiller, and rider roles cannot access expense endpoints (HTTP 403).
+
+### 3. Customer Statements (`/admin/customers`)
+- **Role Capabilities**: Owners and Managers can open an interactive customer statement drawer for any registered customer and query transactions across custom date ranges.
+- **Statement Ledger**: Renders chronological debit entries (orders charged to account) and credit entries (counter cash/check collections and rider remittances), displaying running balances and carryover balances.
+- **Printable Output**: Formatted printable statement sheet (`.sheet`) for counter handover or customer billing reconciliation.
+
+### 4. Reports & Profitability (`/admin/reports`)
+- **Role Capabilities**: Owners and Managers can inspect business performance across defined periods (Today, This week, This month, Last month, Custom).
+- **Executive Metrics**: Net Sales (excluding voids and debt repayments), Total Collections (cash intake and remittances), Cost of Supplies (computed using latest restock unit costs), Operational Expenses, Operating Margin (Net Sales minus Supplies Cost minus Expenses), and Net Cash Flow (Collections minus Expenses minus PO Payments).
+- **Data Visualizations**: Product sales breakdown (Chart.js bar visualization), cashier sales volume, order channel ratios (Walk-in vs Delivery), and expense category distributions.
+- **Isolation**: Excluded from staff and cashier workspaces.
+
+### 5. Precision Ops UI & Station Experience
+- **Shell & Navigation**: Top-bar page header integrates page titles (`h1#pageTitle`) and dynamic page actions (`@section('page-actions')`). 240px flat sidebar with quiet group headers and scrollable overflow. Clock relocated to sidebar footers.
+- **Water-Level Meter**: Embedded SVG/CSS level meter component (`level-meter.js`) visualizes stock availability against safety stock/ROP, PO fulfillment progress, and cash drawer counts.
+- **Touch Ergonomics**: All interactive buttons, navigation items, and table action icons strictly enforce a minimum 44px tap target for tablet and coarse-pointer mobile terminals.
+- **Status Lines**: Compact `.status-line` elements replace legacy 4-stat strips on operational admin pages, keeping key metrics readable without interface clutter.
+
+### 6. Backend Safeguards & Release Verification
+- **Server Cash Drawer Guard**: `TransactionSubmissionService` enforces that sales cannot be initiated if the cashier has no open cash shift for the active station business day.
+- **Timestamp Integrity**: Additive migration `2026_11_13_000001_preserve_expiry_and_drawer_timestamps` strips accidental `ON UPDATE CURRENT_TIMESTAMP` triggers in MariaDB.
+- **Test Baseline**: 383/383 passing PHPUnit tests (host MariaDB and Docker `aquaflow-mvp` container), 29/29 passing frontend behavior groups, clean UTF-8 encoding across 312 files, and zero Git whitespace errors.

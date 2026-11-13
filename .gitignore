@@ -44,3 +44,13 @@ analytics/.venv/
 /distribution/images.tar
 /distribution/release.env
 /distribution/installed.env
+/tmp/
+/doc_export.txt
+/scripts/dryrun_setup.php
+/THESIS-MANUSCRIPT-ALIGNED.md
+/docs/screenshots/
+/docs/KEY-PAGES-SCREENSHOT-GUIDE.md
+/docs/LIFECYCLE-TRANSACTION-DRYRUN-REPORT.md
+/docs/verification-audit-2026-11-04.md
+/docs/verification-coverage-audit-2026-10-29.md
+/docs/verification-debt-audit-2026-10-29.md

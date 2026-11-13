@@ -3,6 +3,19 @@
 @section('title', 'Staff Workspaces | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Staff Workspaces')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <a class="btn btn-secondary" href="{{ url('/cashier/activity') }}">
+          <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-receipt"></use></svg>
+          <span>My activity</span>
+        </a>
+        <a class="btn btn-secondary" href="{{ url('/cashier') }}">
+          <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-terminal"></use></svg>
+          <span>Open the POS Terminal</span>
+        </a>
+      </div>
+@endsection
+
 @section('admin-content')
   @php
     // The role this account is acting under on the staff tools. A manager or an
@@ -13,11 +26,13 @@
   @endphp
 
   <section id="s-staff" class="admin-page">
-    @include('partials.admin-page-header', [
-      'eyebrow' => 'STAFF INTERFACES',
-      'heading' => 'Staff workspaces',
-      'description' => 'The same queue your staff work on, so you can cover a shift or check what the floor is doing. Every action is recorded under your own name.',
-    ])
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Staff workspaces</h2>
+        <p class="page-head__purpose">The same queue your staff work on, so you can cover a shift or check what the floor is doing. Every action is recorded under your own name.</p>
+      </div>
+
+    </header>
 
     <div class="card staff-mode-bar">
       <div class="staff-mode-switch" role="group" aria-label="Staff role to work as">
@@ -38,14 +53,6 @@
         Working as <strong>{{ $acting }}</strong>. Orders you confirm here are recorded against your account,
         with the role you acted under, so the trail shows the owner stepped in.
       </p>
-      <a class="btn btn-secondary" href="{{ url('/cashier') }}">
-        <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-terminal"></use></svg>
-        <span>Open the POS Terminal</span>
-      </a>
-      <a class="btn btn-ghost" href="{{ url('/cashier/activity') }}">
-        <svg class="icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-receipt"></use></svg>
-        <span>My activity</span>
-      </a>
     </div>
 
     <div class="emp-container"
@@ -54,7 +61,7 @@
          data-mode="{{ $mode }}"
          data-name="{{ auth()->user()->name }}"
          data-user="{{ auth()->user()->username }}">
-      <div class="emp-status-bar">
+      <div class="emp-status-bar status-line">
         <div class="emp-pulse-wrapper">
           <span id="pulseDot" class="emp-pulse-dot"></span>
           <span id="connection" role="status">Updating...</span>

@@ -161,6 +161,7 @@ assert.equal(ctx.historyVolumeLabel('1R'), '1 × Round 5-Gal Refill');
 assert.equal(ctx.historyVolumeLabel('2S+3R'), '2 × Slim 5-Gal Refill, 3 × Round 5-Gal Refill');
 assert.equal(ctx.historyVolumeLabel('0 gal'), '—');
 assert.equal(ctx.historyVolumeLabel('2 × New Slim 5-Gal Jug'), '2 × New Slim 5-Gal Jug');
+vm.runInContext(fs.readFileSync('public/js/data/level-meter.js', 'utf8'), ctx);
 vm.runInContext(fs.readFileSync('public/js/admin/inventory.js','utf8'),ctx);
 ctx.DB.inventory=[{item:'Clear Cover',cat:'Consumable'},{item:'5 Gallon Slim Jug',cat:'Asset'},{item:'Filter Cartridge',cat:'Filtration'}];
 assert.equal(ctx.stockFiltered().length,2,'dashboard excludes unrelated equipment');
@@ -748,6 +749,7 @@ const el = id => elements[id] ||= {value:'',innerHTML:'',textContent:'',disabled
 let resolve, calls=0;
 const ctx = vm.createContext({document:{getElementById:el}, esc:value=>String(value).replaceAll('<','&lt;').replaceAll('>','&gt;'),
   API:{inventory:()=>{calls++;return new Promise(r=>resolve=r);}}});
+vm.runInContext(fs.readFileSync('public/js/data/level-meter.js', 'utf8'), ctx);
 vm.runInContext(fs.readFileSync('public/js/pos/stocks.js','utf8'),ctx);
 (async()=>{
   const first=ctx.loadCashierStocks();
@@ -787,6 +789,7 @@ globalThis.testInventoryEditor = root => {
     document: {getElementById: id => id === 'invEditBody' ? body : {classList: {remove() {}}}},
     esc: value => String(value ?? '')
   });
+  vm.runInContext(fs.readFileSync('public/js/data/level-meter.js', 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(root + '/public/js/admin/inventory.js', 'utf8'), ctx);
   ctx.openInventoryEditor(1);
   assert.equal((body.innerHTML.match(/ selected/g) || []).length, 2, 'Only category and the linked supplier should be selected');
@@ -1375,7 +1378,7 @@ const ctx = vm.createContext({console, document, crypto:require('node:crypto').w
   URL:{createObjectURL(blob) { downloads.push(blob); return 'blob:test'; }},
   localStorage:{getItem(){return null;},setItem(){}}, DB:{transactions:[]},
 });
-for (const file of ['auth/auth.js','data/api.js','data/store.js','data/profile.js','admin/navigation.js','admin/inventory.js','admin/settings.js','admin/sales.js','admin/arima.js','admin/insights.js','admin/customers.js','admin/stock.js','pos/checkout.js','pos/panels.js']) {
+for (const file of ['data/level-meter.js','auth/auth.js','data/api.js','data/store.js','data/profile.js','admin/navigation.js','admin/inventory.js','admin/settings.js','admin/sales.js','admin/arima.js','admin/insights.js','admin/customers.js','admin/stock.js','pos/checkout.js','pos/panels.js']) {
   vm.runInContext(fs.readFileSync(path.join(root,'public/js',file),'utf8'),ctx,{filename:file});
 }
 assert.equal(ctx.computeInitials('Ada Lovelace'), 'AL');
@@ -1610,3 +1613,5 @@ ctx.fetchSalesRows=async()=>rows;ctx.historyRows=async()=>rows;
   tip.closeTip();assert.equal(second.attributes['aria-describedby'],undefined);
   console.log('PASS: shared icon actions keep handlers; tooltip tap, pin, dismiss and accessibility state.');
 })();
+
+require('./frontend-level-meter.cjs');

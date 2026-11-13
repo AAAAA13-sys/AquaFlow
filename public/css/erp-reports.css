@@ -1,0 +1,162 @@
+/* Reports page (admin/reports). Theme tokens only; shared components
+   (.page-head, .filter-bar, .stat-strip, .empty-state, .error-state,
+   .skeleton, .sheet, .no-print) come from theme.css. */
+
+.rep-page .rep-filters { margin-bottom: 12px; }
+.rep-page .stat-strip { margin-bottom: 16px; }
+
+/* ---- period presets: a segmented control ------------------------------- */
+.rep-label {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.rep-page .rep-filters { grid-template-columns: minmax(0, auto) repeat(2, minmax(150px, 190px)) 1fr; }
+.rep-page .rep-filters .rep-presets-cell { grid-column: auto; }
+.rep-presets {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  border: 1px solid var(--border-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+.rep-preset {
+  min-height: 40px;
+  white-space: nowrap;
+  padding: 0 14px;
+  border: 0;
+  border-right: 1px solid var(--border-line);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rep-preset:last-child { border-right: 0; }
+.rep-preset:hover { background: var(--surface-subtle); color: var(--text-dark); }
+.rep-preset[aria-checked="true"] { background: var(--ink-900); color: #FFFFFF; }
+.rep-preset:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: -2px; }
+
+.rep-range-msg {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  background: #FEF2F2;
+  color: var(--danger-text);
+  font-size: 0.9rem;
+}
+.rep-range-msg[hidden] { display: none; }
+
+/* Missing supply costs: something the owner should act on. */
+.rep-note {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--state-prep-line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--state-prep-bg);
+  color: var(--state-prep-text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.rep-note[hidden] { display: none; }
+
+/* ---- the report sheet ---------------------------------------------------- */
+/* On screen the sheet uses the page width; print falls back to theme.css.
+   Scoped under .rep-page because theme.css loads after this file. */
+.rep-page .rep-sheet { max-width: none; margin: 0 0 24px; }
+.rep-body { display: grid; gap: 24px; }
+.rep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 24px 32px;
+  align-items: start;
+}
+.rep-section { min-width: 0; }
+.rep-section__title {
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-line);
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 700;
+}
+/* admin.css and theme.css give every .admin-page table a 700px minimum, a tinted header
+   and roomy cells; report tables are compact document tables instead. */
+.rep-page .sheet table.rep-table { width: 100%; min-width: 0; margin: 0 0 8px; table-layout: auto; }
+.admin-layout .rep-page .rep-table th,
+.admin-layout .rep-page .rep-table td {
+  padding: 7px 8px;
+  background: transparent;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-line);
+  overflow-wrap: normal;
+}
+.admin-layout .rep-page .rep-table thead th { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; }
+.admin-layout .rep-page .rep-table th[scope="row"] { color: var(--text-dark); font-weight: 500; overflow-wrap: anywhere; }
+.admin-layout .rep-page .rep-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.admin-layout .rep-page .rep-table tbody tr:hover { background: transparent; }
+.admin-layout .rep-page .rep-table .rep-strong th,
+.admin-layout .rep-page .rep-table .rep-strong td { font-weight: 700; border-top: 1px solid var(--text-dark); }
+.rep-hint, .rep-empty { margin: 4px 0 0; color: var(--text-dim); font-size: 0.82rem; }
+.rep-empty { font-size: 0.92rem; }
+
+.rep-chart { position: relative; width: 100%; margin: 0 0 12px; }
+
+/* ---- profit block: both formulas side by side ---------------------------- */
+.rep-profit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+.rep-profit__card {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border-line);
+  border-radius: 8px;
+}
+.rep-profit__title { margin: 0; font-size: 0.95rem; color: var(--text-dark); }
+.rep-formula { margin: 2px 0 10px; color: var(--text-muted); font-size: 0.86rem; line-height: 1.4; }
+.rep-profit__table { margin: 0; }
+.admin-layout .rep-page .rep-profit__table .rep-result th,
+.admin-layout .rep-page .rep-profit__table .rep-result td {
+  border-top: 2px solid var(--text-dark);
+  border-bottom: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.admin-layout .rep-page .rep-profit__table .rep-result.is-negative td { color: #B91C1C; }
+.rep-profit__note { margin: 10px 0 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.4; }
+
+.rep-skeleton { display: grid; gap: 14px; }
+
+@media (max-width: 900px) {
+  .rep-page .rep-filters { grid-template-columns: repeat(2, minmax(0, 1fr)) auto; }
+  .rep-page .rep-filters .rep-presets-cell { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .rep-page .rep-filters { grid-template-columns: 1fr 1fr; }
+  .rep-page .rep-filters .filter-bar__actions { grid-column: 1 / -1; }
+  .rep-page .rep-filters .filter-bar__actions .btn { width: 100%; justify-content: center; }
+  .rep-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .rep-preset { padding: 0 6px; border-bottom: 1px solid var(--border-line); }
+  .rep-preset:nth-child(3n) { border-right: 0; }
+  .rep-profit__card { padding: 12px; }
+}
+
+@media print {
+  .rep-note { border-left-width: 1px; background: #FFFFFF; color: #000000; }
+  .rep-sheet { font-size: 10pt; }
+  .rep-body { gap: 14px; }
+  .rep-grid { grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+  .rep-profit { grid-template-columns: 1fr 1fr; }
+  .rep-section, .rep-profit__card { break-inside: avoid; }
+  .rep-chart { max-height: 260px; }
+  .admin-layout .rep-page .rep-profit__table .rep-result.is-negative td { color: #000000; }
+}

@@ -4,7 +4,7 @@
 @section('topbar-title', 'My Activity')
 
 @section('cashier-body')
-  <main class="admin-main-content">
+  <main id="main" tabindex="-1" class="admin-main-content">
     @include('partials.activity-page')
   </main>
 @endsection

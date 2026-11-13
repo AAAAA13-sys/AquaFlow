@@ -3,28 +3,35 @@
 @section('title', 'Sales & Receipts | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Sales & Receipts')
 
-@section('cashier-body')
-  <main class="admin-main-content cashier-page">
-    <header class="cashier-page-header">
-      <div>
-        <p>{{ auth()->user()?->isAdmin() ? 'Review station sales, account charges, and recorded payments.' : 'Review sales, account charges, and payments recorded by your account.' }}</p>
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" onclick="exportHistoryCsv()" class="btn btn-secondary">Export CSV</button>
       </div>
-      <button type="button" onclick="exportHistoryCsv()" class="btn btn-primary">Export CSV</button>
+@endsection
+
+@section('cashier-body')
+  <main id="main" tabindex="-1" class="admin-main-content cashier-page cashier-history-page">
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Sales and receipts</h2>
+        <p class="page-head__purpose">{{ auth()->user()?->isAdmin() ? 'Review station sales, account charges, and recorded payments.' : 'Review sales, account charges, and payments recorded by your account.' }}</p>
+      </div>
+
     </header>
 
-    <div id="hSum" class="cashier-summary" aria-label="Filtered transaction summary"></div>
+    <div id="hSum" class="status-line" aria-label="Filtered transaction summary"></div>
 
-    <section class="card cashier-ledger">
-      <div class="flex-between" style="margin-bottom:12px;">
-        <h3 class="panel-heading" style="margin:0;">Transactions</h3>
-        <button type="button" id="toggleFiltersBtn" class="btn btn-ghost btn-sm" aria-expanded="false" aria-controls="cashierFiltersPanel" onclick="toggleCashierFilters()" style="display:inline-flex;align-items:center;gap:5px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    <section class="card cashier-ledger cashier-history-ledger" aria-labelledby="historyLedgerTitle">
+      <div class="cashier-ledger-heading">
+        <h3 id="historyLedgerTitle" class="panel-heading">Transactions</h3>
+        <button type="button" id="toggleFiltersBtn" class="btn btn-secondary btn-sm cashier-filter-toggle" aria-expanded="false" aria-controls="cashierFiltersPanel" onclick="toggleCashierFilters()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           <span>Filters</span>
         </button>
       </div>
 
-      <div id="cashierFiltersPanel" class="no-print hidden" style="margin-bottom:16px;padding:14px;border:1px solid var(--border-line);border-radius:10px;background:#f8fafc;">
-        <div class="cashier-filters" style="margin:0;">
+      <div id="cashierFiltersPanel" class="no-print hidden cashier-filter-panel">
+        <div class="filter-bar" role="group" aria-label="Filter transactions">
           <div class="filter-group">
             <label class="form-label" for="hFrom">From</label>
             <input id="hFrom" type="datetime-local" step="60" value="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" data-default="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" onchange="renderHistoryPage()">
@@ -45,7 +52,7 @@
           @include('partials.table-filters', ['target' => 'hBody', 'label' => 'transactions', 'refresh' => "renderHistoryPage()", 'embedded' => true])
         </div>
       </div>
-      <div class="data-table-wrapper">
+      <div class="data-table-wrapper" tabindex="0" role="region" aria-label="Transactions table">
         <table class="clean">
           <caption class="visually-hidden">Recorded transactions for the selected period. Debt payments are shown in italic and are excluded from the sales revenue figure above.</caption>
           <thead>
@@ -55,11 +62,11 @@
               <th>Time</th>
               <th>Customer</th>
               <th>Type &amp; Items</th>
-              <th class="num">Vatable @include('partials.tip', [
+              <th class="num col-vat">Vatable @include('partials.tip', [
                 'text' => 'The part of the total that tax is charged on. AquaFlow prices are VAT-inclusive, so this is worked backwards from the total you were charged rather than added on top of it.',
                 'label' => 'What does Vatable mean?',
               ])</th>
-              <th class="num">VAT @include('partials.tip', [
+              <th class="num col-vat">VAT @include('partials.tip', [
                 'text' => 'Value Added Tax at 12%. It is already included in the price the customer paid, so this column shows how much of the total is tax.',
                 'label' => 'What does VAT mean?',
               ])</th>

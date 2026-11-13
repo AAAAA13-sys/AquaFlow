@@ -97,7 +97,7 @@ function renderForecast() {
     const firstItem = (DB.advisories && DB.advisories[0]) ? DB.advisories[0] : null;
     const action = firstItem
       ? 'order ' + Number(firstItem.order_quantity).toLocaleString() + ' ' + firstItem.unit + ' of ' + firstItem.item + ' from ' + firstItem.supplier
-      : 'check the Stock & Supplies tab for what to order';
+      : 'check Stock & Prices for what to order';
     const actionFormatted = action.charAt(0).toUpperCase() + action.slice(1);
 
     table.innerHTML = rows.map(r =>

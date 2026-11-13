@@ -3,20 +3,28 @@
 @section('title', 'Team & Access | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Team & Access')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="userFormPanel" onclick="toggleAddForm(this)">Add person</button>
+      </div>
+@endsection
+
 @section('admin-content')
   <section id="s-users" class="admin-page">
-    <div class="admin-page-titlebar">
-    @include('partials.admin-page-header', ['eyebrow' => 'TEAM MANAGEMENT', 'heading' => 'Team & Access', 'description' => 'Manage your team and the access each person needs to run the station.'])
-      <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="userFormPanel" onclick="toggleAddForm(this)">Add person</button>
-    </div>
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Team &amp; access</h2>
+        <p class="page-head__purpose">Manage your team and the access each person needs to run the station.</p>
+      </div>
 
+    </header>
 
-<div id="teamSummary" class="admin-summary" aria-label="users summary"></div>
+    <div id="teamSummary" class="status-line" aria-label="users summary"></div>
         <div id="userFormPanel" class="card form-card hidden">
       <h3 class="panel-heading">Add user</h3>
       <form id="userForm" onsubmit="return createUser(event)" class="admin-entry-form user-account-form">
         <div class="admin-entry-field"><label class="form-label" for="usrName">Full name</label><input id="usrName" class="form-input field-min-160" placeholder="Full name *" required maxlength="20" aria-label="Full name"></div>
-        <div class="admin-entry-field"><label class="form-label" for="usrUsername">Username</label><input id="usrUsername" class="form-input field-min-140" placeholder="Username *" required maxlength="50" pattern="[A-Za-z0-9_-]+" title="Letters, numbers, dash and underscore only" aria-label="Username"></div>
+        <div class="admin-entry-field"><label class="form-label" for="usrUsername">Username</label><input id="usrUsername" class="form-input field-min-140" placeholder="Username *" required maxlength="50" pattern="[A-Za-z0-9_\-]+" title="Letters, numbers, dash and underscore only" aria-label="Username"></div>
         <div class="admin-entry-field"><label class="form-label" for="usrRole">Access role</label><select id="usrRole" onchange="updateUserRoleFields()" class="form-input"  aria-label="Access role">
           <option value="cashier">Cashier (POS only)</option>
           <option value="refiller">Refiller (Production)</option>
@@ -41,7 +49,9 @@
       </form>
     </div>
 
-    @include('partials.table-filters', ['target' => 'usersBody', 'label' => 'users', 'refresh' => "renderUsers()"])
+    <div class="filter-bar no-print" role="group" aria-label="Filter team members">
+      @include('partials.table-filters', ['target' => 'usersBody', 'label' => 'users', 'refresh' => "renderUsers()", 'embedded' => true])
+    </div>
 
     <div class="card data-table-wrapper">
       <table class="clean">

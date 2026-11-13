@@ -3,19 +3,33 @@
 @section('title', 'Stock & Prices | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Stock & Prices')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" id="stockAddButton" class="btn btn-cta form-card" data-is-cta="1" aria-expanded="false" aria-controls="invFormPanel" onclick="toggleAddForm(this)">Add consumable</button>
+      </div>
+@endsection
+
 @section('admin-content')
   <section id="s-inv" class="admin-page">
-    {{-- Supplies and Till are one screen: view switcher on left, primary CTA on top right --}}
+    {{-- Supplies and Till are one screen: the add button sits in the page head
+         and follows the active view (showStockView rewires it). --}}
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Stock &amp; prices</h2>
+        <p class="page-head__purpose">Track supplies against their reorder point, and set what the cashier's till sells and for how much.</p>
+      </div>
+
+    </header>
+
     <div class="stock-viewbar">
       <div class="stage-segment" role="group" aria-label="Stock view">
         <button type="button" id="stockViewSupplies" class="seg-btn" onclick="showStockView('supplies')">Supplies</button>
         <button type="button" id="stockViewPrices" class="seg-btn" onclick="showStockView('prices')">Till &amp; Prices</button>
       </div>
-      <button type="button" id="stockAddButton" class="btn btn-cta form-card" data-is-cta="1" aria-expanded="false" aria-controls="invFormPanel" onclick="toggleAddForm(this)">Add consumable</button>
     </div>
 
-    <div id="stockViewSuppliesPanel">
-      <div id="inventorySummary" class="admin-summary" aria-label="inventory summary"></div>
+    <div id="stockViewSuppliesPanel" class="stock-view-panel">
+      <div id="inventorySummary" class="status-line" aria-label="inventory summary"></div>
         <div id="invFormPanel" class="card form-card hidden">
       <h3 class="panel-heading">Add consumable</h3>
       <form id="invForm" onsubmit="return createInventoryItem(event)" class="admin-entry-form">
@@ -37,9 +51,9 @@
       </form>
     </div>
 
-    <div class="filter-toolbar no-print table-filters stock-filters">
+    <div class="filter-bar no-print" role="group" aria-label="Filter stock items">
       <div class="filter-group"><label for="invType">Type</label><select id="invType" onchange="renderInvTable()"><option value="">All types</option><option>Consumable</option><option>Filtration</option><option>Cleaning</option><option>Asset</option></select></div>
-      <div class="filter-group"><label for="invBodySearch">Search</label><input id="invBodySearch" type="search" class="form-input" placeholder="Search item names" oninput="renderInvTable()"></div>
+      <div class="filter-group is-wide"><label for="invBodySearch">Search</label><input id="invBodySearch" type="search" class="form-input" placeholder="Search item names" oninput="renderInvTable()"></div>
       <div class="filter-group"><label for="invBodyOrder">Sort</label><select id="invBodyOrder" onchange="renderInvTable()"><option value="lowest">Least to most stock</option><option value="highest">Most to least stock</option></select></div>
     </div>
 
@@ -71,8 +85,8 @@
     </div>
     </div>
 
-    <div id="stockViewPricesPanel" class="hidden">
-      <div id="tillSummary" class="admin-summary" aria-label="till summary"></div>
+    <div id="stockViewPricesPanel" class="stock-view-panel hidden">
+      <div id="tillSummary" aria-label="till summary" hidden></div>
 
       @if(auth()->user()?->isSuperAdmin())
       <div id="tillFormPanel" class="card form-card hidden">
@@ -128,13 +142,15 @@
 
       @endif
 
-      <div class="admin-summary" id="tillLegend" aria-label="till legend">
-        <article><span>On the till</span><strong id="tillOnCount">0</strong><small>Buttons the cashier sees</small></article>
-        <article><span>Walk-in only</span><strong id="tillWalkInCount">0</strong><small>Cannot be put on a delivery</small></article>
+      <div class="status-line" id="tillLegend" aria-label="till legend">
+        <div class="stat"><span class="stat__label">On the till</span><span class="stat__value" id="tillOnCount">0</span><span class="stat__sub">Buttons the cashier sees</span></div>
+        <div class="stat"><span class="stat__label">Walk-in only</span><span class="stat__value" id="tillWalkInCount">0</span><span class="stat__sub">Cannot be put on a delivery</span></div>
       </div>
 
       {{-- No sort control: this list must read in the order the cashier sees. --}}
-      @include('partials.table-filters', ['target' => 'tillGrid', 'label' => 'till items', 'refresh' => 'renderTill()', 'noSort' => true])
+      <div class="filter-bar no-print" role="group" aria-label="Search till items">
+        @include('partials.table-filters', ['target' => 'tillGrid', 'label' => 'till items', 'refresh' => 'renderTill()', 'noSort' => true, 'embedded' => true])
+      </div>
 
       <div class="till-grid" id="tillGrid"></div>
     </div>

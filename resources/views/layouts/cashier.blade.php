@@ -13,7 +13,7 @@
     @include('partials.cashier-sidebar')
 
     <div class="admin-main-container">
-      @include('partials.portal-topbar', ['defaultTitle' => 'POS Terminal', 'clockId' => 'clock', 'clockClass' => 'header-clock'])
+      @include('partials.portal-topbar', ['defaultTitle' => 'POS Terminal', 'defaultGroup' => 'Cashier'])
 
       @yield('cashier-body')
     </div>

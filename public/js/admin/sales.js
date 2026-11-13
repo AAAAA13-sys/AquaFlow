@@ -42,7 +42,7 @@ async function renderSalesTable() {
     if(request !== salesRequest) return;
     salesRows=[];
     const body=document.getElementById('salesBody');
-    if(body) body.innerHTML='<tr><td colspan="8" role="alert">'+esc(error.message)+' <button type="button" class="btn btn-ghost" onclick="renderSalesTable()">Retry</button></td></tr>';
+    if(body) body.innerHTML='<tr><td colspan="8"><div class="error-state" role="alert"><p class="error-state__message">'+esc(error.message)+'</p><button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="renderSalesTable()">Retry</button></div></td></tr>';
     for(const id of ['salesSum','salesPagination','salesResults']) { const el=document.getElementById(id); if(el) el.innerHTML=''; }
     return;
   }
@@ -65,7 +65,7 @@ async function renderSalesTable() {
   const total = rows => rows.reduce((sum, t) => sum + Number(t.total || 0), 0);
   const summary = document.getElementById('salesSum');
   if (summary) {
-    const card = (label, value, note) => '<article class="sales-summary-card"><p>' + label + '</p><strong>' + value + '</strong><span>' + note + '</span></article>';
+    const card = (label, value, note) => '<div class="stat"><span class="stat__label">' + label + '</span><span class="stat__value">' + value + '</span><span class="stat__sub">' + note + '</span></div>';
     summary.innerHTML = card('Sales revenue', money(total(sales)), 'Excludes debt payments') +
       card('Cash recorded', money(total(salesRows.filter(t => !t.voided && t.pay === 'Cash'))), 'Includes cash debt payments') +
       card('Account sales', money(total(sales.filter(t => t.pay === 'Account'))), 'Sales charged to customer accounts') +
@@ -82,7 +82,7 @@ function renderSalesPage() {
     body.innerHTML = salesRows.slice(start, start + SALES_PAGE_SIZE).map(t =>
       '<tr><td><b>' + esc(t.no) + (t.voided ? ' - VOID' : '') + '</b></td><td><span>' + esc(t.date || '—') + '</span><small class="cell-sub">' + esc(t.t) + '</small></td><td><b>' + esc(t.cust || 'Walk-in Guest') + '</b></td><td><span class="sales-type ' + (t.type === 'Delivery' ? 'sales-type--delivery' : '') + '">' + esc(t.type) + '</span></td><td class="table-item-cell"><span class="table-item-lines">' + esc(t.gal || '—').replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span></td><td class="num sales-amount">' + money(Number(t.total)) + '</td><td><span class="sales-payment">' + esc(t.pay) + '</span>' + (t.pay === 'Account' && t.payment_status ? '<small class="cell-sub">' + (t.payment_status === 'paid' ? 'Paid' : 'Unpaid') + '</small>' : '') + '</td><td class="sales-cashier">' + esc(t.by) + '</td></tr>'
     ).join('');
-    if (!salesRows.length) body.innerHTML = '<tr><td colspan="8" class="sales-empty"><b>No transactions found</b><span>Try another period or clear your search and filters.</span></td></tr>';
+    if (!salesRows.length) body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p class="empty-state__title">No transactions found</p><p class="empty-state__body">Try another period or clear your search and filters.</p></div></td></tr>';
   }
   const pagination = document.getElementById('salesPagination');
   if (pagination) pagination.innerHTML = '<span>' + (salesRows.length ? start + 1 : 0) + '–' + Math.min(start + SALES_PAGE_SIZE, salesRows.length) + ' of ' + salesRows.length + ' records</span><div><button type="button" class="btn btn-secondary btn-sm" onclick="changeSalesPage(-1)"' + (salesPage === 1 ? ' disabled' : '') + '>Previous</button><span>Page ' + salesPage + ' of ' + pages + '</span><button type="button" class="btn btn-secondary btn-sm" onclick="changeSalesPage(1)"' + (salesPage === pages ? ' disabled' : '') + '>Next</button></div>';

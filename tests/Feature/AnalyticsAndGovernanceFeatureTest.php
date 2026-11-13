@@ -1163,16 +1163,25 @@ class AnalyticsAndGovernanceFeatureTest extends TestCase
             ->assertSee('Debt Payment', false);
     }
 
-    public function test_admin_sidebar_opens_the_active_group_and_preserves_role_links(): void
+    public function test_admin_sidebar_is_one_flat_list_and_preserves_role_links(): void
     {
+        $groups = ['dashboard' => null, 'inventory' => 'Stock & purchasing', 'arima' => 'Analytics', 'users' => 'Management'];
         foreach ([$this->manager, $this->owner] as $user) {
-            foreach (['dashboard', 'inventory', 'arima', 'users'] as $tab) {
+            foreach ($groups as $tab => $group) {
                 $response = $this->actingAs($user)->get('/admin/'.$tab)->assertOk();
                 $document = new \DOMDocument;
                 @$document->loadHTML($response->getContent());
                 $xpath = new \DOMXPath($document);
-                $this->assertSame(5, $xpath->query('//nav[@id="sideNav"]/details[@name="admin-navigation"]')->length);
-                $this->assertSame($tab === 'dashboard' ? 0 : 1, $xpath->query('//nav[@id="sideNav"]/details[@open]')->length);
+                // Every page is one click away: labelled groups, nothing collapsed.
+                $this->assertSame(5, $xpath->query('//nav[@id="sideNav"]/div[@role="group"][@aria-labelledby]')->length);
+                $this->assertSame(0, $xpath->query('//nav[@id="sideNav"]//details')->length);
+                // The top bar's breadcrumb names the active page's group.
+                $crumb = $xpath->query('//header[contains(@class,"admin-topbar")]//*[contains(@class,"topbar-crumb")][not(self::*[local-name()="svg"])]');
+                $this->assertSame($group === null ? 0 : 1, $crumb->length);
+                if ($group !== null) {
+                    $this->assertSame($group, trim($crumb->item(0)->textContent));
+                }
+                $this->assertSame(1, $xpath->query('//header//h1[@id="pageTitle"]')->length);
                 $overview = $xpath->query('//nav[@id="sideNav"]/*[1][self::a and @data-s="dashboard"]');
                 $this->assertSame(1, $overview->length);
                 $active = $xpath->query('//nav[@id="sideNav"]//a[@aria-current="page"]');

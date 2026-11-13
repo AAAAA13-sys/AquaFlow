@@ -22,9 +22,27 @@ function computeInitials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// While the profile modal is open, the page behind it is made inert so Tab
+// cannot wander into the sidebar or the work area, and focus goes back to the
+// control that opened it when it closes.
+let profileReturnFocus = null;
+const PROFILE_INERT_SELECTORS = ['.admin-main-container', '.admin-sidebar'];
+
+function setProfileBackgroundInert(on) {
+  if (typeof document.querySelectorAll !== 'function') return;
+  for (const selector of PROFILE_INERT_SELECTORS) {
+    document.querySelectorAll(selector).forEach(el => {
+      if (on) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  }
+}
+
 async function openProfileModal() {
   const modal = document.getElementById('profileModal');
   if (!modal) return;
+  const wasHidden = modal.classList.contains('hidden');
+  if (wasHidden && document.activeElement && document.activeElement !== document.body) profileReturnFocus = document.activeElement;
 
   const errEl = document.getElementById('profileError');
   const successEl = document.getElementById('profileSuccess');
@@ -35,6 +53,8 @@ async function openProfileModal() {
   profilePasswordRequired = typeof getSession === 'function' && !!getSession()?.must_change_password;
 
   modal.classList.remove('hidden');
+  setProfileBackgroundInert(true);
+  document.getElementById('profileNameInput')?.focus?.();
 
   try {
     const data = await API.get('profile');
@@ -80,6 +100,10 @@ function closeProfileModal() {
   if (profilePasswordRequired) { showProfileError('Change your temporary password before starting work.'); return; }
   const modal = document.getElementById('profileModal');
   if (modal) modal.classList.add('hidden');
+  setProfileBackgroundInert(false);
+  const target = profileReturnFocus;
+  profileReturnFocus = null;
+  if (target && target.isConnected && typeof target.focus === 'function') target.focus();
 }
 
 function toggleProfilePassword(inputId, btn) {
@@ -165,9 +189,14 @@ async function saveProfile(event) {
   return false;
 }
 
-// Close on Escape key
+// Close on Escape key, only while the modal is actually showing.
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
+  if (e.key !== 'Escape') return;
+  const modal = document.getElementById('profileModal');
+  if (modal && modal.classList.contains && !modal.classList.contains('hidden')) {
+    // Mark the key as handled so the side-drawer Escape handler (dialog.js)
+    // does not also close a drawer open behind the modal.
+    if (typeof e.preventDefault === 'function') e.preventDefault();
     closeProfileModal();
   }
 });

@@ -7,7 +7,7 @@ function renderFulfillmentMonitor(container, data) {
   const labels = {preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for delivery',delivered:'Delivered today'};
   container.innerHTML = '<div class="delivery-monitor-totals">'+Object.entries(labels).map(([key,label])=>'<span>'+label+': <b>'+Number(totals[key])+'</b> '+(Number(totals[key])===1?'item':'items')+'</span>').join('')+'</div>' +
     '<div class="data-table-wrapper" tabindex="0" role="region" aria-label="Order and delivery monitoring"><table class="clean"><thead><tr><th scope="col">Order / customer</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Items</th><th scope="col">Rider</th><th scope="col">Pending remittance</th><th scope="col">Issues / evidence</th></tr></thead><tbody>' +
-    (data.orders.map(job=>'<tr><td><b>'+esc(job.receipt)+'</b><span class="cash-cell-sub">'+esc(job.customer)+'</span></td><td>'+esc(job.order_type)+'</td><td>'+esc(job.status === 'delivered' ? 'Delivered' : labels[job.status] || job.status)+'</td><td class="table-item-cell"><span class="table-item-lines">'+esc(job.description).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n')+'</span></td><td>'+(job.rider_id?'Rider #'+Number(job.rider_id):job.order_type==='Delivery'?'Awaiting FIFO dispatch':'—')+'</td><td>'+money(job.proof?.pending_remittance || 0)+'</td><td>'+(job.issues?.length?'<span>'+job.issues.map(esc).join('; ')+'</span>':'No reported issues')+(job.proof?'<button type="button" class="btn btn-ghost btn-sm" onclick="viewDeliveryHistory('+Number(job.id)+')">View evidence</button>':'')+'</td></tr>').join('') || '<tr><td colspan="7" class="empty-cell">No active orders or outstanding remittances.</td></tr>')+'</tbody></table></div>';
+    (data.orders.map(job=>'<tr><td><b>'+esc(job.receipt)+'</b><span class="cash-cell-sub">'+esc(job.customer)+'</span></td><td>'+esc(job.order_type)+'</td><td><span class="state-pill" data-state="'+esc(job.status)+'">'+esc(job.status === 'delivered' ? 'Delivered' : labels[job.status] || job.status)+'</span></td><td class="table-item-cell"><span class="table-item-lines">'+esc(job.description).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n')+'</span></td><td>'+(job.rider_id?'Rider #'+Number(job.rider_id):job.order_type==='Delivery'?'Awaiting FIFO dispatch':'—')+'</td><td>'+(Number(job.proof?.pending_remittance || 0) > 0 ? money(job.proof.pending_remittance) : '<span class="cell-quiet" aria-label="None">—</span>')+'</td><td>'+(job.issues?.length?'<span class="cell-issue">'+job.issues.map(esc).join('; ')+'</span>':'<span class="cell-quiet">None reported</span>')+(job.proof?'<button type="button" class="btn btn-ghost btn-sm" onclick="viewDeliveryHistory('+Number(job.id)+')">View evidence</button>':'')+'</td></tr>').join('') || '<tr><td colspan="7" class="empty-cell">No active orders or outstanding remittances.</td></tr>')+'</tbody></table></div>';
   document.getElementById('fulfillmentStatus').textContent = 'Updated '+new Date(data.updated_at).toLocaleTimeString()+'. Quantities above count delivery items, not sales revenue.';
 }
 
@@ -57,7 +57,13 @@ async function refreshFulfillment(force = false) {
   try {
     const data = await API.request('fulfillment');
     const container = document.getElementById('fulfillmentRows');
-    if (container.dataset?.mode === 'monitor') { renderFulfillmentMonitor(container, data); return; }
+    if (container.dataset?.mode === 'monitor') {
+      renderFulfillmentMonitor(container, data);
+      // The owner overview reads outstanding rider cash from this same poll
+      // instead of requesting the order list a second time.
+      if (typeof onFulfillmentMonitorData === 'function') onFulfillmentMonitorData(data);
+      return;
+    }
     container.replaceChildren();
     const totals = {preparing:0, ready:0, out_for_delivery:0, delivered:0, ...data.quantities};
     if (sessionStorage.getItem(fulfillmentKey())) {
@@ -98,7 +104,10 @@ async function refreshFulfillment(force = false) {
       container.append(row);
     }
     document.getElementById('fulfillmentStatus').textContent = 'Updated ' + new Date(data.updated_at).toLocaleTimeString() + ' | Preparing: ' + totals.preparing + ' | Ready: ' + totals.ready + ' | Out for delivery: ' + totals.out_for_delivery + ' | Delivered today: ' + totals.delivered;
-  } catch (error) { document.getElementById('fulfillmentStatus').textContent = 'Offline or unavailable - quantities are not current.'; }
+  } catch (error) {
+    document.getElementById('fulfillmentStatus').textContent = 'Offline or unavailable - quantities are not current.';
+    if (typeof onFulfillmentMonitorData === 'function') onFulfillmentMonitorData(null);
+  }
   finally { fulfillmentFlight = false; }
 }
 document.addEventListener('DOMContentLoaded', () => refreshFulfillment());

@@ -79,6 +79,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s07_u_s11_the_shelf_price_is_the_gross_total(): void
     {
+        $this->openDrawer();
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload());
 
         $response->assertCreated()
@@ -93,6 +94,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s14_vat_is_extracted_from_the_total_not_added_on_top(): void
     {
+        $this->openDrawer();
         // One refill at P35.00 -> vatable 31.25, VAT 3.75, total 35.00
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 50,
@@ -107,6 +109,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s09_vatable_and_vat_always_reconcile_to_the_total(): void
     {
+        $this->openDrawer();
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 1000,
             'items' => [
@@ -128,6 +131,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_the_stored_receipt_splits_vatable_sales_and_vat(): void
     {
+        $this->openDrawer();
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 50,
             'items' => [['product_id' => 'slim', 'quantity' => 1]],
@@ -144,6 +148,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_no_discounts_are_supported(): void
     {
+        $this->openDrawer();
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'manual_discount' => 50,
             'auto_discount' => 25,
@@ -158,6 +163,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s17_u_s19_u_s20_a_refill_creates_no_custody_liability(): void
     {
+        $this->openDrawer();
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $issued = (int) $customer->issued_slim;
         $returned = (int) $customer->returned_slim;
@@ -178,6 +184,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s18_u_s33_a_new_jug_is_retail_merchandise_that_depletes_stock(): void
     {
+        $this->openDrawer();
         $before = $this->stock('5 Gallon Slim Jug');
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
@@ -190,6 +197,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_a_new_jug_delivery_charges_the_ledger_and_creates_fulfillment(): void
     {
+        $this->openDrawer();
         $customer = Customer::query()->where('name', 'Reyes Store')->firstOrFail();
         $customer->update(['debt_balance' => 500]);
 
@@ -237,6 +245,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s28_every_refilled_gallon_consumes_one_cap_and_one_seal(): void
     {
+        $this->openDrawer();
         $cover = $this->stock('Clear Cover');
         $seal = $this->stock('Shrink Seal (Circle Top Slim)');
 
@@ -248,6 +257,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_a_new_jug_does_not_consume_caps(): void
     {
+        $this->openDrawer();
         $jugStock = $this->stock('5 Gallon Slim Jug');
 
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
@@ -300,6 +310,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_a_walk_in_can_never_accrue_debt(): void
     {
+        $this->openDrawer();
         $guest = Customer::query()->where('name', 'Walk-in Guest')->firstOrFail();
         $before = (float) $guest->debt_balance;
 
@@ -324,6 +335,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_the_payment_method_is_derived_and_never_taken_from_the_client(): void
     {
+        $this->openDrawer();
         // A walk-in is always cash, whatever the client claims.
         $walkIn = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'payment_method' => 'GCash',
@@ -338,6 +350,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s13_a_delivery_is_charged_to_the_account_automatically(): void
     {
+        $this->openDrawer();
         $customer = Customer::query()->where('name', 'Santos Family')->firstOrFail();
         $before = (float) $customer->debt_balance;
 
@@ -354,6 +367,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_a_delivery_records_no_cash_tender_or_change(): void
     {
+        $this->openDrawer();
         $customer = Customer::query()->where('name', 'Reyes Store')->firstOrFail();
 
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
@@ -371,6 +385,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_a_receipt_number_is_assigned_and_queued(): void
     {
+        $this->openDrawer();
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload());
         $response->assertCreated();
 
@@ -381,6 +396,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_selling_only_new_jugs_does_not_queue_production(): void
     {
+        $this->openDrawer();
         $before = ProductionQueueItem::query()->count();
 
         // A brand-new jug is merchandise, not a refill, so nothing is queued to
@@ -395,6 +411,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_receipt_numbers_are_unique_across_sales(): void
     {
+        $this->openDrawer();
         $first = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->json('transaction.no');
         $second = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->json('transaction.no');
 
@@ -412,6 +429,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_history_exposes_the_vat_split(): void
     {
+        $this->openDrawer();
         $created = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload());
         $created->assertCreated();
 
@@ -446,6 +464,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s24_u_s26_u_s27_queue_stage_can_be_advanced(): void
     {
+        $this->openDrawer();
         $receipt = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->json('transaction.no');
 
         $item = ProductionQueueItem::query()->where('receipt_number', $receipt)->firstOrFail();
@@ -460,6 +479,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_duplicate_cart_entries_have_identical_priced_and_stored_lines(): void
     {
+        $this->openDrawer();
         $response = $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 1000,
             'items' => [
@@ -482,6 +502,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_receipts_continue_after_the_highest_queued_receipt(): void
     {
+        $this->openDrawer();
         ProductionQueueItem::query()->create([
             'receipt_number' => 'OR-9000', 'customer_name' => 'Queue Customer',
             'stage' => 0, 'elapsed_minutes' => 0, 'items_description' => '1S',
@@ -494,6 +515,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s15_insufficient_consumables_roll_back_the_entire_delivery(): void
     {
+        $this->openDrawer();
         InventoryItem::query()->where('item_name', 'Clear Cover')->update(['stock_on_hand' => 1]);
         $customer = Customer::query()->where('name', '!=', 'Walk-in Guest')->firstOrFail();
         $beforeCustomer = $customer->getAttributes();
@@ -518,6 +540,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s15_insufficient_new_jug_stock_rejects_the_sale(): void
     {
+        $this->openDrawer();
         InventoryItem::query()->where('item_name', '5 Gallon Slim Jug')->update(['stock_on_hand' => 1]);
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload([
             'cash_tendered' => 500,
@@ -528,6 +551,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_u_s15_exact_available_stock_can_be_sold(): void
     {
+        $this->openDrawer();
         InventoryItem::query()->where('item_name', 'Clear Cover')->update(['stock_on_hand' => 2]);
         $this->actingAs($this->cashier)->postJson('/api/transactions', $this->payload())->assertCreated();
         $this->assertSame(0, $this->stock('Clear Cover'));
@@ -847,6 +871,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_sale_retry_returns_original_receipt_without_deducting_stock_again(): void
     {
+        $this->openDrawer();
         $payload = $this->sale();
         $first = $this->postJson('/api/transactions', $payload)->assertCreated();
         $stock = InventoryItem::pluck('stock_on_hand', 'id')->all();
@@ -903,6 +928,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_failed_sale_can_be_retried_without_a_partial_submission(): void
     {
+        $this->openDrawer();
         $data = $this->sale();
         $cover = InventoryItem::whereIn('item_name', ['Clear Cover', 'CLEAR_COVER'])->firstOrFail();
         $cover->update(['stock_on_hand' => 0]);
@@ -914,6 +940,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_submission_keys_are_required_and_separate_keys_allow_identical_sales(): void
     {
+        $this->openDrawer();
         $data = $this->sale();
         unset($data['submission_key']);
         $this->postJson('/api/transactions', $data)->assertUnprocessable()->assertJsonValidationErrors('submission_key');
@@ -926,6 +953,7 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
     public function test_delivery_retry_preserves_ledger_balance_and_operator_keys_are_isolated(): void
     {
+        $this->openDrawer();
         // A cashier makes a delivery sale.
         $customer = Customer::where('name', 'Santos Family')->firstOrFail();
         $payload = array_replace($this->sale(), ['customer_id' => $customer->id, 'order_type' => 'Delivery', 'cash_tendered' => 0]);
@@ -941,7 +969,9 @@ class SalesAndCheckoutFeatureTest extends TestCase
 
         // A *different* operator reusing the key makes a genuinely separate
         // sale: the keys are scoped per account.
-        $this->actingAs(User::where('username', 'admin')->firstOrFail());
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $this->openDrawer($admin);
+        $this->actingAs($admin);
         $second = $this->postJson('/api/transactions', $payload)->assertCreated()->assertJsonPath('replayed', false);
         $this->assertNotSame($first->json('transaction.id'), $second->json('transaction.id'));
 

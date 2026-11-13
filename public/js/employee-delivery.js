@@ -32,24 +32,24 @@ function openDeliveryEvidence(job) {
     dialog.id = 'deliveryEvidence';
     dialog.className = 'employee-issue-dialog';
     dialog.setAttribute('aria-labelledby', 'deliveryEvidenceTitle');
-    dialog.innerHTML = `<form style="padding:24px;max-width:440px;display:grid;gap:12px" id="deliveryEvidenceForm">
-      <h2 id="deliveryEvidenceTitle">Confirm delivery</h2><p id="deliveryEvidenceOrder"></p>
-      <p>Ask the buyer to check the items and cash amount before sharing their private code. Delivery does not settle their account; cashier-accepted remittance does.</p>
+    dialog.innerHTML = `<form id="deliveryEvidenceForm">
+      <h2 id="deliveryEvidenceTitle">Confirm delivery</h2><p id="deliveryEvidenceOrder" class="emp-evidence-order"></p>
+      <p class="emp-evidence-hint">Let the buyer check the items and cash first, then ask for their private code. Delivery does not settle their account; the cashier does when they accept your remittance.</p>
       <label>Delivery photo (JPEG, PNG or WebP, up to 5 MB)<input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" required></label>
       <label>Recipient name<input name="recipient_name" minlength="2" maxlength="100" required class="form-input"></label>
-      <label>Buyer confirmation code<input name="recipient_code" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" autocomplete="off" required class="form-input"></label>
-      <label>Items received<input name="received_quantity" type="number" min="1" max="1000" step="1" required class="form-input"></label>
-      <label>Cash collected from buyer<input name="reported_cash" type="number" min="0" step="0.01" required class="form-input"></label>
+      <label>Buyer confirmation code<input name="recipient_code" inputmode="numeric" placeholder="8 digits" pattern="[0-9]{8}" minlength="8" maxlength="8" autocomplete="off" required class="form-input"></label>
+      <label>Items received<input name="received_quantity" type="number" inputmode="numeric" min="1" max="1000" step="1" required class="form-input"></label>
+      <label>Cash collected from buyer<input name="reported_cash" type="number" inputmode="decimal" min="0" step="0.01" required class="form-input"></label>
       <label>Reason for partial/no collection, if applicable<textarea name="collection_note" minlength="5" maxlength="500" class="form-input"></textarea></label>
-      <p id="deliveryEvidenceError" role="alert"></p>
-      <button type="submit" class="btn btn-primary">Save delivery and cash report</button>
-      <button type="button" class="btn" onclick="document.getElementById('deliveryEvidence').close()">Cancel</button>
+      <p id="deliveryEvidenceError" class="emp-evidence-error" role="alert"></p>
+      <button type="submit" class="btn btn-primary emp-evidence-submit">Save delivery and cash report</button>
+      <button type="button" class="btn emp-evidence-cancel" onclick="document.getElementById('deliveryEvidence').close()">Cancel</button>
     </form>`;
     document.body.append(dialog);
   }
   const form = dialog.querySelector('form');
   form.reset();
-  document.getElementById('deliveryEvidenceOrder').textContent = job.receipt + ' ? ' + job.customer + '. Quantity: ' + job.expected_quantity + '. Collect up to ' + Number(job.collection_limit || 0).toFixed(2) + '.';
+  document.getElementById('deliveryEvidenceOrder').textContent = job.receipt + ' · ' + job.customer + '. Quantity: ' + job.expected_quantity + '. Collect up to ' + Number(job.collection_limit || 0).toFixed(2) + '.';
   document.getElementById('deliveryEvidenceError').textContent = '';
   form.elements.reported_cash.max = job.collection_limit || 0;
   form.elements.reported_cash.value = job.collection_limit || 0;

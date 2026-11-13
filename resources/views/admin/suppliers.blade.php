@@ -3,15 +3,23 @@
 @section('title', 'Suppliers | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Suppliers')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="supFormPanel" onclick="toggleAddForm(this)">Add supplier</button>
+      </div>
+@endsection
+
 @section('admin-content')
   <section id="s-sup" class="admin-page">
-    <div class="admin-page-titlebar">
-    @include('partials.admin-page-header', ['eyebrow' => 'PURCHASING', 'heading' => 'Suppliers', 'description' => 'Keep supplier contacts and delivery times ready for your next restock.'])
-      <button type="button" class="btn btn-primary form-card" aria-expanded="false" aria-controls="supFormPanel" onclick="toggleAddForm(this)">Add supplier</button>
-    </div>
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Suppliers</h2>
+        <p class="page-head__purpose">Keep supplier contacts and delivery times ready for your next restock.</p>
+      </div>
 
+    </header>
 
-<div id="supplierSummary" class="admin-summary" aria-label="suppliers summary"></div>
+    <div id="supplierSummary" class="status-line" aria-label="suppliers summary"></div>
         <div id="supFormPanel" class="card form-card hidden">
       <h3 class="panel-heading">Add supplier</h3>
       <form id="supForm" onsubmit="return createSupplier(event)" class="admin-entry-form">
@@ -24,7 +32,9 @@
       </form>
     </div>
 
-    @include('partials.table-filters', ['target' => 'supGrid', 'label' => 'suppliers', 'refresh' => "renderSup()"])
+    <div class="filter-bar no-print" role="group" aria-label="Filter suppliers">
+      @include('partials.table-filters', ['target' => 'supGrid', 'label' => 'suppliers', 'refresh' => "renderSup()", 'embedded' => true])
+    </div>
 
     <div class="suppliers-grid" id="supGrid"></div>
   </section>

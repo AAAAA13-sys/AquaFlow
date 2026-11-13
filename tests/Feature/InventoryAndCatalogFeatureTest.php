@@ -363,6 +363,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
     public function test_a_retired_recipe_ingredient_blocks_checkout_and_rolls_back_the_sale(): void
     {
         $this->seed();
+        $this->openDrawer();
         InventoryItem::where('item_name', 'Clear Cover')->update(['retired_at' => now()]);
         $this->actingAs(User::where('username', 'cashier')->firstOrFail());
         $this->postJson('/api/cart/availability', ['items' => [['product_id' => 'slim', 'quantity' => 1]]])
@@ -378,6 +379,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
     // --- From ConsumableStoriesTest.php ---
     public function test_u_s51_u_s58_mixed_cart_consumption_and_audit(): void
     {
+        $this->openDrawer();
         $before = InventoryItem::pluck('stock_on_hand', 'item_name');
         $cashier = User::where('username', 'cashier')->firstOrFail();
         $response = $this->actingAs($cashier)->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
@@ -403,6 +405,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
 
     public function test_u_s57_missing_cover_rolls_back_sales_and_audit(): void
     {
+        $this->openDrawer();
         InventoryItem::where('item_name', 'Clear Cover')->update(['stock_on_hand' => 0]);
         $before = DB::table('transactions')->count();
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
@@ -480,6 +483,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
 
     public function test_u_s54_new_jugs_consume_wraps_and_covers(): void
     {
+        $this->openDrawer();
         $before = InventoryItem::pluck('stock_on_hand', 'item_name');
         $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => Customer::where('name', 'Walk-in Guest')->value('id'),
@@ -500,6 +504,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
 
     public function test_u_s08_u_s12_delivery_saves_address_and_unpaid_status(): void
     {
+        $this->openDrawer();
         $customer = Customer::where('name', '!=', 'Walk-in Guest')->firstOrFail();
         $response = $this->actingAs(User::where('username', 'cashier')->firstOrFail())->postJson('/api/transactions', ['submission_key' => (string) Str::uuid(),
             'customer_id' => $customer->id, 'order_type' => 'Delivery',
@@ -639,6 +644,7 @@ class InventoryAndCatalogFeatureTest extends TestCase
     {
         $this->simulateUpgradedStore();
         $this->seed();
+        $this->openDrawer();
 
         $cashier = User::query()->where('username', 'cashier')->firstOrFail();
         $guest = \App\Models\Customer::query()->where('name', 'Walk-in Guest')->firstOrFail();

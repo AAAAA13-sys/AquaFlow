@@ -120,8 +120,10 @@ function debtBadge(debt) {
     return '<span class="badge badge-clear">' + icon('i-check-circle') + ' No balance</span>';
   }
 
-  const tone = amount >= DEBT_HIGH ? 'badge-high' : 'badge-warn';
-  return '<span class="badge ' + tone + '">' + icon('i-alert') + ' ' + peso(amount) + ' debt</span>';
+  // Ordinary debt is routine at a refilling station, so only a high balance
+  // carries the alert icon; the amber chip and the word "debt" say the rest.
+  if (amount < DEBT_HIGH) return '<span class="badge badge-warn">' + peso(amount) + ' debt</span>';
+  return '<span class="badge badge-high">' + icon('i-alert') + ' ' + peso(amount) + ' debt</span>';
 }
 
 /**
@@ -219,7 +221,7 @@ function renderCustList() {
         const sel = c.id === POS.custId;
         const debt = Number(c.debt);
 
-        return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '">' +
+        return '<button type="button" onclick="pickCust(' + c.id + ')" class="customer-option customer-row' + (sel ? ' selected' : '') + '" aria-pressed="' + (sel ? 'true' : 'false') + '">' +
           '<b class="cust-row-name">' + esc(c.name) + '</b>' +
           '<span class="cust-row-addr">' + esc(c.addr) + '</span>' +
           '<span class="cust-row-stat badge-host">' + debtBadge(debt) + '</span>' +
@@ -246,7 +248,7 @@ function renderCustList() {
     '<b class="cust-detail-name">' + esc(c.name) + '</b>' +
     '<span class="cust-detail">' + esc(c.addr) + '</span>' +
     '<span class="cust-detail ' + (debt > 0 ? 'text-red-600' : 'text-green-700') + '">' +
-    (debt > 0 ? icon('i-alert') + ' ' + peso(debt) + ' debt' : icon('i-check-circle') + ' No balance') + '</span>';
+    (debt > 0 ? (debt >= DEBT_HIGH ? icon('i-alert') + ' ' : '') + peso(debt) + ' debt' : icon('i-check-circle') + ' No balance') + '</span>';
 }
 
 async function pickCust(id) {

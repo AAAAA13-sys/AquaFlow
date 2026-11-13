@@ -9,7 +9,7 @@
 
   <div id="posDrawerBanner" class="drawer-big-notif" style="display:none;"></div>
 
-  <main class="pos-layout">
+  <main id="main" tabindex="-1" class="pos-layout">
 
     {{-- ===================================================================
          STAGE 1: Customer selection
@@ -37,7 +37,7 @@
 
       <div class="card stage-card customer-search-panel">
         <div class="customer-search-heading">
-          <div><h3 class="panel-heading">Find a customer</h3><p class="cell-sub">Search by name or address. Up to 50 matches.</p></div>
+          <div><h2 class="panel-heading">Find a customer</h2><p class="cell-sub">Search by name or address. Up to 50 matches.</p></div>
           <div class="customer-order-field"><label for="customerOrder">Customer order</label><select id="customerOrder" class="form-input" onchange="searchCustomers()"><option value="oldest">Oldest added first</option><option value="newest">Newest added first</option></select></div>
         </div>
         <div id="custList" class="customer-list-container scroll-region"></div>
@@ -51,7 +51,7 @@
       <div class="stage-summary-grid">
         <div class="card stage-card">
           <div class="flex-between">
-            <h3 class="panel-heading" style="margin:0;">Products</h3>
+            <h2 class="panel-heading" style="margin:0;">Products</h2>
           </div>
 
           <div class="stage-segment" role="group" aria-label="Order type" style="margin:0.5rem 0 0.85rem;">
@@ -73,7 +73,7 @@
 
         <div class="card stage-card cart-tray" style="display:flex;flex-direction:column;min-height:0;">
           <div class="flex-between">
-            <h3 class="panel-heading" style="margin:0;">Order items</h3>
+            <h2 class="panel-heading" style="margin:0;">Order items</h2>
             <span id="boughtCount" class="order-receipt-tag">0 items</span>
           </div>
           <div id="boughtItems" class="cart-items-container scroll-region" style="flex:1 1 auto;max-height:360px;overflow-y:auto;padding-bottom:10px;"></div>
@@ -89,7 +89,7 @@
       <div class="stage-summary-grid">
         <div class="card stage-card">
           <div class="flex-between">
-            <h3 class="panel-heading">Order Summary</h3>
+            <h2 class="panel-heading">Order Summary</h2>
             <span id="rNo" class="order-receipt-tag">OR-0000</span>
           </div>
 
@@ -122,7 +122,7 @@
 
         <div class="card stage-card">
           <div class="flex-between">
-            <h3 class="panel-heading">Payment</h3>
+            <h2 class="panel-heading">Payment</h2>
             <span id="payBadge" class="order-receipt-tag">CASH</span>
           </div>
 
@@ -185,7 +185,7 @@
 
           {{-- Debt settlement (reached from stage 1) --}}
           <div id="debtSettleBox" class="debt-settle-box hidden">
-            <h4 class="panel-heading">Settle Existing Debt</h4>
+            <h3 class="panel-heading">Settle Existing Debt</h3>
             <div class="active-customer-box">
               <div class="flex-between">
                 <span>Current Balance:</span>
@@ -223,7 +223,7 @@
   {{-- Customer registration --}}
   <dialog id="registerModal" class="customer-dialog" aria-labelledby="registerTitle" oncancel="event.preventDefault(); requestCloseRegisterModal()">
     <div class="auth-card" style="max-width:400px;">
-      <h3 id="registerTitle" class="panel-heading">Register New Customer</h3><p id="registrationError" role="alert"></p>
+      <h2 id="registerTitle" class="panel-heading">Register New Customer</h2><p id="registrationError" role="alert"></p>
       <label class="form-label" for="regName">Full Name</label>
       <input id="regName" maxlength="150" class="form-input" placeholder="e.g. Juan Dela Cruz" autocomplete="off"
              inputmode="text" pattern="^[^0-9]+$" title="Letters only — numbers are not allowed"
@@ -246,7 +246,7 @@
     <div class="auth-card" style="max-width:680px;width:95vw;max-height:85vh;display:flex;flex-direction:column;">
       <div class="flex-between" style="margin-bottom:12px;border-bottom:1px solid var(--border-line);padding-bottom:10px;">
         <div>
-          <h3 id="stocksModalTitle" class="panel-heading" style="margin:0;">Current Stocks</h3>
+          <h2 id="stocksModalTitle" class="panel-heading" style="margin:0;">Current Stocks</h2>
           <p class="cell-sub" style="margin:0;">Current inventory levels &amp; reorder points</p>
         </div>
         <button type="button" onclick="closeStocksModal()" class="btn btn-ghost btn-sm" aria-label="Close modal">&times;</button>
@@ -324,8 +324,9 @@ function renderModalStocks() {
   tbody.innerHTML = list.map(item => {
     const isLow = item.needs_reorder || item.status === 'Critical' || item.status === 'Reorder';
     const pill = isLow
-      ? '<span class="pill pill-bad">Reorder</span>'
-      : '<span class="pill pill-ok">OK</span>';
+      ? '<span class="pill pill-warn">Reorder</span>'
+      // The normal case is quiet text, so only the rows to restock stand out.
+      : '<span class="cell-quiet">OK</span>';
     const unitText = esc(item.unit || 'pcs');
     const onHand = Number(item.on ?? 0).toLocaleString();
     const ropVal = (item.rop !== null && item.rop !== undefined)
@@ -349,16 +350,22 @@ async function checkDrawerGuard() {
     window.drawerOpen = shift ? Boolean(shift.is_open) : false;
     const walkInBtn = document.querySelector('.stage-fasttrack');
     if (walkInBtn) walkInBtn.disabled = !window.drawerOpen;
+    // Visual only: Next keeps its handler and gates; it just stops looking
+    // like the thing to press while no sale can be made.
+    document.getElementById('posNext')?.classList.toggle('is-drawer-closed', !window.drawerOpen);
     if (!banner) return;
 
+    // One line and one action. The sprite icon replaces the emoji, which
+    // rendered differently on every counter PC.
+    const alertIcon = '<svg class="icon drawer-big-notif-icon" aria-hidden="true"><use href="{{ asset('icons/sprite.svg') }}#i-alert"></use></svg>';
     if (!shift) {
       banner.style.display = 'flex';
       banner.className = 'drawer-big-notif';
-      banner.innerHTML = '<div class="drawer-big-notif-content"><span class="drawer-big-notif-icon">⚠️</span><div><h3 class="drawer-big-notif-title">Cash Drawer is Closed</h3><p class="drawer-big-notif-desc">Today\'s cash drawer has not been opened yet. You must record your starting cash float before processing sales or orders.</p></div></div><a href="{{ url('/cashier/cash') }}" class="btn btn-primary btn-sm" style="white-space:nowrap;">Open Cash Drawer &rarr;</a>';
+      banner.innerHTML = '<div class="drawer-big-notif-content">' + alertIcon + '<h2 class="drawer-big-notif-title">Open the drawer to start selling</h2></div><a href="{{ url('/cashier/cash') }}" class="btn btn-primary btn-sm drawer-big-notif-action">Open cash drawer</a>';
     } else if (!shift.is_open) {
       banner.style.display = 'flex';
       banner.className = 'drawer-big-notif drawer-closed-shift';
-      banner.innerHTML = '<div class="drawer-big-notif-content"><span class="drawer-big-notif-icon">🔒</span><div><h3 class="drawer-big-notif-title">Cash Drawer Closed for Today</h3><p class="drawer-big-notif-desc">Reconciled at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString() : 'end of shift') + '. Further transactions are disabled.</p></div></div><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-sm" style="white-space:nowrap;">View Drawer Shift &rarr;</a>';
+      banner.innerHTML = '<div class="drawer-big-notif-content">' + alertIcon + '<h2 class="drawer-big-notif-title">Drawer closed at ' + esc(shift.closed_at ? new Date(shift.closed_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'end of shift') + '. Sales are off for today.</h2></div><a href="{{ url('/cashier/cash') }}" class="btn btn-secondary btn-sm drawer-big-notif-action">View drawer</a>';
     } else {
       banner.style.display = 'none';
     }

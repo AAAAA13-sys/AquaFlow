@@ -9,13 +9,17 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapController;
 use App\Http\Controllers\CartAvailabilityController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerStatementController;
 use App\Http\Controllers\DefectReportController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RecipeController;
@@ -62,7 +66,7 @@ Route::middleware('auth')->group(function (): void {
         Route::view('/admin/settings', 'admin.settings')->middleware('owner');
 
         Route::get('/admin/{tab}', fn (string $tab) => view("admin.{$tab}"))
-            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'cash', 'defects', 'approvals', 'audit-logs', 'staff-workspaces'])
+            ->whereIn('tab', ['dashboard', 'orders', 'sales', 'arima', 'inventory', 'customers', 'suppliers', 'users', 'cash', 'defects', 'approvals', 'audit-logs', 'staff-workspaces', 'purchasing', 'expenses', 'reports'])
             ->name('admin.tab');
     });
 });
@@ -254,6 +258,33 @@ Route::prefix('api')->group(function (): void {
         // else reads only their own. Access is decided by the scope, not by
         // whether the page is reachable.
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.audit-logs.index');
+
+        // ERP back office: purchasing, operating expenses and period reports.
+        // Owner and manager only; each controller re-checks finer rules.
+        Route::middleware('owner:management')->group(function (): void {
+            Route::get('purchase-orders', [PurchaseOrderController::class, 'index'])->name('api.purchase-orders.index');
+            Route::get('purchase-orders/suggestions', [PurchaseOrderController::class, 'suggestions'])->name('api.purchase-orders.suggestions');
+            Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('api.purchase-orders.store');
+            Route::get('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])
+                ->whereNumber('purchaseOrder')->name('api.purchase-orders.show');
+            Route::patch('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])
+                ->whereNumber('purchaseOrder')->name('api.purchase-orders.update');
+            Route::post('purchase-orders/{purchaseOrder}/order', [PurchaseOrderController::class, 'markOrdered'])
+                ->whereNumber('purchaseOrder')->name('api.purchase-orders.order');
+            Route::post('purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])
+                ->whereNumber('purchaseOrder')->name('api.purchase-orders.receive');
+            Route::post('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])
+                ->whereNumber('purchaseOrder')->name('api.purchase-orders.cancel');
+
+            Route::get('expenses', [ExpenseController::class, 'index'])->name('api.expenses.index');
+            Route::post('expenses', [ExpenseController::class, 'store'])->name('api.expenses.store');
+            Route::post('expenses/{expense}/void', [ExpenseController::class, 'void'])
+                ->whereNumber('expense')->name('api.expenses.void');
+
+            Route::get('reports/summary', [ReportController::class, 'summary'])->name('api.reports.summary');
+            Route::get('customers/{customer}/statement', [CustomerStatementController::class, 'show'])
+                ->whereNumber('customer')->name('api.customers.statement');
+        });
     });
 });
 

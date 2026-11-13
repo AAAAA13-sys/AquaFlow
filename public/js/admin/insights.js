@@ -191,6 +191,7 @@ function renderSidebarBadges() {
   // The approval badge reflects what THIS viewer may decide. The server scopes
   // the count, so a manager's badge never counts an owner-tier request.
   set('badgeApprovals', SidebarApprovals.pendingCount);
+  renderDecisionStrip();
 }
 
 // The pending-approval count for the sidebar badge.
@@ -200,16 +201,167 @@ function renderSidebarBadges() {
 // approvals screen re-reads the list from the API.
 const SidebarApprovals = {
   pendingCount: 0,
+  // `loaded`/`failed` let the overview tell "none waiting" apart from "not
+  // fetched yet" and "could not check".
+  loaded: false,
+  failed: false,
   async refresh() {
     try {
       const result = await API.approvals({ state: 'pending' });
       this.pendingCount = Number(result.pending_count || 0);
+      this.loaded = true;
+      this.failed = false;
     } catch (error) {
       // A badge is not worth breaking a page over; leave the last known value.
+      this.failed = !this.loaded;
     }
     renderSidebarBadges();
   }
 };
+
+/* ---------------------------------------------------------------------------
+   Overview: "Needs a decision today" and today's collections.
+
+   Approvals come from SidebarApprovals, stock from the bootstrap snapshot and
+   rider cash from the delivery monitor's own poll (fulfillment.js calls
+   onFulfillmentMonitorData). Pending defect reports and today's drawer
+   collections are management-only reads, fetched here with their own failure
+   state so one slow endpoint never blanks the others.
+   ------------------------------------------------------------------------ */
+const OverviewDecisions = {
+  defects: { loaded: false, failed: false, count: 0 },
+  remit: { loaded: false, failed: false, count: 0, amount: 0 },
+  collected: { loaded: false, failed: false, amount: 0, drawers: 0 },
+  inFlight: false
+};
+
+async function refreshOverviewDecisions() {
+  if (!document.getElementById('decisionStrip') || OverviewDecisions.inFlight) return;
+  OverviewDecisions.inFlight = true;
+  try {
+    const [defects, cash] = await Promise.allSettled([
+      API.defectReports('pending'),
+      API.get('cash-shift/overview'),
+      SidebarApprovals.refresh()
+    ]);
+    if (defects.status === 'fulfilled') {
+      const reports = Array.isArray(defects.value?.reports) ? defects.value.reports : [];
+      OverviewDecisions.defects = { loaded: true, failed: false, count: reports.filter(r => !r.status || r.status === 'pending').length };
+    } else {
+      OverviewDecisions.defects.failed = true;
+    }
+    if (cash.status === 'fulfilled') {
+      const today = (DB.meta?.generated_at || new Date().toISOString()).slice(0, 10);
+      const shifts = (Array.isArray(cash.value?.shifts) ? cash.value.shifts : []).filter(row => row.date === today);
+      OverviewDecisions.collected = {
+        loaded: true, failed: false,
+        amount: shifts.reduce((n, row) => n + Math.max(0, Number(row.collections) || 0), 0),
+        drawers: shifts.length
+      };
+    } else {
+      OverviewDecisions.collected.failed = true;
+    }
+  } finally {
+    OverviewDecisions.inFlight = false;
+  }
+  renderDecisionStrip();
+  renderCollectedToday();
+}
+
+/** Called by fulfillment.js after each delivery-monitor poll (null on failure). */
+function onFulfillmentMonitorData(data) {
+  if (!data) {
+    OverviewDecisions.remit.failed = !OverviewDecisions.remit.loaded;
+  } else {
+    const owing = (data.orders || []).filter(job => Number(job.proof?.pending_remittance || 0) > 0);
+    OverviewDecisions.remit = {
+      loaded: true, failed: false, count: owing.length,
+      amount: owing.reduce((n, job) => n + Number(job.proof.pending_remittance), 0)
+    };
+  }
+  renderDecisionStrip();
+}
+
+/** Mark a strip cell as needing action (or not), without touching its text. */
+function setStatAlert(cellOrChild, on) {
+  const cell = cellOrChild && cellOrChild.closest ? cellOrChild.closest('.stat') : null;
+  if (cell && cell.classList) {
+    cell.classList.toggle('is-alert', !!on);
+    cell.classList.toggle('is-clear', !on);
+  }
+}
+
+function renderDecisionStrip() {
+  const strip = document.getElementById('decisionStrip');
+  if (!strip) return;
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const unavailable = id => { setText(id, '—'); setStatAlert(document.getElementById(id), false); };
+  let waiting = 0, unknown = 0;
+
+  if (SidebarApprovals.loaded) {
+    const n = SidebarApprovals.pendingCount;
+    setText('decApprovals', String(n));
+    setText('decApprovalsSub', n ? (n === 1 ? 'Change waiting for your decision' : 'Changes waiting for your decision') : 'Nothing waiting');
+    setStatAlert(document.getElementById('decApprovals'), n > 0);
+    waiting += n > 0 ? 1 : 0;
+  } else if (SidebarApprovals.failed) {
+    unavailable('decApprovals'); setText('decApprovalsSub', 'Could not check. Refreshes automatically.'); unknown++;
+  } else unknown++;
+
+  const d = OverviewDecisions.defects;
+  if (d.loaded) {
+    setText('decDefects', String(d.count));
+    setText('decDefectsSub', d.count ? 'Damaged stock to approve or reject' : 'Nothing reported');
+    setStatAlert(document.getElementById('decDefects'), d.count > 0);
+    waiting += d.count > 0 ? 1 : 0;
+    const badge = document.getElementById('badgeDefects');
+    if (badge) { badge.textContent = d.count > 0 ? String(d.count) : ''; badge.hidden = !(d.count > 0); }
+  } else if (d.failed) {
+    unavailable('decDefects'); setText('decDefectsSub', 'Could not check. Refreshes automatically.'); unknown++;
+  } else unknown++;
+
+  const r = OverviewDecisions.remit;
+  if (r.loaded) {
+    setText('decRemit', r.count ? money(r.amount) : '0');
+    setText('decRemitSub', r.count
+      ? 'From ' + r.count + (r.count === 1 ? ' delivery' : ' deliveries') + ', not yet handed in'
+      : 'Every rider has handed in their cash');
+    setStatAlert(document.getElementById('decRemit'), r.count > 0);
+    waiting += r.count > 0 ? 1 : 0;
+  } else if (r.failed) {
+    unavailable('decRemit'); setText('decRemitSub', 'Delivery list is offline. Retrying.'); unknown++;
+  } else unknown++;
+
+  // Stock is part of the snapshot, so it is known once renderInsights has run.
+  const stockValue = document.getElementById('invHealth');
+  const stockCell = stockValue && stockValue.closest ? stockValue.closest('.stat') : null;
+  if (stockCell && stockCell.classList.contains('is-alert')) waiting++;
+
+  const summary = document.getElementById('decisionSummary');
+  if (summary) {
+    summary.textContent = unknown
+      ? (waiting ? waiting + (waiting === 1 ? ' area needs you.' : ' areas need you.') + ' Still checking the rest.' : 'Checking what is waiting…')
+      : waiting
+        ? waiting + (waiting === 1 ? ' area needs you today.' : ' areas need you today.')
+        : 'Nothing is waiting on you right now.';
+  }
+}
+
+function renderCollectedToday() {
+  const value = document.getElementById('kCollected');
+  if (!value) return;
+  const c = OverviewDecisions.collected;
+  const sub = document.getElementById('kCollectedSub');
+  if (c.loaded) {
+    value.textContent = money(c.amount);
+    if (sub) sub.textContent = c.drawers
+      ? 'Balance payments and rider cash in ' + c.drawers + (c.drawers === 1 ? ' drawer' : ' drawers') + '; excludes cash sales'
+      : 'No drawer opened today yet';
+  } else if (c.failed) {
+    value.textContent = '—';
+    if (sub) sub.textContent = 'Drawer totals could not be loaded. Refreshes automatically.';
+  }
+}
 
 // ---- Insight callout markup ------------------------------------------------
 // Progressive disclosure: the single action line is always visible; the
@@ -256,12 +408,14 @@ function renderInsights() {
     if (slot) slot.innerHTML = revenueTrend;
   }
   setText('kRev', money(DB.meta?.sales_today_total ?? sum(sales.map(t => Number(t.total)))));
-  setText('kRevSub', (DB.meta?.sales_today_count ?? sales.length) + ' sales today');
+  const salesCount = Number(DB.meta?.sales_today_count ?? sales.length);
+  setText('kRevSub', salesCount + (salesCount === 1 ? ' sale today' : ' sales today'));
   // An absent forecast is not zero demand. Saying "0 jugs" next to a live
   // revenue figure reads as "you sold nothing", so name the missing forecast
   // instead of reporting a number that was never calculated.
   const hasForecast = (DB.forecast7 || []).length > 0;
   setText('kGal', hasForecast ? Math.round(I.fTotal).toLocaleString() + ' jugs' : 'Not forecast yet');
+  document.getElementById('kGal')?.classList?.toggle('kpi-value--empty', !hasForecast);
   setText('kGalSub', hasForecast
     ? '7-day forecast ' + I.band(I.fAvg) + ' jugs/day'
     : 'Run the demand forecast to see next week');
@@ -271,13 +425,9 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
   const unset = I.runway.filter(r => r.unconfigured).length;
   setText('invHealth', String(crit));
 
-  // The attention card was hardcoded red in the blade, so a station with
-  // nothing wrong was shown a red "0". Let the number pick the tone.
-  const attentionCard = document.getElementById('invHealth')?.closest('.kpi-card-body');
-  if (attentionCard) {
-    attentionCard.classList.remove('kpi-red', 'kpi-green', 'kpi-yellow');
-    attentionCard.classList.add(crit > 0 ? 'kpi-red' : unset > 0 ? 'kpi-yellow' : 'kpi-green');
-  }
+  // Only a real reorder colours the cell; a missing reorder point is a setup
+  // prompt (named in the sub-line), not an emergency.
+  setStatAlert(document.getElementById('invHealth'), crit > 0);
 
   setText('kStockSub', crit
     ? crit + (crit === 1 ? ' item needs' : ' items need') + ' buying'
@@ -319,14 +469,15 @@ const crit = I.runway.filter(r => !r.unconfigured && r.status !== 'OK').length;
   const stockAction = document.getElementById('kStockAction');
   if (stockAction) {
     const unset = I.runway.find(item => item.unconfigured);
-    stockAction.textContent = unset ? 'Set reorder points →' : 'View stock →';
-    stockAction.href = unset ? '/admin/inventory?view=supplies' : '/admin/inventory';
+    stockAction.textContent = unset && !crit ? 'Set reorder points' : 'View stock';
+    stockAction.href = unset && !crit ? '/admin/inventory?view=supplies' : '/admin/inventory';
   }
 
   renderAdvisories();
   renderLedger();
   renderStamp();
   renderSidebarBadges();
+  renderCollectedToday();
   markScrollableTables();
 }
 
@@ -352,7 +503,7 @@ function renderAdvisories() {
         'This is how much the system thinks you should buy: enough to reach the target stock level after accounting for what you already hold. It is a suggestion based on your recent selling rate, not a fixed rule.',
         'How is the suggested order calculated?'
       ) + '</p>' +
-        '<p class="overview-advisory-supplier">' + (advisory.supplier && advisory.supplier !== '-' ? esc(advisory.supplier) : 'Assign a supplier in Stock & Supplies') + '</p></article>';
+        '<p class="overview-advisory-supplier">' + (advisory.supplier && advisory.supplier !== '-' ? esc(advisory.supplier) : 'Assign a supplier in Stock & Prices') + '</p></article>';
     }).join('');
 
     const prompt = unconfigured.length
@@ -404,7 +555,7 @@ function remindLink(c) {
   const body = encodeURIComponent(
     'Hi ' + c.name + ', this is AquaFlow Station. A balance of ' + money(c.debt) +
     ' is still outstanding' +
-    (c.bottles ? ', along with ' + c.bottles + ' container(s)' : '') +
+    (c.bottles ? ', along with ' + c.bottles + (Number(c.bottles) === 1 ? ' container' : ' containers') : '') +
     '. Thank you!'
   );
   return num.startsWith('+63')

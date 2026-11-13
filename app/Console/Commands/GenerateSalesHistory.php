@@ -111,7 +111,7 @@ class GenerateSalesHistory extends Command
                     $total = round($saleGallons * 35.0, 2);
                     $receiptNo = 'OR-' . $this->receipt;
 
-                    $this->insertSale(
+                    $transactionId = $this->insertSale(
                         cashierId: $cashierId,
                         customerId: $customerId,
                         orderType: $orderType,
@@ -127,9 +127,12 @@ class GenerateSalesHistory extends Command
                     // Place today's uncompleted deliveries on the production queue
                     if ($offset === 0 && $orderType === 'Delivery' && $sales % 2 === 0) {
                         $custName = DB::table('customers')->where('id', $customerId)->value('name') ?? 'Customer';
+                        // Link the sale: the cashier handover counts the linked
+                        // receipt's items, so an unlinked order could never ship.
                         DB::table('production_queue')->updateOrInsert(
                             ['receipt_number' => $receiptNo],
                             [
+                                'transaction_id' => $transactionId,
                                 'customer_name' => $custName,
                                 'stage' => $sales % 4,
                                 'elapsed_minutes' => mt_rand(5, 35),
@@ -222,7 +225,7 @@ class GenerateSalesHistory extends Command
         string $time,
         array $items,
         bool $walkIn,
-    ): void {
+    ): int {
         $total = round($total, 2);
 
         if ($payment === 'Cash') {
@@ -284,6 +287,8 @@ class GenerateSalesHistory extends Command
         }
 
         $this->receipt++;
+
+        return $transactionId;
     }
 
     /**

@@ -23,7 +23,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:2px;font-size:12px;color:#64748b;flex-wrap:wrap;">
           <span>Username: <strong id="profileOverviewUsername" style="color:#334155;">--</strong></span>
-          <span id="profileOverviewJobWrapper" class="hidden">Â· <span id="profileOverviewJob" style="color:#0284c7;font-weight:600;"></span></span>
+          <span id="profileOverviewJobWrapper" class="hidden"><span aria-hidden="true">&middot;</span> <span id="profileOverviewJob" style="color:#0284c7;font-weight:600;"></span></span>
         </div>
       </div>
     </div>

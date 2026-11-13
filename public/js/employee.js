@@ -123,7 +123,7 @@ function renderEmployeeJobs() {
   if (renderKey === employeeRenderedKey) return;
   container.replaceChildren();
   const queueTitleEl = document.getElementById('queueSectionTitle');
-  if (queueTitleEl) queueTitleEl.textContent = role === 'rider' ? 'Delivery Queue' : (role === 'refiller' ? 'Refill Queue' : 'My Orders');
+  if (queueTitleEl) queueTitleEl.textContent = role === 'rider' ? 'Ready to deliver' : (role === 'refiller' ? 'To prepare' : 'My Orders');
 
   for (const job of employeeJobs) {
     const card = document.createElement('article');
@@ -152,25 +152,47 @@ function renderEmployeeJobs() {
     badge.textContent = badgeData.text;
     rightGroup.append(badge);
 
+    // Secondary action: rendered under the primary button so it is a full
+    // touch target and is never mistaken for a status badge.
+    let issueBtn = null;
     if (role === 'rider' && ['ready', 'out_for_delivery'].includes(job.status)) {
-      const issueBtn = document.createElement('button');
+      issueBtn = document.createElement('button');
       issueBtn.type = 'button';
       issueBtn.className = 'emp-issue-top-btn';
       issueBtn.textContent = 'Report Issue';
       issueBtn.disabled = blocked || !!employeeActionProblem(job, 'issue');
       issueBtn.onclick = () => openRiderIssueDialog(job);
-      rightGroup.append(issueBtn);
     }
 
     header.append(textGroup, rightGroup);
 
-    // Items line
+    // Items: one row per product so quantity reads first at arm's length.
     const lines = document.createElement('div');
     lines.className = 'emp-order-lines';
-    const linesText = Array.isArray(job.lines) && job.lines.length
-      ? job.lines.map(i => i.quantity + ' × ' + i.product).join(', ')
-      : (job.description || 'Water Refill');
-    lines.textContent = linesText;
+    // Older queue rows only carry a "2 × Slim, 1 × Round" description; parse it
+    // into the same rows when every part has a quantity, otherwise show it as-is.
+    const parsedLines = String(job.description || '').split(/,\s*(?=\d+\s*[×x]\s)/)
+      .map(part => part.trim().match(/^(\d+)\s*[×x]\s*(.+)$/))
+      .map(match => match && { quantity: match[1], product: match[2] });
+    const itemLines = Array.isArray(job.lines) && job.lines.length
+      ? job.lines
+      : (parsedLines.length && parsedLines.every(Boolean) ? parsedLines : null);
+    if (itemLines) {
+      for (const item of itemLines) {
+        const row = document.createElement('div');
+        row.className = 'emp-line';
+        const qty = document.createElement('span');
+        qty.className = 'emp-line-qty';
+        qty.textContent = item.quantity + ' ×';
+        const product = document.createElement('span');
+        product.className = 'emp-line-product';
+        product.textContent = item.product;
+        row.append(qty, product);
+        lines.append(row);
+      }
+    } else {
+      lines.textContent = job.description || 'Water Refill';
+    }
 
     // Details meta (contact details removed per requirements)
     const meta = document.createElement('div');
@@ -179,7 +201,7 @@ function renderEmployeeJobs() {
     if (job.address) {
       const row = document.createElement('div');
       row.className = 'emp-meta-row';
-      row.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> <a href="https://maps.google.com/?q=${encodeURIComponent(job.address)}" target="_blank" rel="noopener" style="color:var(--brand-primary);text-decoration:underline;">${esc(job.address)}</a>`;
+      row.innerHTML = `<a class="emp-map-btn" href="https://maps.google.com/?q=${encodeURIComponent(job.address)}" target="_blank" rel="noopener" aria-label="${esc(job.address)}, open in Maps (new tab)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="emp-map-text">${esc(job.address)}</span><span class="emp-map-hint">Open in Maps</span></a>`;
       meta.append(row);
     }
 
@@ -238,6 +260,12 @@ function renderEmployeeJobs() {
       button.textContent = buttonLabel;
       button.onclick = () => changeJob(job, action);
       actionRow.append(button);
+      if (issueBtn) actionRow.append(issueBtn);
+      card.append(actionRow);
+    } else if (issueBtn) {
+      const actionRow = document.createElement('div');
+      actionRow.className = 'emp-order-actions-row';
+      actionRow.append(issueBtn);
       card.append(actionRow);
     }
 
@@ -247,7 +275,22 @@ function renderEmployeeJobs() {
   if (!employeeJobs.length) {
     const empty = document.createElement('div');
     empty.className = 'emp-empty-state';
-    empty.textContent = !employeeFresh ? 'Orders could not be loaded. Tap Refresh to try again.' : role === 'rider' ? 'No deliveries assigned yet. New deliveries appear automatically when they are ready.' : 'No orders waiting for preparation. New orders appear automatically.';
+    const emptyTitle = document.createElement('strong');
+    emptyTitle.className = 'emp-empty-title';
+    const emptyBody = document.createElement('span');
+    emptyBody.className = 'emp-empty-body';
+    if (!employeeFresh) {
+      empty.classList.add('emp-empty-state--error');
+      emptyTitle.textContent = 'Orders could not be loaded';
+      emptyBody.textContent = 'Tap Refresh to try again.';
+    } else if (role === 'rider') {
+      emptyTitle.textContent = 'No deliveries yet';
+      emptyBody.textContent = 'New deliveries appear here automatically when they are ready.';
+    } else {
+      emptyTitle.textContent = 'No orders to prepare';
+      emptyBody.textContent = 'New orders appear here automatically.';
+    }
+    empty.append(emptyTitle, emptyBody);
     container.append(empty);
   }
   employeeRenderedKey = renderKey;
@@ -331,27 +374,23 @@ function openRiderIssueDialog(job) {
     modal = document.createElement('dialog');
     modal.id = 'empIssueModal';
     modal.className = 'employee-issue-dialog';
-    modal.style.width = 'min(400px, calc(100vw - 24px))';
+    modal.classList.add('emp-issue-modal');
     modal.setAttribute('aria-labelledby', 'empIssueTitle');
     modal.innerHTML = `
-      <div style="padding:22px;box-sizing:border-box;font-family:inherit;width:100%;background:#fff;">
-        <h3 id="empIssueTitle" style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Report Delivery Issue</h3>
-        <p style="margin:0 0 16px;font-size:12px;color:#64748b;" id="empIssueReceipt"></p>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;border:1px solid #e2e8f0;border-radius:8px;" onclick="submitRiderIssue('Delivery not Finished')">
-            Delivery not Finished
-          </button>
-          <button type="button" class="btn btn-secondary" style="text-align:left;font-size:13px;padding:10px 14px;font-weight:600;border:1px solid #e2e8f0;border-radius:8px;" onclick="submitRiderIssue('No one receiving')">
-            No one receiving
-          </button>
+      <div class="emp-dialog-body">
+        <h3 id="empIssueTitle" class="emp-dialog-title">Report Delivery Issue</h3>
+        <p class="emp-dialog-sub" id="empIssueReceipt"></p>
+        <div class="emp-issue-choices">
+          <button type="button" class="btn btn-secondary emp-issue-choice" onclick="submitRiderIssue('Delivery not Finished')">Delivery not Finished</button>
+          <button type="button" class="btn btn-secondary emp-issue-choice" onclick="submitRiderIssue('No one receiving')">No one receiving</button>
         </div>
-        <div style="margin-bottom:16px;">
-          <label for="customIssueReason" class="form-label" style="display:block;margin-bottom:6px;font-size:12px;font-weight:600;color:#334155;">Issue details (5 to 500 characters)</label>
-          <input type="text" id="customIssueReason" minlength="5" maxlength="500" oninput="this.setCustomValidity('')" class="form-input" placeholder="Or enter specific reason..." style="width:100%;font-size:13px;box-sizing:border-box;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;">
+        <div class="emp-dialog-fields">
+          <label for="customIssueReason" class="form-label">Issue details (5 to 500 characters)</label>
+          <input type="text" id="customIssueReason" minlength="5" maxlength="500" oninput="this.setCustomValidity('')" class="form-input" placeholder="Or enter specific reason...">
         </div>
-        <div class="button-grid-2">
-          <button type="button" class="btn btn-ghost" onclick="closeRiderIssueDialog()">Cancel</button>
-          <button type="button" class="btn btn-primary" onclick="submitCustomRiderIssue()">Submit</button>
+        <div class="emp-dialog-actions">
+          <button type="button" class="btn btn-ghost emp-dialog-btn" onclick="closeRiderIssueDialog()">Cancel</button>
+          <button type="button" class="btn btn-primary emp-dialog-btn" onclick="submitCustomRiderIssue()">Submit</button>
         </div>
       </div>
     `;

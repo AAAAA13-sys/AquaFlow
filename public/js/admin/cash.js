@@ -61,11 +61,11 @@ function updateSidebarShiftBadge(shift) {
   if (!badge) return;
   if (!shift) {
     badge.textContent = 'Unopened';
-    badge.style.background = '#94A3B8';
+    badge.style.background = '#B45309'; // amber: the drawer needs opening; white text 5:1
     badge.style.display = 'inline-block';
   } else if (shift.is_open) {
     badge.textContent = '● Open';
-    badge.style.background = '#059669';
+    badge.style.background = '#047857';
     badge.style.display = 'inline-block';
   } else {
     badge.textContent = 'Closed';
@@ -85,6 +85,8 @@ function handleCountedCashChange() {
   const label = document.getElementById('cashNoteLabel');
   if (!input || !badge || !currentCashShift) return;
 
+  const meter = document.getElementById('cashCountMeter');
+  if (meter) meter.innerHTML = input.value.trim() === '' ? '' : levelMeterHTML(Number(input.value), currentCashShift.expected_cash, Math.max(Number(currentCashShift.expected_cash) * 2, Number(input.value)), 'expected');
   const val = input.value.trim();
   if (val === '' || !Number.isFinite(Number(val))) {
     badge.style.display = 'none';

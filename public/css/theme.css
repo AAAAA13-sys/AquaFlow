@@ -1,0 +1,2840 @@
+/* =============================================================================
+   AquaFlow - Station theme (final layer)
+
+   Loaded last by layouts/base.blade.php, after styles.css and the portal
+   stylesheet (admin.css, cashier.css or employee.css). It owns the visual
+   language for all five roles; the earlier files keep layout and behaviour.
+
+   Direction
+   - Chrome is deep tank-shadow ink, not royal blue. Blue is reserved for the
+     things a person can act on (primary buttons, links, focus), so it carries
+     meaning again instead of filling a third of the screen.
+   - The working area is a cool paper canvas with white panels separated by a
+     hairline edge. Panels do not lift on hover unless they are clickable.
+   - Every role gets one accent (brand mark, active-link bar, role chip) so a
+     shared terminal makes the signed-in role obvious at a glance.
+   - Order states use one palette everywhere: Preparing amber, Ready cyan,
+     Out for delivery blue, Delivered green.
+   ========================================================================== */
+
+:root {
+  --ink-900: #0E2236;
+  --ink-800: #15304A;
+  --ink-700: #1D3D5C;
+  --ink-line: rgba(255, 255, 255, 0.10);
+  --ink-text: #E6EEF6;
+  --ink-text-muted: #A9BCCF;
+  --aqua-300: #7DD3FC;
+
+  --sidebar-surface: var(--ink-900);
+  --surface-bg: #F2F5F9;
+  --surface-subtle: #F6F8FB;
+  --border-line: #DCE3EC;
+  --border-subtle: #C7D1DD;
+  --af-edge: #DCE3EC;
+
+  --role-accent: #1D4ED8;
+
+  --state-prep-bg: #FEF3C7;   --state-prep-text: #92400E;  --state-prep-line: #FCD34D;
+  --state-ready-bg: #CFFAFE;  --state-ready-text: #155E75; --state-ready-line: #67E8F9;
+  --state-out-bg: #DBEAFE;    --state-out-text: #1E40AF;   --state-out-line: #93C5FD;
+  --state-done-bg: #DCFCE7;   --state-done-text: #166534;  --state-done-line: #86EFAC;
+
+  --theme-radius: 12px;
+  --theme-radius-sm: 8px;
+  --theme-shadow: 0 1px 2px rgba(14, 34, 54, 0.06);
+  --theme-shadow-pop: 0 10px 30px rgba(14, 34, 54, 0.14), 0 2px 6px rgba(14, 34, 54, 0.06);
+}
+
+/* One accent per role. Each passes 4.5:1 against white text. */
+body.role-super_admin { --role-accent: #1D4ED8; }
+body.role-admin       { --role-accent: #0F766E; }
+body.role-cashier     { --role-accent: #0369A1; }
+body.role-refiller    { --role-accent: #0E7490; }
+body.role-rider       { --role-accent: #C2410C; }
+
+body,
+body.employee-page {
+  background-color: var(--surface-bg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Sidebar -------------------------------------------------------------- */
+
+.admin-layout .admin-sidebar {
+  background-color: var(--ink-900);
+  color: var(--ink-text);
+  border-right: 1px solid #0A1A2A;
+}
+
+.admin-layout .admin-sidebar .sidebar-header {
+  border-bottom-color: var(--ink-line);
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-brand-badge {
+  background-color: var(--role-accent);
+  color: #FFFFFF;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.02em;
+}
+
+.admin-layout .admin-sidebar .sidebar-brand-title {
+  color: #FFFFFF;
+  font-size: 0.98rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-brand-subtitle {
+  color: var(--ink-text-muted);
+  font-size: 0.8rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-nav {
+  padding: 0.85rem 0.75rem;
+  gap: 2px;
+}
+
+.admin-layout .admin-sidebar .sidebar-section-title {
+  margin: 0.5rem 0.6rem 0.4rem;
+  color: var(--ink-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-layout .admin-sidebar .sidebar-group-title {
+  color: var(--ink-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+
+.admin-layout .admin-sidebar .sidebar-group-title:hover,
+.admin-layout .admin-sidebar .sidebar-group[open] .sidebar-group-title {
+  background: transparent;
+  color: #FFFFFF;
+}
+
+/* The disclosure needs a visible open/closed cue now that the title is
+   quieter; a CSS triangle keeps the markup unchanged. */
+.admin-layout .admin-sidebar .sidebar-group-title::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.7;
+  margin-right: 4px;
+  transition: transform 160ms ease;
+}
+
+.admin-layout .admin-sidebar .sidebar-group[open] .sidebar-group-title::after {
+  transform: rotate(45deg);
+}
+
+.admin-layout .admin-sidebar .sidebar-group-links {
+  padding-left: 0;
+  margin: 2px 0 6px;
+  gap: 2px;
+}
+
+.admin-layout .admin-sidebar .sidebar-link,
+.admin-layout .admin-sidebar .sidebar-nav .sidebar-link {
+  position: relative;
+  margin: 0;
+  padding: 0.6rem 0.75rem 0.6rem 0.85rem;
+  min-height: 42px;
+  border-radius: var(--theme-radius-sm);
+  color: #D3DFEA;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.admin-layout .admin-sidebar .sidebar-link:hover {
+  background-color: var(--ink-800);
+  color: #FFFFFF;
+}
+
+.admin-layout .admin-sidebar .sidebar-link.active {
+  background-color: var(--ink-700);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: var(--theme-radius-sm);
+  padding-right: 0.75rem;
+  box-shadow: none;
+}
+
+.admin-layout .admin-sidebar .sidebar-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--aqua-300);
+}
+
+.admin-layout .admin-sidebar .sidebar-link .icon,
+.admin-layout .admin-sidebar .sidebar-link .sidebar-icon {
+  color: currentColor;
+  opacity: 0.75;
+}
+
+.admin-layout .admin-sidebar .sidebar-link.active .icon,
+.admin-layout .admin-sidebar .sidebar-link.active .sidebar-icon {
+  color: var(--aqua-300);
+  opacity: 1;
+}
+
+.admin-layout .admin-sidebar .sidebar-link:focus-visible,
+.admin-layout .admin-sidebar .sidebar-group-title:focus-visible,
+.admin-layout .admin-sidebar button:focus-visible,
+.admin-layout .admin-sidebar a:focus-visible {
+  outline: 2px solid var(--aqua-300);
+  outline-offset: 2px;
+}
+
+.admin-layout .admin-sidebar .sidebar-link.active .sidebar-badge {
+  margin-right: 0;
+}
+
+.admin-layout .admin-sidebar .sidebar-footer {
+  border-top-color: var(--ink-line);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 0.2rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-label {
+  color: var(--ink-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-name {
+  color: #FFFFFF;
+  font-size: 0.92rem;
+}
+
+.admin-layout .admin-sidebar .sidebar-role-chip {
+  display: inline-flex;
+  width: auto;
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--role-accent);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.admin-layout .admin-sidebar .sidebar-logout-btn,
+.admin-layout .admin-sidebar .sidebar-back-link {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+  border-radius: var(--theme-radius-sm);
+  min-height: 40px;
+  font-weight: 600;
+}
+
+.admin-layout .admin-sidebar .sidebar-logout-btn:hover,
+.admin-layout .admin-sidebar .sidebar-back-link:hover {
+  background: var(--ink-800);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.admin-layout .admin-sidebar .sidebar-close-btn {
+  color: #FFFFFF;
+}
+
+.admin-layout .admin-sidebar .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Top bar -------------------------------------------------------------- */
+
+.admin-layout .admin-topbar,
+.employee-page .admin-layout .admin-topbar {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--border-line);
+  min-height: 60px;
+  padding: 0.7rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.cashier-shell.cashier-viewport .admin-topbar {
+  position: relative;
+}
+
+.admin-layout .admin-topbar .admin-topbar-title,
+.employee-page .admin-layout .admin-topbar .admin-topbar-title {
+  color: var(--text-dark);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-layout .admin-topbar .admin-topbar-meta,
+.employee-page .admin-layout .admin-topbar .admin-topbar-meta,
+.admin-layout .admin-topbar .header-clock,
+.admin-layout .admin-topbar #clock {
+  color: var(--text-dim);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-layout .admin-topbar .topbar-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius-sm);
+  background: #FFFFFF;
+  color: var(--text-slate);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-layout .admin-topbar .topbar-back-link:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-subtle);
+  color: var(--text-dark);
+}
+
+.admin-layout .admin-topbar .sidebar-toggle-btn {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-line);
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+}
+
+.admin-layout .admin-topbar .sidebar-toggle-btn:hover {
+  background-color: var(--surface-subtle);
+  border-color: var(--border-subtle);
+}
+
+.admin-layout .admin-topbar .hamburger-bar {
+  background-color: var(--text-dark);
+}
+
+/* ---- Panels, cards and tables -------------------------------------------- */
+
+.admin-layout .card,
+.admin-layout .kpi-card-body {
+  border-color: var(--border-line);
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+}
+
+/* A hover lift tells people a panel is clickable. Most panels are not. */
+.admin-layout .card:hover {
+  box-shadow: var(--theme-shadow);
+}
+
+.admin-layout table.clean thead th,
+.admin-layout .admin-page table.clean th,
+.admin-layout .admin-page th,
+.admin-layout .data-table-wrapper th,
+.admin-layout table th {
+  background: var(--surface-subtle);
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-layout .data-table-wrapper tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.admin-layout .data-table-wrapper tbody tr:hover,
+.admin-layout table.clean tbody tr:hover {
+  background: #F4F8FC;
+}
+
+/* ---- Buttons and focus ---------------------------------------------------- */
+
+.btn,
+.admin-layout .btn {
+  border-radius: var(--theme-radius-sm);
+}
+
+.admin-layout :focus-visible,
+.auth-page :focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ---- Order-state palette -------------------------------------------------- */
+
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.state-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.state-pill[data-state="preparing"]        { background: var(--state-prep-bg);  color: var(--state-prep-text);  border-color: var(--state-prep-line); }
+.state-pill[data-state="ready"]            { background: var(--state-ready-bg); color: var(--state-ready-text); border-color: var(--state-ready-line); }
+.state-pill[data-state="out_for_delivery"] { background: var(--state-out-bg);   color: var(--state-out-text);   border-color: var(--state-out-line); }
+.state-pill[data-state="delivered"]        { background: var(--state-done-bg);  color: var(--state-done-text);  border-color: var(--state-done-line); }
+
+/* ---- Sign in --------------------------------------------------------------- */
+
+body.auth-page {
+  background: var(--ink-900);
+  background-image:
+    radial-gradient(1200px 500px at 50% 115%, rgba(56, 189, 248, 0.16), transparent 70%);
+  min-height: 100vh;
+}
+
+body.auth-page .auth-card {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+body.auth-page .auth-logo {
+  background: var(--ink-900);
+  color: var(--aqua-300);
+  border-radius: 10px;
+}
+
+/* ---- Motion --------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout .admin-sidebar .sidebar-group-title::after {
+    transition: none;
+  }
+
+  button.product-item:hover,
+  .af-drawer-panel {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ===========================================================================
+   Role surfaces
+   ======================================================================== */
+
+/* ---- Shared: one focus ring, readable headers, real tap targets ---------- */
+
+.admin-layout input:focus-visible,
+.admin-layout select:focus-visible,
+.admin-layout textarea:focus-visible,
+.auth-page input:focus-visible,
+.auth-page select:focus-visible {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+
+/* --text-dim on the header fill measured 4.47:1; this is 7:1. */
+.admin-layout table.clean thead th,
+.admin-layout .admin-page table.clean th,
+.admin-layout .admin-page th,
+.admin-layout .data-table-wrapper th,
+.admin-layout table th {
+  color: #475569;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-label {
+  color: #CBD5E1;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-layout .sidebar-badge {
+  font-size: 12px;
+  min-width: 20px;
+}
+
+/* The visible "?" stays small; the tap area grows to 25px. */
+.af-tip-btn {
+  position: relative;
+}
+
+.af-tip-btn::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+
+.cell-quiet { color: var(--text-dim); }
+.cell-issue { color: var(--danger-text); font-weight: 600; }
+
+/* ---- Sign in --------------------------------------------------------------- */
+
+.auth-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 0 12px;
+}
+
+.auth-forgot-row .auth-link {
+  display: inline-block;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+/* ---- Owner and manager ----------------------------------------------------- */
+
+/* The sidebar already links to Overview; the extra topbar link only belongs
+   where an owner has stepped into the cashier or employee screens. */
+body:not(.employee-page) .admin-layout:not(.cashier-shell) .topbar-back-link {
+  display: none;
+}
+
+/* KPI cards are plain panels. Only the "needs attention" state keeps a colour,
+   so red keeps meaning something when it appears. */
+#s-dash .kpi-card-body,
+#s-dash .kpi-card-body.kpi-green,
+#s-dash .kpi-card-body.kpi-yellow {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius);
+}
+
+#s-dash .kpi-card-body.kpi-red {
+  background-color: #FFFFFF;
+  border: 1px solid var(--danger-border);
+  box-shadow: inset 4px 0 0 #DC2626;
+}
+
+#s-dash #kGal.kpi-value--empty {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+/* The top bar already names the page. */
+#s-sales .sales-header h2 {
+  display: none;
+}
+
+#s-defects .filter-toolbar.table-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) minmax(0, 200px);
+  gap: 12px;
+  align-items: end;
+}
+
+#s-defects .filter-toolbar.table-filters .filter-group {
+  min-width: 0;
+  width: auto;
+}
+
+#s-defects .filter-toolbar.table-filters select,
+#s-defects .filter-toolbar.table-filters input {
+  width: 100%;
+}
+
+
+@media (max-width: 760px) {
+  .workspace-heading p {
+    white-space: normal;
+  }
+
+  #s-defects .filter-toolbar.table-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Cashier --------------------------------------------------------------- */
+
+.admin-layout .admin-sidebar .sidebar-user-card > .sidebar-user-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.admin-layout .admin-sidebar .sidebar-user-info {
+  align-items: flex-start;
+}
+
+/* The step indicator is read-only progress, so it reads as a progress rail
+   instead of three buttons competing with Back and Next. */
+.cashier-shell .pos-step-wizard {
+  max-width: none;
+  gap: 10px;
+  padding: 10px 6px 2px;
+}
+
+.cashier-shell .pos-step {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 8px 2px 0;
+  border: 0;
+  border-top: 3px solid var(--border-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.cashier-shell .pos-step.done {
+  border-top-color: #93C5FD;
+  color: var(--text-slate);
+}
+
+.cashier-shell .pos-step.active {
+  border-top-color: var(--brand-primary);
+  background: transparent;
+  color: var(--brand-primary);
+}
+
+.cashier-shell .drawer-big-notif {
+  flex-wrap: wrap;
+  border-radius: var(--theme-radius);
+}
+
+.cashier-shell .drawer-big-notif-content {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+#cashFloat,
+#cashCounted {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  max-width: 320px;
+  min-height: 56px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .cashier-shell .drawer-big-notif > .btn,
+  .cashier-shell .drawer-big-notif > button {
+    width: 100%;
+  }
+
+  .cashier-shell .pos-step {
+    font-size: 0.8125rem;
+  }
+}
+
+/* At 200% zoom the fixed-height POS left no room for the customer list.
+   Short viewports let the page scroll and keep Next reachable. */
+@media (max-height: 560px) {
+  .cashier-viewport,
+  .cashier-viewport .admin-main-container {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .cashier-viewport .scroll-region {
+    flex: none;
+    min-height: 260px;
+  }
+
+  .cashier-viewport .mobile-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+  }
+}
+
+/* ---- Refiller and rider ---------------------------------------------------- */
+
+.employee-page .emp-container {
+  max-width: 640px;
+}
+
+.employee-page .emp-order-card,
+.employee-page .emp-order-card[class*="emp-card-"] {
+  background: #FFFFFF;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.employee-page .emp-order-receipt {
+  font-size: 15px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.employee-page .emp-order-customer {
+  font-size: 18px;
+  color: var(--text-dark);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.employee-page .emp-badge,
+.employee-page .emp-count-pill,
+.employee-page .emp-pulse-wrapper {
+  font-size: 13px;
+}
+
+.employee-page .emp-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.employee-page .emp-badge-preparing        { background: var(--state-prep-bg);  color: var(--state-prep-text);  border: 1px solid var(--state-prep-line); }
+.employee-page .emp-badge-ready            { background: var(--state-ready-bg); color: var(--state-ready-text); border: 1px solid var(--state-ready-line); }
+.employee-page .emp-badge-out_for_delivery { background: var(--state-out-bg);   color: var(--state-out-text);   border: 1px solid var(--state-out-line); }
+.employee-page .emp-badge-delivered        { background: var(--state-done-bg);  color: var(--state-done-text);  border: 1px solid var(--state-done-line); }
+
+/* A refiller's queue only ever holds orders being prepared. */
+body.role-refiller .emp-badge-preparing {
+  display: none;
+}
+
+.employee-page .emp-order-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--theme-radius-sm);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-line);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.employee-page .emp-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.employee-page .emp-line-qty {
+  min-width: 3.2ch;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dark);
+}
+
+.employee-page .emp-line-product {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.employee-page .emp-order-meta,
+.employee-page .emp-meta-row {
+  font-size: 15px;
+  color: var(--text-slate);
+}
+
+.employee-page .emp-meta-row .emp-map-btn {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius-sm);
+  background: #FFFFFF;
+  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.employee-page .emp-meta-row .emp-map-btn svg {
+  flex-shrink: 0;
+  color: var(--role-accent);
+}
+
+.employee-page .emp-map-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.employee-page .emp-map-hint {
+  flex-shrink: 0;
+  color: var(--brand-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.employee-page .emp-meta-row .emp-map-btn:hover {
+  background: var(--surface-subtle);
+}
+
+.employee-page .emp-order-actions-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.employee-page .emp-action-btn {
+  width: 100%;
+  min-height: 56px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: var(--theme-radius-sm);
+}
+
+.employee-page .emp-issue-top-btn {
+  width: 100%;
+  min-height: 48px;
+  font-size: 15px;
+  border-radius: var(--theme-radius-sm);
+  background: #FFFFFF;
+  color: #B91C1C;
+  border: 1px solid var(--danger-border);
+}
+
+.employee-page .emp-refresh-btn-warn {
+  background: #FFFFFF;
+  color: var(--state-prep-text);
+  border-color: var(--state-prep-line);
+}
+
+#empIssueReceipt {
+  font-size: 13px;
+  color: #475569;
+}
+
+/* The history page never starts the clock, which left an empty pill. */
+.admin-topbar-meta:has(> span:empty) {
+  display: none;
+}
+
+/* On a phone the clock pushed the page title to "De..."; the queue already
+   shows when it last updated. */
+@media (max-width: 480px) {
+  .employee-page .admin-topbar .admin-topbar-meta {
+    display: none;
+  }
+
+  .admin-layout .admin-topbar .admin-topbar-title,
+  .employee-page .admin-layout .admin-topbar .admin-topbar-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+}
+
+/* ---- Activity pages (cashier, refiller, rider) --------------------------- */
+
+/* "Today" repeated the heading directly below it. */
+.activity-header p.activity-eyebrow {
+  display: none;
+}
+
+/* ===========================================================================
+   Page components (design system v1)
+
+   Shared building blocks for new and redesigned pages. Markup for each is
+   documented in DESIGN.md section 4. Class names are a contract: Tasks 2-5
+   and 7 build on them, so rename nothing here without updating those pages.
+   ======================================================================== */
+
+/* ---- .page-head: title, one-line purpose, actions on the right ----------- */
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin: 0 0 20px;
+}
+
+.page-head__text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.page-head__title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.page-head__purpose {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .page-head__actions,
+  .page-head__actions > .btn {
+    width: 100%;
+  }
+
+  .page-head__actions > .btn {
+    justify-content: center;
+  }
+}
+
+/* ---- .filter-bar: a grid of labelled filters that wraps ------------------ */
+
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 16px;
+}
+
+.filter-bar > * {
+  min-width: 0;
+}
+
+.filter-bar label,
+.filter-bar .filter-bar__label {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.filter-bar input,
+.filter-bar select {
+  width: 100%;
+  min-height: 40px;
+}
+
+.filter-bar .is-wide {
+  grid-column: span 2;
+}
+
+.filter-bar .filter-bar__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .filter-bar .is-wide {
+    grid-column: auto;
+  }
+}
+
+/* ---- .stat-strip: a compact row of figures, divided, not carded ---------- */
+
+/* One white band with hairline dividers. The 1px gap over a line-coloured
+   background draws the dividers, and keeps them right when the row wraps. */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--border-line);
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius);
+}
+
+.stat-strip > .stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 18px;
+  background: #FFFFFF;
+}
+
+.stat__label {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.stat__value {
+  color: var(--text-dark);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stat__sub {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.stat__sub:empty {
+  display: none;
+}
+
+.stat__action {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 6px 0 0;
+  color: var(--brand-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stat__action:hover {
+  text-decoration: underline;
+}
+
+/* Only a figure someone must act on gets colour; a clear zero goes quiet. */
+.stat-strip .is-alert {
+  box-shadow: inset 3px 0 0 #DC2626;
+}
+
+.stat-strip .is-alert .stat__value {
+  color: #B91C1C;
+}
+
+.stat-strip .is-clear .stat__value {
+  color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+  .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-strip > .stat {
+    padding: 12px 14px;
+  }
+
+  /* An odd last figure takes the full row instead of leaving a grey hole. */
+  .stat-strip > .stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .stat__value {
+    font-size: 1.3rem;
+  }
+}
+
+/* ---- .empty-state / .error-state ---------------------------------------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 24px 20px;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+.empty-state__title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.empty-state__body {
+  margin: 0;
+  max-width: 60ch;
+}
+
+.empty-state__action {
+  margin-top: 6px;
+}
+
+td > .empty-state {
+  padding: 20px 4px;
+}
+
+.error-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--danger-border);
+  border-left: 4px solid #DC2626;
+  border-radius: var(--theme-radius-sm);
+  background: #FEF2F2;
+  color: var(--danger-text);
+  font-size: 0.92rem;
+}
+
+.error-state__message {
+  flex: 1 1 260px;
+  margin: 0;
+  min-width: 0;
+}
+
+.error-state__retry {
+  flex: 0 0 auto;
+}
+
+.error-state[hidden],
+.empty-state[hidden] {
+  display: none;
+}
+
+/* ---- .skeleton: placeholders while figures load -------------------------- */
+
+.skeleton {
+  display: inline-block;
+  width: 10ch;
+  height: 0.9em;
+  max-width: 100%;
+  vertical-align: middle;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, #E2E8F0 37%, var(--surface-subtle) 63%);
+  background-size: 400% 100%;
+  animation: af-skeleton-sweep 1.25s ease-in-out infinite;
+}
+
+.skeleton--figure { width: 7ch; height: 1.1em; }
+.skeleton--text   { width: 18ch; }
+.skeleton--block  { display: block; width: 100%; height: 3rem; }
+
+/* ---- .sheet: a printable document (statements, reports) ------------------ */
+
+.sheet {
+  max-width: 210mm;
+  margin: 0 auto 24px;
+  padding: 28px 32px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius-sm);
+  color: var(--text-dark);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.sheet__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--text-dark);
+}
+
+.sheet__station {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sheet__title {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.sheet__meta {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.sheet__meta dt { color: var(--text-dim); }
+.sheet__meta dd { margin: 0; font-weight: 600; text-align: right; }
+
+.sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+}
+
+.sheet th,
+.sheet td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.sheet th {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-bottom-color: var(--border-subtle);
+}
+
+.sheet .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet table.sheet__totals {
+  width: auto;
+  min-width: 240px;
+  margin: 0 0 0 auto;
+}
+
+.sheet__totals td { border-bottom: 0; }
+
+.sheet__totals tr:last-child td {
+  border-top: 2px solid var(--text-dark);
+  font-weight: 700;
+}
+
+.sheet__foot {
+  margin-top: 20px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.print-only { display: none; }
+
+@media (max-width: 600px) {
+  .sheet {
+    padding: 18px 14px;
+  }
+
+  .sheet table {
+    font-size: 0.85rem;
+  }
+}
+
+/* Named page: only elements inside .sheet (statements, reports) use A4. Other
+   printing, such as POS receipts, keeps the browser default page. */
+.sheet { page: sheet; }
+
+@page sheet { size: A4; margin: 14mm; }
+
+@media print {
+
+  .admin-layout .admin-sidebar,
+  .admin-layout .admin-topbar,
+  .sidebar-backdrop,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only { display: block; }
+
+  body:has(.sheet:not([hidden])),
+  body:has(.sheet:not([hidden])) .admin-layout,
+  body:has(.sheet:not([hidden])) .admin-main-container,
+  body:has(.sheet:not([hidden])) .admin-main-content {
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    font-size: 10.5pt;
+  }
+
+  .sheet thead { display: table-header-group; }
+
+  .sheet tr,
+  .sheet__totals { break-inside: avoid; }
+}
+
+/* ===========================================================================
+   Accessibility and shared states
+   ======================================================================== */
+
+/* Skip link: first focusable element on every signed-in page. */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 12px;
+  z-index: 10001;
+  padding: 10px 16px;
+  border-radius: var(--theme-radius-sm);
+  background: var(--ink-900);
+  color: #FFFFFF;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 12px;
+  outline: 2px solid var(--aqua-300);
+  outline-offset: 2px;
+}
+
+main:focus { outline: none; }
+
+/* Side drawers receive focus when they open. */
+.side-drawer:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* Textareas and disclosures had no visible keyboard focus outside the admin
+   rule above (shared dialogs are appended to <body>, outside .admin-layout). */
+textarea:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+summary:focus-visible,
+.admin-layout summary:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The earlier reduced-motion blocks only covered parts of the admin shell. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Heading levels were corrected (h3 -> h2, h1 -> h2) without changing looks. */
+.cashier-orders-page .queue-section-heading h2 { margin: 0 0 4px; }
+.cash-panel-header h2 { margin: 0 0 6px; }
+
+.activity-header h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  color: #0F172A;
+}
+
+.activity-count-pill[hidden] { display: none; }
+
+/* ---- Quiet states and destructive actions -------------------------------- */
+
+/* Role is a fact about the account, not a status. */
+.role-tag {
+  color: var(--text-slate);
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Delete sits apart from Edit and stays quiet until it is pointed at. */
+.admin-layout .btn.action-destructive,
+.action-destructive {
+  margin-left: 10px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-dim);
+}
+
+.admin-layout .btn.action-destructive:hover,
+.admin-layout .btn.action-destructive:focus-visible,
+.action-destructive:hover,
+.action-destructive:focus-visible {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  color: #B91C1C;
+}
+
+.table-icon-btn.table-icon-del {
+  margin-left: 8px;
+  border-color: transparent;
+  background: transparent;
+  color: #64748B;
+}
+
+.table-icon-btn.table-icon-del:hover,
+.table-icon-btn.table-icon-del:focus-visible {
+  background: #FEF2F2;
+  border-color: #F87171;
+  color: #B91C1C;
+}
+
+/* ---- Sidebar badges ------------------------------------------------------- */
+
+/* Red is kept for decisions (approvals, defect reports). A balance count is
+   information, so it reads neutral; stock to reorder is amber. */
+.admin-layout .admin-sidebar #badgeBalances {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.admin-layout .admin-sidebar #badgeStock {
+  background: #B45309;
+  color: #FFFFFF;
+}
+
+/* ===========================================================================
+   Owner and manager overview (command centre)
+   ======================================================================== */
+
+/* #s-dash is a grid with its own row gap, so blocks carry no outer margin. */
+#s-dash .overview-block,
+#s-dash > .page-head {
+  margin: 0;
+}
+
+#s-dash .overview-block__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 0 0 10px;
+}
+
+#s-dash .overview-block__title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+#s-dash .overview-block__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+#s-dash .overview-block__link {
+  color: var(--brand-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#s-dash .overview-block__link:hover { text-decoration: underline; }
+
+#s-dash .stat__sub--trend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+#s-dash .stat__sub .kpi-trend {
+  position: static;
+  display: inline-flex;
+}
+
+/* The forecast card carries its 7-day figure in its own head. */
+#s-dash .forecast-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+#s-dash .forecast-head__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+#s-dash .forecast-head__figure .stat__value {
+  font-size: 1.35rem;
+}
+
+#s-dash #kGal.kpi-value--empty {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+  #s-dash .forecast-head__figure {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+/* Business controls repeat the sidebar; show them only where the sidebar is
+   collapsed (it collapses below 1024px). */
+@media (min-width: 1024px) {
+  #s-dash .owner-controls {
+    display: none;
+  }
+}
+
+/* ===========================================================================
+   Admin page redesign (Task 7a)
+
+   Every owner and manager page now opens with .page-head, filters sit in a
+   .filter-bar, summary figures in a .stat-strip, and lists end in a real
+   empty or error state. These rules align the older admin.css layout with
+   those components; they only override, so admin.css stays untouched.
+   ======================================================================== */
+
+/* .admin-page is a grid with its own 22px row gap. The component margins
+   would double it, so blocks inside the page carry none. This also evens out
+   the purchasing, expenses and reports pages, which added their own. */
+section.admin-page > .page-head,
+section.admin-page > .filter-bar,
+section.admin-page > .stat-strip,
+section.admin-page > .stock-view-panel > .filter-bar,
+section.admin-page > .stock-view-panel > .stat-strip {
+  margin: 0;
+}
+
+/* The two halves of Stock & Prices stack their blocks the same way. */
+.stock-view-panel:not(.hidden) {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+/* Filters reuse .filter-group markup (and the shared table-filters partial),
+   so the search box gets the wide column the way .is-wide does. */
+.admin-page .filter-bar > .filter-group:has(> input[type="search"]) {
+  grid-column: span 2;
+}
+
+.admin-page .filter-bar .form-label {
+  margin: 0 0 4px;
+}
+
+/* One control height and size across the bar, whether or not the field
+   carries .form-input, so labels and boxes line up on one baseline. */
+.admin-page .filter-bar select,
+.admin-page .filter-bar input:not([type="checkbox"]):not([type="radio"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.admin-page .filter-bar .filter-bar__actions {
+  align-self: end;
+}
+
+@media (max-width: 600px) {
+  .admin-page .filter-bar > .filter-group:has(> input[type="search"]) {
+    grid-column: auto;
+  }
+
+  .admin-page .filter-bar .filter-bar__actions {
+    justify-content: stretch;
+  }
+
+  .admin-page .filter-bar .filter-bar__actions > .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* A loading list shows grey bars, not a blank page. */
+.admin-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-skeleton .skeleton--block {
+  height: 4.5rem;
+  border-radius: var(--theme-radius);
+}
+
+td > .skeleton--block {
+  height: 2.5rem;
+}
+
+/* Empty states that stand in for a list of cards sit on a white panel. */
+.admin-page .empty-state.card {
+  padding: 24px 22px;
+}
+
+/* Row actions: the primary decision first, the quiet one after it. */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ---- View switches (Stock & Prices, Staff workspaces) -------------------- */
+
+/* A view switch is a choice of screen, not a big pair of buttons. It reads as
+   one compact control; the selected view is white and lifted. */
+#s-inv .stock-viewbar > .stage-segment,
+#s-staff .staff-mode-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius);
+  background: var(--surface-subtle);
+}
+
+#s-inv .stock-viewbar > .stage-segment .seg-btn,
+#s-staff .staff-mode-switch .seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--theme-radius) - 3px);
+  background: transparent;
+  color: var(--text-slate);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#s-inv .stock-viewbar > .stage-segment .seg-btn:hover,
+#s-staff .staff-mode-switch .seg-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-dark);
+}
+
+#s-inv .stock-viewbar > .stage-segment .seg-btn.active,
+#s-staff .staff-mode-switch .seg-btn.active {
+  background: #FFFFFF;
+  border-color: var(--border-line);
+  color: var(--text-dark);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+#s-inv .stock-viewbar {
+  justify-content: flex-start;
+}
+
+@media (max-width: 600px) {
+  #s-inv .stock-viewbar > .stage-segment,
+  #s-staff .staff-mode-switch {
+    display: flex;
+    width: 100%;
+  }
+
+  #s-inv .stock-viewbar > .stage-segment .seg-btn,
+  #s-staff .staff-mode-switch .seg-btn {
+    flex: 1 1 0;
+    padding: 0 10px;
+  }
+}
+
+/* Actions are blue across the product; the green add button was the only
+   exception. The Cancel state keeps the secondary look toggleAddForm gives it. */
+#s-inv #stockAddButton {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+#s-inv #stockAddButton.btn-secondary {
+  background: #FFFFFF;
+  border-color: var(--border-line);
+  color: var(--text-dark);
+}
+
+/* ---- Staff workspaces ----------------------------------------------------- */
+
+#s-staff .staff-mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 14px 18px;
+}
+
+#s-staff .staff-mode-bar > .cell-sub {
+  flex: 1 1 320px;
+  margin: 0;
+}
+
+/* The queue fills the page width like every other admin list. */
+#s-staff .emp-container {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- Orders & deliveries -------------------------------------------------- */
+
+/* The shared fulfilment panel brings its own outer margin and a large
+   heading; on this page the page head already names it. */
+#s-orders > .card {
+  margin: 0 !important;
+}
+
+#s-orders > .card > h2 {
+  margin: 0 0 4px;
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ---- Cash drawers --------------------------------------------------------- */
+
+#s-cashdrawers .cash-panel-header {
+  margin: 0 0 4px;
+}
+
+#s-cashdrawers .cash-sync-status {
+  margin: 8px 0 12px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+/* ---- Sales history -------------------------------------------------------- */
+
+#s-sales .filter-bar .filter-group select,
+#s-sales .filter-bar .filter-group input {
+  height: 44px;
+  min-height: 44px;
+}
+
+#s-sales td > .empty-state,
+#s-sales td > .error-state {
+  margin: 8px 0;
+}
+
+/* ---- Suppliers ------------------------------------------------------------ */
+
+#s-sup .supplier-card .drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+#s-sup .suppliers-grid > .empty-state {
+  grid-column: 1 / -1;
+}
+
+/* Panels carry no coloured top bar elsewhere in the product. */
+#s-sup .suppliers-grid .card {
+  border-top: 1px solid var(--border-line);
+}
+
+@media (max-width: 600px) {
+  /* Seven filters stacked one per row pushed the ledger far down a phone.
+     Order type and payment pair up, then sort and reset; the dates, cashier
+     and search keep the full width. The rows follow the DOM order, so what a
+     keyboard user tabs through matches what is on screen (no dense packing). */
+  #s-sales .sales-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The drawer table scrolls sideways; keep its empty message at the left
+     edge where it can be read. */
+  #s-cashdrawers .cash-empty {
+    text-align: left;
+  }
+
+  #s-sales .sales-filter-bar > .filter-group:has(> input),
+  #s-sales .sales-filter-bar > .filter-group:has(> #fCashier) {
+    grid-column: 1 / -1;
+  }
+
+  #s-sales .sales-filter-bar > .filter-bar__actions {
+    grid-column: auto;
+    align-self: end;
+  }
+
+  /* A table scrolls sideways on a phone; its empty or error message stays in
+     view instead of being cut off at the right edge. */
+  .admin-page td > .empty-state,
+  .admin-page td > .error-state {
+    position: sticky;
+    left: 0;
+    max-width: calc(100vw - 96px);
+  }
+}
+
+/* ===========================================================================
+   Cashier page redesign (Task 7b)
+
+   The cashier pages use the same page components as the owner pages
+   (.page-head, .stat-strip, .filter-bar, .empty-state, .error-state), tuned
+   for a counter screen read at arm's length: larger figures, fewer words.
+   cashier.css and styles.css are untouched; everything here overrides.
+   The POS keeps its fixed-height shell: nothing below adds height to a stage
+   beyond a few pixels on the total figures.
+   ======================================================================== */
+
+/* ---- Shared frame (queue, cash, history, stocks) ------------------------- */
+
+/* .cashier-page is a grid with a 22px row gap; the components bring none. */
+.cashier-page > .page-head,
+.cashier-page > .stat-strip {
+  margin: 0;
+}
+
+.cashier-page .page-head__title {
+  font-size: 1.3rem;
+}
+
+.cashier-page .stat__value {
+  font-size: 1.85rem;
+}
+
+.btn-icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cashier-ledger-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+}
+
+.cashier-ledger-heading .panel-heading {
+  margin: 0;
+}
+
+/* A count is a fact about the list, not a status, so it is plain text. */
+.cashier-count {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Same 44px filter controls as the owner pages. */
+.cashier-page .filter-bar .form-label,
+.cashier-page .filter-bar label {
+  margin: 0 0 4px;
+}
+
+.cashier-page .filter-bar select,
+.cashier-page .filter-bar input:not([type="checkbox"]):not([type="radio"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.cashier-page .filter-bar > .filter-group {
+  width: auto;
+  min-width: 0;
+}
+
+.cashier-page .filter-bar > .filter-group:has(> input[type="search"]) {
+  grid-column: span 2;
+}
+
+@media (max-width: 600px) {
+  .cashier-page .filter-bar > .filter-group:has(> input[type="search"]) {
+    grid-column: auto;
+  }
+}
+
+/* Messages that stand in for table rows: readable width, left aligned. */
+.cashier-ledger td[colspan],
+.cashier-ledger td[colspan] b {
+  white-space: normal;
+  text-align: left;
+}
+
+.cashier-ledger td > .empty-state,
+.cashier-ledger td > .error-state {
+  margin: 8px 0;
+}
+
+@media (max-width: 600px) {
+  .cashier-ledger td > .empty-state,
+  .cashier-ledger td > .error-state {
+    position: sticky;
+    left: 0;
+    max-width: calc(100vw - 96px);
+  }
+}
+
+/* ---- Sales and receipts --------------------------------------------------- */
+
+/* The filters stay behind their toggle (the ledger is the point of the page);
+   when open they read as one quiet band above the table. */
+.cashier-filter-panel {
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius-sm);
+  background: var(--surface-subtle);
+}
+
+.cashier-filter-panel > .filter-bar {
+  margin: 0;
+}
+
+/* Vatable and VAT are derived from the total. Below 1440px they pushed Total,
+   Pay and Receipt off the card, so the table leaves them to the receipt and
+   the CSV export (both still carry them). */
+@media (max-width: 1439.98px) {
+  .cashier-history-ledger th.col-vat,
+  .cashier-history-ledger tbody td:nth-child(6):not([colspan]),
+  .cashier-history-ledger tbody td:nth-child(7):not([colspan]) {
+    display: none;
+  }
+
+  .cashier-history-ledger table {
+    min-width: 760px;
+  }
+}
+
+.cashier-history-ledger td:last-child .btn + .btn {
+  margin-left: 4px;
+}
+
+/* Voiding is the one destructive action in the ledger: red text, no fill,
+   so it never competes with View receipt. */
+.cashier-shell .cashier-ledger .btn.action-void {
+  border-color: transparent;
+  background: transparent;
+  color: #B91C1C;
+}
+
+.cashier-shell .cashier-ledger .btn.action-void:hover,
+.cashier-shell .cashier-ledger .btn.action-void:focus-visible {
+  border-color: #FCA5A5;
+  background: #FEF2F2;
+  color: #991B1B;
+}
+
+/* ---- Stock availability -------------------------------------------------- */
+
+/* The ledger column widths in cashier.css are sized for the 10-column sales
+   table; the 4-column stock table lets its columns size themselves. */
+.cashier-stock-ledger table {
+  min-width: 0;
+}
+
+.cashier-stock-ledger th:nth-child(n),
+.cashier-stock-ledger td:nth-child(n) {
+  width: auto;
+  min-width: 0;
+}
+
+.cashier-stock-ledger td:first-child,
+.cashier-stock-ledger td:first-child b {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cashier-stock-ledger td > .skeleton--block {
+  height: 2.5rem;
+}
+
+/* ---- Orders in progress -------------------------------------------------- */
+
+.cashier-orders-page .queue-section-heading h3 {
+  margin: 0 0 4px;
+}
+
+.cashier-orders-page #queue > .queue-empty {
+  grid-column: 1 / -1;
+}
+
+.cashier-orders-page .queue-pages {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.cashier-orders-page .queue-pages:empty {
+  display: none;
+}
+
+/* ---- Cash drawer ---------------------------------------------------------- */
+
+.cashier-cash-page .cash-panel-header h3 {
+  margin: 0 0 6px;
+}
+
+.cashier-cash-page .cash-sync-status {
+  margin: 8px 0 18px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+/* The peso sign sits inside the field, so the figure reads as money. */
+.money-field {
+  position: relative;
+  max-width: 320px;
+  margin-top: 6px;
+}
+
+.money-field__prefix {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.money-field > #cashFloat,
+.money-field > #cashCounted {
+  max-width: none;
+  margin-top: 0;
+  padding-left: 2.4rem;
+}
+
+.reason-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.reason-chips > .btn {
+  min-height: 36px;
+}
+
+/* ---- POS terminal --------------------------------------------------------- */
+
+/* Drawer banner: one icon, one line, one action. */
+.cashier-shell .drawer-big-notif {
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 14px;
+}
+
+.cashier-shell .drawer-big-notif-content {
+  gap: 10px;
+}
+
+.cashier-shell .drawer-big-notif-icon {
+  width: 22px;
+  height: 22px;
+  color: #B45309;
+}
+
+.cashier-shell .drawer-closed-shift .drawer-big-notif-icon {
+  color: #B91C1C;
+}
+
+.cashier-shell .drawer-big-notif-title {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.cashier-shell .drawer-big-notif-action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* While no drawer is open no sale can be made, so Next stops looking like the
+   thing to press. It keeps its handler: pressing it still runs the stage gate
+   and says why the cashier cannot continue. */
+.cashier-shell .mobile-action-bar-row > #posNext.is-drawer-closed,
+.cashier-shell .mobile-action-bar-row > #posNext.is-drawer-closed:hover {
+  border-color: var(--border-subtle);
+  background: #FFFFFF;
+  box-shadow: none;
+  color: var(--text-slate);
+}
+
+/* Customer rows share one set of column tracks, so names, addresses and the
+   balance chip line up down the list. Each row is its own grid, so the chip
+   column has a fixed width rather than "auto". */
+.cashier-shell .customer-search-panel .customer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 10.5rem;
+  align-items: center;
+  gap: 4px 14px;
+  width: 100%;
+  text-align: left;
+}
+
+.cashier-shell .customer-row .cust-row-stat {
+  justify-self: end;
+}
+
+/* "No balance" is the normal case: quiet text, no chip. */
+.cashier-shell .customer-row .badge-clear {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.cashier-shell .customer-row .badge-clear .icon {
+  display: none;
+}
+
+@media (max-width: 650px) {
+  .cashier-shell .customer-search-panel .customer-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cashier-shell .customer-row .cust-row-name { grid-column: 1; grid-row: 1; }
+  .cashier-shell .customer-row .cust-row-addr { grid-column: 1; grid-row: 2; }
+  .cashier-shell .customer-row .cust-row-stat { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* Totals are read from arm's length. */
+.cashier-viewport .total-due-banner b {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================================
+   Employee page redesign (Task 7c)
+
+   Refiller and rider queue chrome, states, dialogs and the shared activity
+   page. The order cards were done in the "Refiller and rider" section above.
+   Read at arm length, wet or one-handed: 16px+ copy, 48px+ targets, 56px for
+   the one action that commits something. employee.css and activity.css are
+   untouched; everything here overrides.
+   ======================================================================== */
+
+/* ---- Queue toolbar ------------------------------------------------------- */
+
+.employee-page .emp-queue-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.employee-page .emp-section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+}
+
+.employee-page .emp-count-pill {
+  min-width: 2rem;
+  padding: 2px 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  background: var(--role-accent);
+  color: #FFFFFF;
+}
+
+.employee-page .emp-queue-desc {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--text-slate);
+  max-width: 52ch;
+}
+
+.employee-page .emp-queue-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.employee-page .emp-pulse-wrapper {
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  background: #FFFFFF;
+  border: 1px solid var(--border-line);
+  border-radius: var(--theme-radius-sm);
+  margin-right: auto;
+}
+
+.employee-page .emp-pulse-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.employee-page .emp-refresh-btn {
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--theme-radius-sm);
+  border-color: var(--border-subtle);
+  color: var(--text-dark);
+}
+
+.employee-page .emp-refresh-btn:focus-visible,
+.employee-page .emp-action-btn:focus-visible,
+.employee-page .emp-issue-top-btn:focus-visible,
+.employee-page .emp-map-btn:focus-visible {
+  outline: 3px solid var(--role-accent);
+  outline-offset: 2px;
+}
+
+.employee-page .emp-refresh-btn-warn {
+  border-color: var(--state-prep-line);
+  color: var(--state-prep-text);
+  background: var(--state-prep-bg);
+}
+
+/* ---- Banners: error, saved-action recovery, result ----------------------- */
+
+.employee-page .emp-alert {
+  padding: 14px 16px;
+  font-size: 1rem;
+  line-height: 1.4;
+  border-radius: var(--theme-radius-sm);
+  background: #FEF2F2;
+  border: 1px solid var(--danger-border);
+  border-left: 4px solid #DC2626;
+  color: var(--danger-text);
+}
+
+.employee-page .emp-alert.hidden,
+.employee-page .emp-alert[hidden] {
+  display: none;
+}
+
+.employee-page .emp-recovery {
+  display: grid;
+  gap: 12px;
+  background: var(--state-prep-bg);
+  border-color: var(--state-prep-line);
+  border-left-color: #D97706;
+  color: var(--state-prep-text);
+}
+
+.employee-page .emp-recovery[hidden] { display: none; }
+
+.employee-page .emp-recovery-text {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.employee-page .emp-recovery-btn {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: var(--theme-radius-sm);
+}
+
+.employee-page #employeeResult {
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--state-done-text);
+  background: var(--state-done-bg);
+  border: 1px solid var(--state-done-line);
+  border-radius: var(--theme-radius-sm);
+}
+
+.employee-page #employeeResult:empty { padding: 0; border: 0; margin: 0; }
+
+/* ---- Empty / loading / error list states --------------------------------- */
+
+.employee-page .emp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 20px;
+  background: #FFFFFF;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--theme-radius);
+  color: var(--text-slate);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.employee-page .emp-empty-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.employee-page .emp-empty-state--error {
+  border-style: solid;
+  border-color: var(--danger-border);
+  background: #FEF2F2;
+}
+
+.employee-page .emp-empty-state--error .emp-empty-title { color: var(--danger-text); }
+
+/* ---- Dialogs (defect report, rider issue, delivery proof) ---------------- */
+
+.employee-page .employee-issue-dialog {
+  width: min(480px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow-pop);
+}
+
+.employee-page .employee-issue-dialog::backdrop {
+  background: rgba(14, 34, 54, 0.6);
+  backdrop-filter: none;
+}
+
+.employee-page .emp-dialog-body,
+.employee-page #deliveryEvidenceForm {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  background: #FFFFFF;
+}
+
+.employee-page .emp-dialog-title,
+.employee-page #deliveryEvidenceForm h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+
+.employee-page .emp-dialog-sub,
+.employee-page #deliveryEvidenceForm p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--text-slate);
+}
+
+.employee-page #deliveryEvidenceForm .emp-evidence-order {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.employee-page #deliveryEvidenceForm .emp-evidence-hint {
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  background: var(--surface-subtle);
+  border-left: 3px solid var(--role-accent);
+  border-radius: var(--theme-radius-sm);
+}
+
+.employee-page .emp-dialog-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.employee-page .emp-dialog-body .form-label,
+.employee-page #deliveryEvidenceForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.employee-page .emp-dialog-body .form-input,
+.employee-page #deliveryEvidenceForm .form-input,
+.employee-page #deliveryEvidenceForm input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 10px 12px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  border: 1px solid #6B7C93;
+  border-radius: var(--theme-radius-sm);
+  background: #FFFFFF;
+  color: var(--text-dark);
+}
+
+.employee-page #deliveryEvidenceForm textarea.form-input {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.employee-page #deliveryEvidenceForm input[type="file"] {
+  border-style: dashed;
+  background: var(--surface-subtle);
+  font-size: 0.95rem;
+}
+
+/* The buyer code is read off a phone screen and typed once. */
+.employee-page #deliveryEvidenceForm input[name="recipient_code"] {
+  min-height: 60px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid var(--ink-700);
+}
+
+.employee-page #deliveryEvidenceForm input[name="recipient_code"]::placeholder {
+  font-size: 1rem;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.employee-page .emp-dialog-body .form-input:focus-visible,
+.employee-page #deliveryEvidenceForm .form-input:focus-visible,
+.employee-page #deliveryEvidenceForm input[type="file"]:focus-visible {
+  outline: 3px solid var(--role-accent);
+  outline-offset: 1px;
+}
+
+.employee-page .emp-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.employee-page .emp-dialog-btn,
+.employee-page .emp-issue-choice,
+.employee-page #deliveryEvidenceForm .btn {
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: var(--theme-radius-sm);
+}
+
+.employee-page #deliveryEvidenceForm .emp-evidence-submit {
+  min-height: 56px;
+  font-size: 1.1rem;
+  background: var(--role-accent);
+  border-color: var(--role-accent);
+  color: #FFFFFF;
+}
+
+.employee-page #deliveryEvidenceForm .emp-evidence-cancel {
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dark);
+}
+
+.employee-page .emp-issue-choices {
+  display: grid;
+  gap: 10px;
+}
+
+.employee-page .emp-issue-choice {
+  width: 100%;
+  text-align: left;
+  padding: 0 16px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dark);
+}
+
+.employee-page #deliveryEvidenceForm .emp-evidence-error,
+.employee-page .emp-dialog-body .auth-error {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--danger-text);
+}
+
+
+@media (max-width: 420px) {
+  .employee-page .emp-dialog-actions { grid-template-columns: 1fr; }
+}
+
+/* ---- Activity page (rider, refiller and cashier share the markup) -------- */
+
+.activity-page .activity-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+}
+
+.activity-page .activity-header p {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--text-slate);
+}
+
+.activity-page .activity-header p.activity-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--role-accent);
+}
+
+.activity-page .activity-refresh-btn {
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--theme-radius-sm);
+  border-color: var(--border-subtle);
+}
+
+.activity-page .activity-refresh-btn:focus-visible {
+  outline: 3px solid var(--role-accent);
+  outline-offset: 2px;
+}
+
+.activity-page .activity-status-bar {
+  font-size: 0.95rem;
+  color: var(--text-slate);
+}
+
+.activity-page .activity-alert {
+  padding: 14px 16px;
+  font-size: 1rem;
+  line-height: 1.4;
+  background: #FEF2F2;
+  border: 1px solid var(--danger-border);
+  border-left: 4px solid #DC2626;
+  border-radius: var(--theme-radius-sm);
+  color: var(--danger-text);
+}
+
+.activity-page .activity-alert.hidden { display: none; }
+
+.activity-page .activity-section-title {
+  font-size: 1.1rem;
+  color: var(--text-dark);
+}
+
+.activity-page .activity-card {
+  border-color: var(--border-line);
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+  padding: 14px 16px;
+}
+
+.activity-page .activity-head { border-bottom-color: var(--border-line); }
+
+.activity-page .activity-title {
+  font-size: 1.05rem;
+  color: var(--text-dark);
+}
+
+.activity-page .activity-subtitle,
+.activity-page .activity-time,
+.activity-page .activity-meta {
+  font-size: 0.95rem;
+  color: var(--text-slate);
+}
+
+.activity-page .activity-lines { color: var(--text-dark); }
+
+.activity-page .activity-amount {
+  font-size: 1.05rem;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-page .activity-badge {
+  font-size: 0.85rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.activity-page .activity-badge--preparing { background: var(--state-prep-bg);  color: var(--state-prep-text);  border-color: var(--state-prep-line); }
+.activity-page .activity-badge--ready     { background: var(--state-ready-bg); color: var(--state-ready-text); border-color: var(--state-ready-line); }
+.activity-page .activity-badge--out_for_delivery { background: var(--state-out-bg); color: var(--state-out-text); border-color: var(--state-out-line); }
+.activity-page .activity-badge--delivered { background: var(--state-done-bg);  color: var(--state-done-text);  border-color: var(--state-done-line); }
+
+.activity-page .activity-empty {
+  padding: 40px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-slate);
+  border-color: var(--border-subtle);
+  border-radius: var(--theme-radius);
+}
+
+@media (max-width: 720px) {
+  .activity-page .activity-heading-actions { width: 100%; }
+  .activity-page .activity-refresh-btn { width: 100%; }
+}
+
+/* ===== Precision ops (2026-11-13) ===== */
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/ibm-plex-sans/IBMPlexSans-Regular-Latin1.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("../fonts/ibm-plex-sans/IBMPlexSans-Medium-Latin1.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("../fonts/ibm-plex-sans/IBMPlexSans-SemiBold-Latin1.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/ibm-plex-sans/IBMPlexSans-Bold-Latin1.woff2") format("woff2");
+}
+
+:root {
+  --surface-bg: #F4F6F9; --surface-subtle: #F8FAFC;
+  --ops-13: .8125rem; --ops-14: .875rem; --ops-15: .9375rem;
+  --ops-17: 1.0625rem; --ops-20: 1.25rem; --ops-24: 1.5rem; --ops-30: 1.875rem;
+  --ops-control: 36px;
+}
+body, body.employee-page, input, select, textarea, button {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+body { font-size: var(--ops-15); caret-color: #1D4ED8; }
+::selection { background: #DBEAFE; color: #0E2236; }
+* { scrollbar-width: thin; scrollbar-color: #64748B #F4F6F9; }
+a { text-underline-offset: .18em; }
+:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 3px; }
+.admin-layout .admin-sidebar { width: 240px; flex-basis: 240px; }
+.admin-layout .sidebar-nav .sidebar-link { min-height: var(--ops-control); padding: 7px 10px; font-size: var(--ops-14); }
+.admin-layout .sidebar-group { margin: 0; padding: 0; border: 0; }
+.admin-layout .sidebar-group-label, .admin-layout .sidebar-section-title {
+  margin: 16px 10px 5px; font-size: var(--ops-13); font-weight: 500;
+  color: #A9BCCF; text-transform: none; letter-spacing: 0;
+}
+.sidebar-clock { display: block; color: #A9BCCF; font-size: var(--ops-13); margin-top: 4px; }
+.admin-topbar { gap: 16px; }
+.admin-topbar-left, .topbar-heading { min-width: 0; }
+.topbar-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.topbar-crumb { color: #475569; font-size: var(--ops-13); }
+.topbar-crumb-sep { flex: 0 0 14px; color: #64748B; }
+.admin-topbar .admin-topbar-title { font-size: var(--ops-20); line-height: 1.25; margin: 0; }
+.admin-topbar-actions, .admin-topbar-actions .page-head__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-main-content .page-head__title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.page-head { margin-bottom: 20px; }
+.page-head__purpose { font-size: var(--ops-14); color: #475569; }
+.admin-page .card, .cashier-page .card { border-radius: 8px; }
+.admin-page .card:not(.data-table-wrapper), .cashier-page .card:not(.data-table-wrapper) { padding: 16px; }
+.admin-page .card .card, .cashier-page .card .card { box-shadow: none; }
+.btn, .form-input, .filter-bar select, .filter-bar input { min-height: var(--ops-control); }
+table.clean th, table.clean td { padding-top: 11px; padding-bottom: 11px; }
+table.clean th, .filter-bar { background: #F8FAFC; }
+.stat-strip .stat.is-alert, .kpi-red { box-shadow: none; background: #FEF2F2; border-color: #FECACA; }
+.error-state, .activity-page .activity-alert, .drawer-big-notif { border-left-width: 1px; border-right-width: 1px; box-shadow: none; }
+.activity-header p.activity-eyebrow, .activity-page .activity-header p.activity-eyebrow { display: none; }
+.status-line { display: block; margin: 0 0 20px; padding: 10px 0; font-size: var(--ops-14); color: #334155; border-bottom: 1px solid #CBD5E1; }
+.status-line .stat { display: inline; padding: 0; background: none; border: 0; box-shadow: none; }
+.status-line .stat + .stat::before { content: " · "; color: #64748B; }
+.status-line .stat__label, .status-line .stat__value { display: inline; font-size: inherit; margin: 0; }
+.status-line .stat__label::after { content: ": "; }
+.status-line .stat__sub { display: none; }
+.level-meter { display: block; position: relative; height: 6px; width: 96px; max-width: 100%; margin: 6px 0 0 auto; background: #E2E8F0; border-radius: 2px; overflow: hidden; }
+.level-meter__fill { display: block; height: 100%; width: calc(clamp(0, var(--level), 1) * 100%); background: #1D3D5C; }
+.level-meter.is-low .level-meter__fill { background: #B45309; }
+.level-meter.is-empty { background: #FEE2E2; border: 1px solid #B91C1C; }
+.level-meter__mark { position: absolute; inset-block: 0; left: calc(clamp(0, var(--mark), 1) * 100%); border-left: 1px solid #0E2236; }
+@media (pointer: coarse) { :root { --ops-control: 44px; } button, .sidebar-link, .table-icon-btn { min-height: 44px; min-width: 44px; } }
+@media (max-width: 760px) {
+  .admin-topbar { flex-wrap: wrap; height: auto; }
+  .admin-topbar-left { width: 100%; }
+  .admin-topbar-actions { flex-basis: 100%; padding-top: 8px; border-top: 1px solid #CBD5E1; }
+  .admin-topbar-actions .page-head__actions { width: 100%; }
+  .topbar-crumb { display: none; }
+  .topbar-crumb-sep { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Neutralise earlier, more-specific alert accents without changing their state. */
+#s-dash .kpi-card-body.kpi-red { box-shadow: none; background: #FEF2F2; }
+.employee-page #deliveryEvidenceForm .emp-evidence-hint { border-left-width: 1px; }
+.admin-layout .btn-primary, .admin-layout .btn-cta { background: #1D4ED8; border-color: #1D4ED8; color: #fff; }
+.admin-layout .btn-primary:hover, .admin-layout .btn-cta:hover { background: #1E40AF; border-color: #1E40AF; }
+.admin-layout .filter-bar input, .admin-layout .filter-bar select { height: var(--ops-control); min-height: var(--ops-control); padding-block: 6px; }
+.admin-layout .sidebar-nav .sidebar-link { padding-block: 5px; }
+.admin-layout .sidebar-nav .sidebar-link-text { line-height: 1.2; }
+.admin-layout .sidebar-nav .sidebar-link-label { font-size: var(--ops-14); }
+
+/* Final review: retained state colours use surfaces and hairline edges. */
+.admin-layout .advisory-card, .admin-layout .approval-card, .admin-layout .audit-card,
+.admin-layout .card--rail, .employee-page .emp-alert, .rep-note,
+button.product-item.prod-theme-blue, button.product-item.prod-theme-teal,
+button.product-item.prod-theme-gray { border-left-width: 1px; border-right-width: 1px; }
+.admin-layout .card .advisory-card { border-radius: 0; box-shadow: none; }
+.cashier-orders-page .queue-card--ready { box-shadow: none; background: #F0FDF4; }
+.admin-layout .admin-sidebar .sidebar-nav .sidebar-link { min-height: var(--ops-control); padding-block: 5px; }
+.admin-layout .btn.btn-cta { background-color: #1D4ED8; border-color: #1D4ED8; box-shadow: none; }
+.admin-layout .btn.btn-cta:hover { background-color: #1E40AF; border-color: #1E40AF; }
+.admin-layout .btn.btn-cta:focus-visible { outline-color: #1D4ED8; }
+.status-line .po-linkbtn { margin-left: .4em; }
+
+/* Finish gate: restock advice is a list inside its panel, not a card in a card.
+   The severity stays in the labelled badge and the badge colour. */
+#s-dash .overview-advisories .advisory-card {
+  background: transparent; border: 0; border-top: 1px solid #E2E8F0;
+  border-radius: 0; box-shadow: none; padding: 12px 0; margin: 0;
+}
+#s-dash .overview-advisories .advisory-card:first-child { border-top: 0; padding-top: 4px; }
+#s-dash .overview-advisories .advisory-card p { margin: 4px 0 0; }
+#s-dash .overview-advisory-head { margin-bottom: 2px; }
+#s-dash .overview-advisory-head b { font-size: var(--ops-15); }
+#s-dash .overview-advisory-head span { font-size: .75rem; padding: 2px 8px; }
+
+/* ---- Independent review fixes (2026-11-13) ---- */
+
+/* Muted text: styles.css resets this to #64748B late in the file; on the
+   #F4F6F9 ground that is 4.40:1. Restore the 4.5:1+ design token. */
+:root { --text-dim: #475569; }
+
+/* Meter tick: a light 2px line with a dark keyline reads on both the dark
+   fill and the pale track. */
+.level-meter__mark { border-left: 0; width: 2px; margin-left: -1px; background: #FFFFFF; box-shadow: 0 0 0 1px #0E2236; }
+
+/* No nested cards: content inside a card is flush, separated by hairlines. */
+.card .data-table-wrapper, .card .cash-table-scroll,
+.admin-layout #s-dash .card .data-table-wrapper, .admin-layout #s-sales .card .data-table-wrapper {
+  border: 0; border-top: 1px solid #E2E8F0; border-radius: 0; box-shadow: none;
+}
+.card .insight-note {
+  border: 0; border-top: 1px solid #E2E8F0; border-radius: 0; background: transparent;
+  box-shadow: none; padding: 12px 0 0;
+}
+#repSheet .rep-profit__card { border: 0; border-top: 2px solid #0E2236; border-radius: 0; box-shadow: none; padding-inline: 0; }
+.stage-card #custCard.active-customer-banner { border: 0; border-radius: 0; box-shadow: none; background: #F8FAFC; }
+#custList .customer-row { border: 0; border-bottom: 1px solid #E2E8F0; border-radius: 0; box-shadow: none; }
+#custList .customer-row:first-child { border-top: 1px solid #E2E8F0; }
+#custList .customer-row.selected { background: #EFF6FF; box-shadow: inset 3px 0 0 #1D4ED8; }
+.queue-workspace .queue-card { border: 0; border-top: 1px solid #E2E8F0; border-radius: 0; box-shadow: none; }
+.queue-workspace .queue-card:first-of-type { border-top: 0; }
+.emp-order-card .emp-order-lines { border: 0; }
+
+/* No eyebrows: the audit kind is a sentence-case label after the title. */
+.audit-head > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.audit-head .audit-title { order: 1; }
+.audit-head .audit-kind, .approval-kind {
+  order: 2; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: var(--ops-13); color: #475569;
+}
+.admin-layout .audit-card { border-left-color: #E2E8F0; }
+
+/* Filter bars: fields share one baseline whatever their label height. */
+.filter-bar { align-items: end; }
+.filter-bar label, .filter-bar .form-label { margin-bottom: 6px; }
+
+/* One top-bar height on desktop, with or without actions. */
+@media (min-width: 761px) {
+  .admin-layout .admin-topbar { min-height: 68px; height: auto; box-sizing: border-box; }
+  .admin-topbar-actions .page-head__actions { padding: 0; margin: 0; min-height: 0; border: 0; }
+  .admin-layout .admin-topbar-actions .page-head__actions > *,
+  .admin-layout .admin-topbar-actions #stockAddButton { margin-block: 0; }
+}
+
+/* One selected state everywhere: blue fill, white text. */
+#s-inv .stock-viewbar > .stage-segment .seg-btn.active,
+#s-staff .staff-mode-switch .seg-btn.active,
+.rep-preset[aria-checked="true"] { background: #1D4ED8; border-color: #1D4ED8; color: #FFFFFF; box-shadow: none; }
+
+/* Staff workspace empty state renders outside employee.css. */
+.emp-empty-title, .emp-empty-body { display: block; }
+
+/* Touch targets: these keep an older fixed height that outranks the generic
+   coarse-pointer rule above. */
+@media (pointer: coarse) {
+  .sidebar-logout-btn,
+  .admin-layout .admin-sidebar .sidebar-logout-btn,
+  .admin-layout .admin-sidebar .sidebar-back-link { height: auto; min-height: 44px; }
+  .skip-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .stat__action, #s-dash .overview-block__link { display: inline-flex; align-items: center; min-height: 44px; }
+  /* The 15px help chip already has a 43px ::after tap area; the generic
+     button min-width stretched it into a 44x15 oval. */
+  .af-tip-btn { min-width: 0; min-height: 0; }
+  .admin-layout .seg-btn, .rep-page .rep-preset { min-height: 44px; }
+  .admin-layout input.form-input, .admin-layout select { min-height: 44px; }
+  #s-inv .stock-viewbar > .stage-segment .seg-btn { min-height: 44px; }
+  #s-dash .customer-search-group input, #s-dash .customer-sort-group select,
+  #s-dash .stock-search-group input, #s-dash .stock-sort-group select { height: 44px; min-height: 44px; }
+}
+@media print { .admin-main-content .page-head__title { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; } }

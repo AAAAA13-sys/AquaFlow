@@ -17,11 +17,10 @@
   <div class="admin-main-container">
     @include('partials.portal-topbar', [
       'defaultTitle' => 'My activity',
-      'clockId' => 'employeeClock',
-      'clockClass' => '',
+      'defaultGroup' => auth()->user()->roleLabel(),
     ])
 
-    <main class="admin-main-content">
+    <main id="main" tabindex="-1" class="admin-main-content">
       <div class="emp-container" data-user-id="{{ auth()->id() }}" data-role="{{ auth()->user()->role }}" data-name="{{ auth()->user()->name }}" data-user="{{ auth()->user()->username }}">
         @include('partials.activity-page')
       </div>

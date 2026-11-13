@@ -20,7 +20,8 @@ class SupplierService
 
     public function delete(Supplier $supplier): void
     {
-        if (StockMovement::where('supplier_id', $supplier->id)->exists()) {
+        if (StockMovement::where('supplier_id', $supplier->id)->exists()
+            || \App\Models\PurchaseOrder::where('supplier_id', $supplier->id)->exists()) {
             throw ValidationException::withMessages(['supplier' => 'This supplier has procurement history and cannot be deleted.']);
         }
         $supplier->delete();

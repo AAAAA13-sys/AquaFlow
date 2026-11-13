@@ -5,9 +5,14 @@
 
 @section('admin-content')
   <section id="s-cust" class="admin-page">
-    @include('partials.admin-page-header', ['eyebrow' => 'CUSTOMER ACCOUNTS', 'heading' => 'Customer Balances', 'description' => 'Review outstanding balances and open a customer account to record a payment.'])
-    <div id="customerSummary" class="admin-summary" aria-label="customers summary"></div>
-    <div class="filter-toolbar no-print table-filters">
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Customer balances</h2>
+        <p class="page-head__purpose">See who owes the station and open an account to record a payment or print a statement.</p>
+      </div>
+    </header>
+    <div id="customerSummary" class="status-line" aria-label="customers summary"></div>
+    <div class="filter-bar no-print" role="group" aria-label="Filter customers">
       <div class="filter-group">
         <label class="form-label" for="custF">Balance status</label>
         <select id="custF" onchange="renderCustTable('', this.value)">
@@ -32,11 +37,20 @@
         <tbody id="custBody"></tbody>
       </table>
     </div>
+    <div id="statementSheet" class="sheet" data-station="{{ $stationName ?? 'AquaFlow' }}" hidden></div>
   </section>
 
   <!-- Lateral Detail Drawer -->
   @include('partials.editor-drawer', ['drawerId' => 'drawer', 'bodyId' => 'drawerBody', 'title' => 'Customer Detail', 'closeAction' => 'closeDrawer()'])
 @endsection
+
+@push('styles')
+  <link rel="stylesheet" href="{{ asset('css/erp-statement.css') }}?v={{ asset_version('css/erp-statement.css') }}">
+@endpush
+
+@push('scripts')
+  <script src="{{ asset('js/admin/customer-statement.js') }}?v={{ asset_version('js/admin/customer-statement.js') }}"></script>
+@endpush
 
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Customer Balances'])
 renderCustTable('', '');

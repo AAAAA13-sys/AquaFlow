@@ -47,9 +47,14 @@ function approvalRoleLabel(role) {
   return { super_admin: 'Owner', admin: 'Manager', cashier: 'Cashier', refiller: 'Refiller', rider: 'Rider' }[role] || role || '';
 }
 
+// Each load gets a number; only the newest one may draw. A slow response for a
+// filter the operator has already changed must not overwrite the newer list.
+let approvalLoadSeq = 0;
+
 async function loadApprovals() {
   const list = document.getElementById('approvalList');
   if (!list) return;
+  const seq = ++approvalLoadSeq;
 
   const params = {};
   const state = document.getElementById('approvalState')?.value;
@@ -59,12 +64,15 @@ async function loadApprovals() {
 
   try {
     const result = await API.approvals(params);
+    if (seq !== approvalLoadSeq) return;
     approvalCache = result.requests || [];
     renderApprovals();
     SidebarApprovals.pendingCount = Number(result.pending_count || 0);
     renderSidebarBadges();
   } catch (error) {
-    list.innerHTML = '<p class="empty-state" role="alert">' + esc(error.message || 'Could not load approval requests.') + '</p>';
+    if (seq !== approvalLoadSeq) return;
+    list.innerHTML = '<div class="error-state" role="alert"><p class="error-state__message">Approval requests could not be loaded. ' + esc(error.message || '') + '</p>' +
+      '<button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="loadApprovals()">Retry</button></div>';
   }
 }
 
@@ -76,14 +84,12 @@ function renderApprovals() {
   if (summary) {
     const pending = approvalCache.filter(r => r.is_pending).length;
     const mine = approvalCache.filter(r => r.is_pending && r.can_decide).length;
-    summary.innerHTML =
-      '<article><span>Waiting for a decision</span><strong>' + pending + '</strong><small>Nothing has changed yet</small></article>' +
-      '<article><span>You can decide now</span><strong>' + mine + '</strong><small>Routed to your level</small></article>' +
-      '<article><span>On this list</span><strong>' + approvalCache.length + '</strong><small>Across the chosen filter</small></article>';
+    summary.textContent = pending ? pending + (pending === 1 ? ' request awaits' : ' requests await') + ' a decision; you can decide ' + mine + ' on this list.' : 'No pending requests on this list.';
   }
 
   if (!approvalCache.length) {
-    list.innerHTML = '<p class="empty-state">Nothing here. Changes that need approval will appear on this list.</p>';
+    list.innerHTML = '<div class="empty-state card"><p class="empty-state__title">No requests on this list</p>' +
+      '<p class="empty-state__body">Nothing here. Changes that need approval will appear on this list.</p></div>';
     return;
   }
 

@@ -186,6 +186,29 @@ const API = {
     return this.patch('defects/' + id + '/' + action, notes === undefined || notes === null ? {} : { notes: notes });
   },
 
+  // Purchasing (purchase orders). Stock-changing writes carry a submission
+  // key so a retried receive returns the original result instead of
+  // receiving twice.
+  purchaseOrders(params) { return this.getWithQuery('purchase-orders', params); },
+  purchaseOrder(id) { return this.get('purchase-orders/' + id); },
+  purchaseOrderSuggestions() { return this.get('purchase-orders/suggestions'); },
+  createPurchaseOrder(payload) { return this.post('purchase-orders', payload); },
+  updatePurchaseOrder(id, payload) { return this.patch('purchase-orders/' + id, payload); },
+  markPurchaseOrderOrdered(id) { return this.post('purchase-orders/' + id + '/order'); },
+  receivePurchaseOrder(id, payload) { return this.post('purchase-orders/' + id + '/receive', payload); },
+  cancelPurchaseOrder(id, reason) { return this.post('purchase-orders/' + id + '/cancel', { reason: reason }); },
+
+  // Operating expenses
+  expenses(params) { return this.getWithQuery('expenses', params); },
+  createExpense(payload) { return this.post('expenses', payload); },
+  voidExpense(id, reason) { return this.post('expenses/' + id + '/void', { reason: reason }); },
+
+  // Customer account statements
+  customerStatement(id, params) { return this.getWithQuery('customers/' + id + '/statement', params); },
+
+  // Period reports
+  reportSummary(params) { return this.getWithQuery('reports/summary', params); },
+
   // Users
   users() { return this.get('users'); },
   createUser(user) { return this.post('users', user); },

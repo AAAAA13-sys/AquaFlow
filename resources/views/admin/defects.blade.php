@@ -3,13 +3,25 @@
 @section('title', 'Defect Reports | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Defect Reports')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" class="btn btn-secondary" onclick="loadDefectReports()">Refresh</button>
+      </div>
+@endsection
+
 @section('admin-content')
   <section id="s-defects" class="admin-page">
-    @include('partials.admin-page-header', ['eyebrow' => 'STOCK CONTROL', 'heading' => 'Defect Reports', 'description' => 'Review and approve reported damaged stock to adjust inventory.'])
+    <header class="page-head">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Defect reports</h2>
+        <p class="page-head__purpose">Approve damaged stock your staff reported so it comes off the count, or reject it if it is still usable.</p>
+      </div>
 
-    <div id="defectSummary" class="admin-summary" aria-label="defect report summary"></div>
+    </header>
 
-    <div class="filter-toolbar no-print table-filters">
+    <div id="defectSummary" class="status-line" aria-label="defect report summary"></div>
+
+    <div class="filter-bar no-print" role="group" aria-label="Filter defect reports">
       <div class="filter-group">
         <label class="form-label" for="defectStatus">Status</label>
         <select id="defectStatus" onchange="renderDefectTable()">
@@ -36,7 +48,7 @@
             <th class="text-right">Actions</th>
           </tr>
         </thead>
-        <tbody id="defectBody"></tbody>
+        <tbody id="defectBody"><tr><td colspan="7"><span class="skeleton skeleton--block" aria-hidden="true"></span><span class="visually-hidden">Loading defect reports</span></td></tr></tbody>
       </table>
     </div>
   </section>
@@ -46,7 +58,3 @@
 loadDefectReports();
 startPageRefresh(loadDefectReports);
 @endcomponent
-
-@push('scripts')
-<script src="{{ asset('js/admin/defects.js') }}?v={{ asset_version('js/admin/defects.js') }}"></script>
-@endpush

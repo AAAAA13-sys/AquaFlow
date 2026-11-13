@@ -73,23 +73,21 @@ function renderUsers() {
   });
   const summary = document.getElementById('teamSummary');
   if (summary) {
-    summary.innerHTML = '<article><span>Active accounts</span><strong>' + visibleUsers.filter(u => u.active !== false).length + '</strong><small>Accounts with station access</small></article>' +
-      '<article><span>Staff</span><strong>' + visibleUsers.filter(u => ['cashier', 'refiller', 'rider'].includes(u.role)).length + '</strong><small>Operational staff</small></article>' +
-      (isManager
-        ? '<article><span>Managers</span><strong>' + visibleUsers.filter(u => u.role === 'admin').length + '</strong><small>Station management</small></article>'
-        : '<article><span>Owners</span><strong>' + visibleUsers.filter(u => u.role === 'super_admin').length + '</strong><small>Station management access</small></article>');
+    summary.textContent = visibleUsers.filter(u => u.active !== false).length + ' active accounts; ' + visibleUsers.filter(u => u.active === false).length + ' inactive. Review access when staff responsibilities change.';
   }
   body.innerHTML = filterTableRows(visibleUsers, 'usersBody').map(u => {
     const active = u.active !== false;
     const canManage = u.can_manage === true;
     return '<tr><td>' + escUser(u.u) + '</td><td>' + escUser(u.name) + '</td>' +
-      '<td><span class="pill ' + (u.role === 'admin' ? 'pill-ok' : 'pill-info') + '">' + escUser(roleLabel(u.role)) + '</span></td>' +
+      // Role is a fact, not a state, so it reads as neutral text. Only an
+      // inactive account is flagged; "Active" is the normal case and stays quiet.
+      '<td><span class="role-tag">' + escUser(roleLabel(u.role)) + '</span></td>' +
       '<td>' + escUser(u.access || (['super_admin', 'admin'].includes(u.role) ? 'Management' : 'Staff workspace')) + '</td>' +
-      '<td><span class="pill ' + (active ? 'pill-ok' : 'pill-bad') + '">' + (active ? 'Active' : 'Inactive') + '</span></td>' +
+      '<td>' + (active ? '<span class="cell-quiet">Active</span>' : '<span class="pill pill-warn">Inactive</span>') + '</td>' +
       '<td style="white-space:nowrap;">' + (canManage
-        ? '<button onclick="openUserEditor(' + u.id + ')" class="btn btn-ghost btn-sm">Edit</button> ' +
-          '<button onclick="toggleUserActive(' + u.id + ')" class="btn btn-ghost btn-sm">' + (active ? 'Deactivate' : 'Activate') + '</button> ' +
-          '<button onclick="deleteUser(' + u.id + ')" class="btn btn-ghost btn-sm">Delete</button>'
+        ? '<button type="button" onclick="openUserEditor(' + u.id + ')" class="btn btn-ghost btn-sm">Edit</button> ' +
+          '<button type="button" onclick="toggleUserActive(' + u.id + ')" class="btn btn-ghost btn-sm">' + (active ? 'Deactivate' : 'Activate') + '</button> ' +
+          '<button type="button" onclick="deleteUser(' + u.id + ')" class="btn btn-ghost btn-sm action-destructive">Delete</button>'
         : '<span class="cell-sub">Protected account</span>') + '</td></tr>';
   }).join('');
   showTableEmpty(body, 6);

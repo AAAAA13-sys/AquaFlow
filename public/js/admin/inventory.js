@@ -48,6 +48,15 @@ function setStockFilter(key) {
   renderInvTable();
 }
 
+// Status for a stock row. "OK" is the normal case on most rows, so it is quiet
+// text; pills are kept for the states that need someone to act (low, out, or
+// no reorder point set).
+function stockStatusCell(st) {
+  return st[1] === 'pill-ok'
+    ? '<span class="cell-quiet">' + esc(st[0]) + '</span>'
+    : '<span class="pill ' + st[1] + '">' + esc(st[0]) + '</span>';
+}
+
 function renderInvTable() {
   const body = document.getElementById('invBody');
   if (body) {
@@ -62,11 +71,11 @@ function renderInvTable() {
       return '<tr' + (isUnconfigured(v) ? ' class="is-unconfigured"' : '') + '>' +
         '<td><b>' + esc(v.item) + '</b>' + supplierSub + '</td>' +
         '<td class="nowrap">' + esc(v.cat) + '</td>' +
-        '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span></td>' +
+        '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + unitText + '</span>' + levelMeterHTML(v.on, isUnconfigured(v) ? null : v.rop, Math.max(Number(v.target) || 0, Number(v.rop) * 2)) + '</td>' +
         '<td class="num">' + minVal + '</td>' +
         '<td class="num" id="rop' + i + '">' + ropVal + '</td>' +
         '<td class="text-center">' + Number(v.lead) + (Number(v.lead) === 1 ? ' day' : ' days') + '</td>' +
-        '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td>' +
+        '<td class="text-center">' + stockStatusCell(st) + '</td>' +
         '<td class="text-center" style="white-space:nowrap;">' +
         (v.id ? '<div class="table-actions">' +
           '<button type="button" onclick="openStockDetail(' + v.id + ')" class="table-icon-btn" title="History" aria-label="Movement History" data-tip="Movement History"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>' +
@@ -78,10 +87,17 @@ function renderInvTable() {
   }
 
   const summary = document.getElementById('inventorySummary');
-  if (summary) summary.innerHTML = '<article><span>Stock items</span><strong>' + DB.inventory.length + '</strong><small>Supplies and retail stock</small></article><article><span>Need reordering</span><strong>' + DB.inventory.filter(needsReorder).length + '</strong><small>At or below the reorder threshold</small></article><article><span>Out of stock</span><strong>' + DB.inventory.filter(v => Number(v.on) <= 0).length + '</strong><small>Items with no available quantity</small></article><article><span>Not configured</span><strong>' + DB.inventory.filter(isUnconfigured).length + '</strong><small>No reorder point set yet</small></article>';
+  if (summary) {
+    const reorder = DB.inventory.filter(needsReorder);
+    const out = DB.inventory.filter(v => Number(v.on) <= 0).length;
+    const unset = DB.inventory.filter(isUnconfigured).length;
+    summary.textContent = !DB.inventory.length ? 'No stock items yet.' :
+      (reorder.length ? reorder.length + (reorder.length === 1 ? ' item needs' : ' items need') + ' reordering: ' + reorder.slice(0, 3).map(v => v.item).join(', ') + (reorder.length > 3 ? '…' : '.') : 'No configured items need reordering.') +
+      (out ? ' ' + out + ' out of stock.' : '') + (unset ? ' ' + unset + ' need a reorder point.' : '');
+  }
   const crit = DB.inventory.filter(needsReorder);
   const health = document.getElementById('invHealth');
-  if (health) health.textContent = crit.length + ' item(s) need reorder';
+  if (health) health.textContent = crit.length + (crit.length === 1 ? ' item needs' : ' items need') + ' reorder';
 
   renderStockFilterTabs();
 
@@ -120,7 +136,7 @@ function renderInvTable() {
           '<td class="num"><b>' + Number(v.on).toLocaleString() + '</b><span class="num-unit">' + esc(v.unit) + '</span></td>' +
           '<td class="num">' + ropVal + '</td>' +
           '<td class="num">' + days + '</td>' +
-          '<td class="text-center"><span class="pill ' + st[1] + '">' + st[0] + '</span></td></tr>';
+          '<td class="text-center">' + stockStatusCell(st) + '</td></tr>';
       }).join('');
     }
   }
@@ -254,20 +270,22 @@ function renderSup() {
   if (!grid) return;
   const summary = document.getElementById('supplierSummary');
   if (summary) {
-    const leads = DB.suppliers.map(s => Number(s.lead)).filter(n => n > 0);
-    summary.innerHTML = '<article><span>Suppliers</span><strong>' + DB.suppliers.length + '</strong><small>Purchasing contacts</small></article><article><span>Average delivery time</span><strong>' + (leads.length ? (leads.reduce((a, b) => a + b, 0) / leads.length).toFixed(1) + ' days' : '—') + '</strong><small>Based on supplier delivery times</small></article><article><span>With contact details</span><strong>' + DB.suppliers.filter(s => s.contact && s.contact !== '-').length + '</strong><small>Suppliers you can reach directly</small></article>';
+    const missing = DB.suppliers.filter(s => !s.contact || s.contact === '-').length;
+    summary.textContent = DB.suppliers.length + ' suppliers.' + (missing ? ' ' + missing + ' need contact details.' : ' Contact details are complete.');
   }
   grid.innerHTML = filterTableRows(DB.suppliers, 'supGrid').map(s => {
     const key = supKey(s);
     const keyAttr = (s.id !== undefined && s.id !== null) ? s.id : "'" + String(s.name).replace(/'/g, "\\'") + "'";
-    return '<div class="card"><h3 class="panel-heading">' + esc(s.name) + '</h3>' +
+    return '<div class="card supplier-card"><h3 class="panel-heading">' + esc(s.name) + '</h3>' +
       '<p class="cell-sub">' + esc(s.item) + '</p>' +
-      '<div class="insight-row"><span>Lead time</span><b>' + s.lead + ' days</b></div>' +
+      '<div class="insight-row"><span>Lead time</span><b>' + esc(s.lead) + ' days</b></div>' +
       '<div class="insight-row"><span>Contact</span><b>' + esc(s.contact) + '</b></div>' +
       '<div class="insight-row"><span>Last delivery</span><b>' + esc(s.last) + '</b></div>' +
-      '<div class="drawer-actions" style="margin-top:.5rem;"><button onclick="openSupplierEditor(' + keyAttr + ')" class="btn btn-ghost btn-sm">Edit</button>' +
-      ' <button onclick="deleteSupplier(' + keyAttr + ')" class="btn btn-ghost btn-sm">Delete</button></div></div>';
-  }).join('') || '<p class="empty-cell">No matching suppliers.</p>';
+      '<div class="drawer-actions"><button type="button" onclick="openSupplierEditor(' + keyAttr + ')" class="btn btn-ghost btn-sm">Edit</button>' +
+      ' <button type="button" onclick="deleteSupplier(' + keyAttr + ')" class="btn btn-ghost btn-sm action-destructive">Delete</button></div></div>';
+  }).join('') || (DB.suppliers.length
+    ? '<div class="empty-state card"><p class="empty-state__title">No matching suppliers.</p><p class="empty-state__body">Try another name or clear the search.</p></div>'
+    : '<div class="empty-state card"><p class="empty-state__title">No suppliers yet</p><p class="empty-state__body">Add the people you buy jugs, seals and filters from so purchase orders can name them.</p></div>');
 }
 
 async function createSupplier(event) {

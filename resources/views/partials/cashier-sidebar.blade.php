@@ -39,7 +39,6 @@
     @endif
   </nav>
 
-
   <div class="sidebar-footer">
     <div class="sidebar-user-card">
       <div class="sidebar-user-meta">
@@ -48,6 +47,7 @@
           <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Cashier' }}">{{ auth()->user()?->name ?? 'Cashier' }}</b>
           <span class="sidebar-role-chip">{{ auth()->user()?->roleLabel() ?? 'Cashier' }}</span>
         </div>
+        <span id="clock" class="sidebar-clock"></span>
       </div>
     </div>
 

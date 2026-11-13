@@ -61,6 +61,10 @@ RUN docker-php-ext-install pdo_mysql \
 RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
         /etc/apache2/sites-available/000-default.conf \
         /etc/apache2/apache2.conf \
+    # Debian's stock `Alias /icons/` (for directory listings) shadows
+    # public/icons/, which made /icons/sprite.svg 404 and blanked every icon.
+    && sed -ri 's!^(\s*Alias /icons/)!# \1!' /etc/apache2/mods-available/alias.conf \
+    && ! grep -Eq '^\s*Alias /icons/' /etc/apache2/mods-available/alias.conf \
     && { \
          echo '<Directory /var/www/html/public>'; \
          echo '  AllowOverride All'; \

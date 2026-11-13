@@ -31,7 +31,7 @@ function renderCashierStocksTable() {
   if (!tbody) return;
   if (cashierStocksError) {
     if (badge) badge.textContent = 'Unavailable';
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Stock could not be refreshed. <button type="button" class="btn btn-secondary btn-sm" onclick="loadCashierStocks()">Retry</button></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-cell"><div class="error-state" role="alert"><p class="error-state__message">Stock could not be refreshed. Check the connection and try again.</p><button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="loadCashierStocks()">Retry</button></div></td></tr>';
     return;
   }
 
@@ -57,7 +57,9 @@ function renderCashierStocksTable() {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center empty-cell" style="padding:2rem;color:var(--text-muted, #64748b);">No stock items match your search or filter.</td></tr>';
+    tbody.innerHTML = cashierInventoryData.length
+      ? '<tr><td colspan="4" class="empty-cell"><div class="empty-state"><p class="empty-state__title">No items match</p><p class="empty-state__body">Clear the search or choose another category.</p></div></td></tr>'
+      : '<tr><td colspan="4" class="empty-cell"><div class="empty-state"><p class="empty-state__title">No stock items yet</p><p class="empty-state__body">Your manager adds supplies in Stock &amp; Prices.</p></div></td></tr>';
     return;
   }
 
@@ -66,8 +68,9 @@ function renderCashierStocksTable() {
     const statusPill = Number(item.on ?? 0) <= 0
       ? '<span class="pill pill-bad">Out of stock</span>'
       : isLow
-      ? '<span class="pill pill-bad">Low stock</span>'
-      : '<span class="pill pill-ok">In stock</span>';
+      ? '<span class="pill pill-warn">Low stock</span>'
+      // The normal case is quiet text, so the rows that need attention stand out.
+      : '<span class="cell-quiet">In stock</span>';
 
     const unitText = esc(item.unit || 'pcs');
     const onHand = Number(item.on ?? 0).toLocaleString();
@@ -75,7 +78,7 @@ function renderCashierStocksTable() {
       <tr>
         <td><b>${esc(item.item)}</b></td>
         <td>${esc(item.cat || '—')}</td>
-        <td class="num"><b>${onHand}</b><span class="num-unit">${unitText}</span></td>
+        <td class="num"><b>${onHand}</b><span class="num-unit">${unitText}</span>${levelMeterHTML(item.on, item.rop, Math.max(Number(item.target) || 0, Number(item.rop) * 2))}</td>
         <td class="text-center">${statusPill}</td>
       </tr>
     `;

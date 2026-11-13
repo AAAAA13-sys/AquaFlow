@@ -1,14 +1,22 @@
 // Customer Table Rendering
+// The shared walk-in account records counter sales without a named buyer. It
+// never carries a balance to chase, so it is left out of the balances list
+// (the overview already skips it the same way).
+function isWalkInGuest(c) {
+  return !!c && (c.is_guest === true || c.name === 'Walk-in Guest');
+}
+
 function renderCustTable(q, f) {
   const body = document.getElementById('custBody');
   if (!body) return;
+  const accounts = DB.customers.filter(c => !isWalkInGuest(c));
   const summary = document.getElementById('customerSummary');
   if (summary) {
-    const owing = DB.customers.filter(c => Number(c.debt) > 0);
-    summary.innerHTML = '<article><span>Outstanding balance</span><strong>' + money(owing.reduce((n, c) => n + Number(c.debt), 0)) + '</strong><small>Across all customer accounts</small></article><article><span>Customers with a balance</span><strong>' + owing.length + '</strong><small>Accounts awaiting payment</small></article><article><span>Customer accounts</span><strong>' + DB.customers.length + '</strong><small>Registered in your station</small></article>';
+    const owing = accounts.filter(c => Number(c.debt) > 0);
+    summary.textContent = owing.length ? owing.length + (owing.length === 1 ? ' customer has' : ' customers have') + ' an outstanding balance of ' + money(owing.reduce((n, c) => n + Number(c.debt), 0)) + '.' : 'No outstanding customer balances.';
   }
   q = (q || '').toLowerCase();
-  const rows = filterTableRows(DB.customers, 'custBody')
+  const rows = filterTableRows(accounts, 'custBody')
     .filter(c => !f || (f === 'bottles' ? (pending(c).s + pending(c).r) > 0 : c.debt > 0));
 
   // Scale each balance against the largest one on screen, so the biggest
@@ -42,7 +50,7 @@ function openDrawer(id) {
     '<b>' + esc(c.name) + '</b><p class="cell-sub">' + esc(c.addr) + ' | ' + esc(c.contact) + '</p>' +
     '<div class="drawer-stat">Outstanding balance<b>' + money(Number(c.debt)) + '</b></div>' +
     '<div class="drawer-actions"><button onclick="payDebt(' + c.id + ')" class="btn btn-primary btn-sm">Record payment</button>' +
-
+    '<button type="button" id="custStatementBtn" onclick="openCustomerStatement(' + c.id + ')" class="btn btn-secondary btn-sm">Statement</button>' +
     '</div>';
   drawer.classList.remove('hidden');
 }

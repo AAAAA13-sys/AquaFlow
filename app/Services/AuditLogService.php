@@ -138,7 +138,7 @@ class AuditLogService
     /** A display name that survives the row being deleted later. */
     private function label(Model $entity): ?string
     {
-        foreach (['name', 'item_name', 'receipt_number'] as $attribute) {
+        foreach (['name', 'item_name', 'receipt_number', 'po_number'] as $attribute) {
             $value = $entity->getAttribute($attribute);
             if (is_string($value) && $value !== '') {
                 return mb_substr($value, 0, 150);

@@ -24,12 +24,15 @@ function renderQueuePage() {
  list.innerHTML = (DB.queue || []).map(q => {
   const ready = !q.completed && q.fulfillment_status === 'ready' && q.orderType === 'Walk-in';
   const note = q.completed ? 'Customer received this order' : (q.fulfillment_status === 'ready' ? (q.orderType === 'Delivery' ? 'Ready for rider dispatch' : 'Ready for customer pickup') : q.fulfillment_status === 'out_for_delivery' ? 'With the delivery rider' : 'Waiting for preparation');
+  // The pill shows the order's actual state; "Active order" was true of every card on the Active tab.
+  const state = q.completed ? 'delivered' : (q.fulfillment_status || 'preparing');
+  const stateLabel = ({ preparing: 'Preparing', ready: 'Ready', out_for_delivery: 'Out for delivery', delivered: 'Delivered' })[state] || 'In progress';
   const time = q.completed ? (q.delivered_at ? 'Delivered ' + new Date(q.delivered_at).toLocaleString() : 'Handover time unavailable') : 'Waiting ' + queueWaitLabel(q.mins);
-  return '<article class="queue-card' + (ready ? ' queue-card--ready' : '') + '"><div class="queue-card-heading"><span class="queue-receipt">' + esc(q.no) + '</span><span class="pill ' + (q.completed ? 'pill-ok' : 'pill-info') + '">' + (q.completed ? 'Delivered' : 'Active order') + '</span></div>' +
+  return '<article class="queue-card' + (ready ? ' queue-card--ready' : '') + '"><div class="queue-card-heading"><span class="queue-receipt">' + esc(q.no) + '</span><span class="state-pill" data-state="' + esc(state) + '">' + esc(stateLabel) + '</span></div>' +
    '<h3>' + esc(q.cust) + '</h3><div class="queue-order-detail"><span class="queue-channel">' + esc(q.orderType) + '</span><span>' + esc(q.items) + '</span></div>' +
    '<div class="queue-card-footer"><div><p class="queue-next-action">' + esc(note) + '</p><p class="queue-meta">' + esc(time) + '</p></div>' +
    (ready ? '<button class="btn btn-primary btn-sm" onclick="deliverQueueOrder(' + Number(q.id) + ',this)">Confirm ' + (q.orderType === 'Delivery' ? 'delivery' : 'handover') + '</button>' : '') + '</div></article>';
- }).join('') || '<div class="cashier-empty"><b>No ' + (queueStatus === 'active' ? 'active orders' : 'delivered orders') + '</b><p>' + (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.') + '</p></div>';
+ }).join('') || '<div class="empty-state queue-empty"><p class="empty-state__title">No ' + (queueStatus === 'active' ? 'active orders' : 'delivered orders') + '</p><p class="empty-state__body">' + (document.getElementById('queueSearch').value ? 'Try another receipt or customer name.' : 'Orders will appear here when available.') + '</p></div>';
 }
 async function selectQueueStatus(status) {
  queueStatus=status; queuePage=1;
@@ -119,8 +122,8 @@ async function renderHistoryPage() {
       const element = document.getElementById(id);
       if (element) element.innerHTML = '';
     }
-    body.innerHTML = '<tr><td colspan="10" class="cashier-empty"><b>Could not load transactions</b><p>' +
-      esc(error.message || 'Please try again.') + '</p><button type="button" class="btn btn-ghost btn-sm" onclick="renderHistoryPage()">Retry</button></td></tr>';
+    body.innerHTML = '<tr><td colspan="10"><div class="error-state" role="alert"><p class="error-state__message"><b>Could not load transactions.</b> ' +
+      esc(error.message || 'Please try again.') + '</p><button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="renderHistoryPage()">Retry</button></div></td></tr>';
     return;
   }
   if (request !== cashierHistoryRequest) return;
@@ -145,14 +148,18 @@ async function renderHistoryPage() {
 
   const summary = document.getElementById('hSum');
   if (summary) {
+    // One stat strip, the same component as the owner's Sales history. A zero
+    // figure goes quiet; nothing here is red, because none of it needs a
+    // decision from the cashier.
+    const stat = (label, value, sub, clear) =>
+      '<div class="stat' + (clear ? ' is-clear' : '') + '"><span class="stat__label">' + label + '</span>' +
+      '<span class="stat__value">' + value + '</span>' + (sub ? '<span class="stat__sub">' + sub + '</span>' : '') + '</div>';
     summary.innerHTML =
-      '<article><span>Sales revenue</span><strong>' + money(revenue) + '</strong><small>' +
-        sales.length + (sales.length === 1 ? ' sale' : ' sales') + '</small></article>' +
-      '<article><span>Debt payments</span><strong>' + money(collected) + '</strong><small>' +
-        (payments.length ? payments.length + (payments.length === 1 ? ' payment recorded' : ' payments recorded') : 'None this period') +
-        '</small></article>' +
-      '<article><span>Cash from sales</span><strong>' + money(cash) + '</strong></article>' +
-      '<article><span>Records</span><strong>' + rows.length + '</strong></article>';
+      stat('Sales revenue', money(revenue), sales.length + (sales.length === 1 ? ' sale' : ' sales'), !sales.length) +
+      stat('Debt payments', money(collected),
+        payments.length ? payments.length + (payments.length === 1 ? ' payment recorded' : ' payments recorded') : 'None this period', !payments.length) +
+      stat('Cash from sales', money(cash), '', !cash) +
+      stat('Records', rows.length, '', !rows.length);
   }
 
   markScrollableTables('ledgerScrollNote');
@@ -174,8 +181,8 @@ function renderHistoryRows() {
       '<td class="table-item-cell"><span>' + esc(t.type) + '</span>' + (t.gal ? '<span class="cell-sub table-item-lines">' + esc(historyVolumeLabel(t.gal)).replace(/,\s*(?=\d+\s*[×x]\s)/g, '\n') + '</span>' : '') + '</td>' +
       '<td class="num">' + money(t.vatable || 0) + '</td><td class="num">' + money(t.vat || 0) + '</td>' +
       '<td class="num col-total"><b>' + money(t.total) + '</b></td><td>' + esc(t.pay) + '</td>' +
-      '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button>' + (!t.voided && t.type !== 'Debt Payment' ? '<button type="button" class="btn btn-ghost btn-sm" onclick="voidSale(' + (start + i) + ')">Void sale</button>' : '') + '</td></tr>';
-  }).join('') || '<tr><td colspan="10" class="cashier-empty"><b>No transactions found</b><p>Try another period or clear your search.</p></td></tr>';
+      '<td class="text-center"><button class="btn btn-ghost btn-sm" onclick="viewHistoryReceipt(' + (start + i) + ')">View receipt</button>' + (!t.voided && t.type !== 'Debt Payment' ? '<button type="button" class="btn btn-ghost btn-sm action-void" onclick="voidSale(' + (start + i) + ')">Void sale</button>' : '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="10"><div class="empty-state"><p class="empty-state__title">No transactions found</p><p class="empty-state__body">Try another period or clear your search.</p></div></td></tr>';
   // Preserve focused receipt controls when a refresh returns the same rows.
   if (body.innerHTML !== html) body.innerHTML = html;
   const nav = document.getElementById('historyPages');
@@ -215,5 +222,5 @@ async function refreshQueuePage() {
   document.getElementById('queueCount').textContent=response.total+' orders';
   document.getElementById('queuePages').innerHTML='<button class="btn btn-ghost btn-sm" onclick="changeQueuePage(-1)"'+(queuePage===1 ? ' disabled' : '')+'>Previous</button><span>Page '+queuePage+'</span><button class="btn btn-ghost btn-sm" onclick="changeQueuePage(1)"'+(!response.has_more ? ' disabled' : '')+'>Next</button>';
   return true;
- } catch(error) { if(request===queueRequest) { document.getElementById('queue').innerHTML='<div class="cashier-empty" role="alert"><p>'+esc(error.message || 'Unable to load orders.')+'</p><button class="btn btn-secondary" onclick="refreshQueuePage()">Retry</button></div>'; document.getElementById('queueCount').textContent='Unavailable'; document.getElementById('queuePages').innerHTML=''; } return false; }
+ } catch(error) { if(request===queueRequest) { document.getElementById('queue').innerHTML='<div class="error-state queue-empty" role="alert"><p class="error-state__message">'+esc(error.message || 'Unable to load orders.')+'</p><button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="refreshQueuePage()">Retry</button></div>'; document.getElementById('queueCount').textContent='Unavailable'; document.getElementById('queuePages').innerHTML=''; } return false; }
 }

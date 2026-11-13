@@ -3,12 +3,26 @@
 @section('title', 'Demand Forecast | ' . ($stationName ?? 'AquaFlow'))
 @section('topbar-title', 'Demand Forecast')
 
+@section('page-actions')
+<div class="page-head__actions">
+        <button type="button" onclick="exportReport()" class="btn btn-secondary">Export Report</button>
+        <button type="button" onclick="exportReportPDF()" class="btn btn-secondary">Print / Save PDF</button>
+        <button type="button" id="btnRunForecast" onclick="runForecast()" class="btn btn-primary">Update Forecast</button>
+      </div>
+@endsection
+
 @section('admin-content')
   <section id="s-arima" class="admin-page">
-    @include('partials.admin-page-header', ['eyebrow' => 'PLANNING', 'heading' => 'Demand Forecast', 'description' => 'Use sales history to estimate demand and plan supplies for the next seven days.'])
+    <header class="page-head no-print">
+      <div class="page-head__text">
+        <h2 class="page-head__title">Demand forecast</h2>
+        <p class="page-head__purpose">Use sales history to estimate demand and plan supplies for the next seven days.</p>
+      </div>
 
-<div class="card filter-toolbar no-print">
-      <div class="filter-group">
+    </header>
+
+    <div class="filter-bar forecast-filter-bar no-print" role="group" aria-label="Forecast view">
+      <div>
         <label class="form-label" for="fHorizon">Time view</label>
         <select id="fHorizon" onchange="saveForecastView()">
           <option>Daily</option>
@@ -16,16 +30,13 @@
           <option>Monthly</option>
         </select>
       </div>
-      <div class="filter-group">
+      <div>
         <label class="form-label" for="fSeries">Forecast series</label>
         <select id="fSeries" onchange="renderArimaChart(); renderForecast()">
           <option>Refill jugs</option>
           <option>New jugs</option>
         </select>
       </div>
-      <button id="btnRunForecast" onclick="runForecast()" class="btn btn-primary">Update Forecast</button>
-      <button onclick="exportReportPDF()" class="btn btn-ghost">Print / Save PDF</button>
-      <button onclick="exportReport()" class="btn btn-ghost">Export Report</button>
     </div>
 
     <div class="dashboard-row-2col forecast-layout">

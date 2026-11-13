@@ -104,7 +104,11 @@ function renderStage(step) {
     section.classList.toggle('pos-active', Number(section.dataset.step) === posCur);
   });
   document.querySelectorAll('#posSteps .pos-step').forEach(button => {
-    button.classList.toggle('active', Number(button.dataset.step) === posCur);
+    const stepNumber = Number(button.dataset.step);
+    button.classList.toggle('active', stepNumber === posCur);
+    button.classList.toggle('done', stepNumber < posCur);
+    if (stepNumber === posCur) button.setAttribute?.('aria-current', 'step');
+    else button.removeAttribute?.('aria-current');
   });
 
   const back = document.getElementById('posBack');

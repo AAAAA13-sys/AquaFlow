@@ -115,10 +115,10 @@ function renderTill() {
           (on ? 'Hide from till' : 'Show on till') + '</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" onclick="toggleTillWalkIn(\'' + id + '\', ' + (walkIn ? 'false' : 'true') + ')">' +
           (walkIn ? 'Allow delivery' : 'Walk-in only') + '</button>' +
-        '<button type="button" class="btn btn-secondary btn-sm btn-del" onclick="deleteTillItem(\'' + id + '\')" title="Remove item from till">Remove</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm btn-del action-destructive" onclick="deleteTillItem(\'' + id + '\')" title="Remove item from till">Remove</button>' +
       '</div>' : '') +
     '</div>';
-  }).join('') || '<p class="empty-cell">No till items match.</p>';
+  }).join('') || '<div class="empty-state card"><p class="empty-state__title">No till items match.</p><p class="empty-state__body">Try another name or clear the search.</p></div>';
 }
 
 /** The stock rows a product can draw down. */

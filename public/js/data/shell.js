@@ -60,6 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (e) {}
 });
 
+// Keep the current page visible in a scrolled sidebar. Only the nav list
+// scrolls; the page itself never moves.
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.getElementById('sideNav');
+  const current = nav && nav.querySelector('[aria-current="page"]');
+  if (!nav || !current || nav.scrollHeight <= nav.clientHeight) return;
+  const top = current.getBoundingClientRect().top - nav.getBoundingClientRect().top + nav.scrollTop;
+  if (top < nav.scrollTop || top + current.offsetHeight > nav.scrollTop + nav.clientHeight) {
+    nav.scrollTop = Math.max(0, top - (nav.clientHeight - current.offsetHeight) / 2);
+  }
+});
+
 // Keep each existing button/handler; available for explicit enhancement.
 function enhanceCrudActions(root = document) {
   const icons = {History:'i-history', Edit:'i-edit', Delete:'i-trash'};

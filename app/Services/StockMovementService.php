@@ -16,8 +16,9 @@ class StockMovementService
     {
         if (StockMovement::where('inventory_item_id', $item->id)->exists()
             || DB::table('product_consumables')->where('inventory_item_id', $item->id)->exists()
-            || \App\Models\DefectReport::where('inventory_item_id', $item->id)->exists()) {
-            throw ValidationException::withMessages(['inventory' => 'This item has recipes, defect reports or audit history and cannot be deleted.']);
+            || \App\Models\DefectReport::where('inventory_item_id', $item->id)->exists()
+            || \App\Models\PurchaseOrderLine::where('inventory_item_id', $item->id)->exists()) {
+            throw ValidationException::withMessages(['inventory' => 'This item has recipes, defect reports, purchase orders or audit history and cannot be deleted.']);
         }
         $item->delete();
     }

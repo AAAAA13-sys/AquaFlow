@@ -3,7 +3,12 @@
 @section('topbar-title', 'Settings')
 @section('admin-content')
 <section id="s-settings" class="admin-page">
-  @include('partials.admin-page-header', ['eyebrow' => 'STATION PREFERENCES', 'heading' => 'Settings', 'description' => 'Keep your station details and supply planning preferences up to date.'])
+  <header class="page-head">
+    <div class="page-head__text">
+      <h2 class="page-head__title">Settings</h2>
+      <p class="page-head__purpose">Keep your station details and supply planning preferences up to date.</p>
+    </div>
+  </header>
   <div class="settings-layout">
     <form class="card settings-fields" onsubmit="event.preventDefault(); saveSettings()">
       <div>
@@ -22,7 +27,7 @@
       </div>
     </form>
     <aside class="card settings-note">
-      <h3>Planning your restock</h3>
+      <h3 class="panel-heading">Planning your restock</h3>
       <p>Use a realistic delivery time so reorder alerts leave enough time to receive supplies.</p>
       <p>Review item and supplier delivery times in Stock &amp; Supplies and Suppliers as your purchasing arrangements change.</p>
     </aside>

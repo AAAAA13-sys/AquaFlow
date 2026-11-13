@@ -8,7 +8,9 @@ const AUDIT_ENTITY_LABELS = {
   product: 'Till item',
   inventoryitem: 'Stock',
   supplier: 'Supplier',
-  customer: 'Customer'
+  customer: 'Customer',
+  purchaseorder: 'Purchase order',
+  expense: 'Expense'
 };
 
 const AUDIT_CONTEXT_LABELS = {
@@ -60,7 +62,8 @@ async function loadAuditLogs() {
     const result = await API.auditLogs(params);
     renderAuditLogs(result.logs || []);
   } catch (error) {
-    list.innerHTML = '<p class="empty-state" role="alert">' + esc(error.message || 'Could not load the audit log.') + '</p>';
+    list.innerHTML = '<div class="error-state" role="alert"><p class="error-state__message">The audit log could not be loaded. ' + esc(error.message || '') + '</p>' +
+      '<button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="loadAuditLogs()">Retry</button></div>';
   }
 }
 
@@ -69,7 +72,8 @@ function renderAuditLogs(rows) {
   if (!list) return;
 
   if (!rows.length) {
-    list.innerHTML = '<p class="empty-state">No changes recorded for this filter. Changes you are allowed to see will appear here.</p>';
+    list.innerHTML = '<div class="empty-state card"><p class="empty-state__title">No changes recorded for this filter</p>' +
+      '<p class="empty-state__body">Changes you are allowed to see will appear here.</p></div>';
     return;
   }
 
@@ -100,7 +104,12 @@ function auditRow(row) {
 }
 
 function actionWord(action) {
-  return { create: 'Created', update: 'Changed', delete: 'Removed' }[action] || action;
+  return {
+    create: 'Created', update: 'Changed', delete: 'Removed',
+    po_create: 'Drafted', po_update: 'Edited', po_order: 'Sent to supplier',
+    po_receive: 'Received delivery for', po_cancel: 'Cancelled',
+    expense_create: 'Recorded', expense_void: 'Voided'
+  }[action] || action;
 }
 
 function auditRoleLabel(role) {

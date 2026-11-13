@@ -13,9 +13,9 @@
     @include('partials.admin-sidebar')
 
     <div class="admin-main-container">
-      @include('partials.portal-topbar', ['defaultTitle' => 'Station Dashboard', 'clockId' => 'adminClock', 'clockClass' => ''])
+      @include('partials.portal-topbar', ['defaultTitle' => 'Station Dashboard'])
 
-      <main class="admin-main-content">
+      <main id="main" tabindex="-1" class="admin-main-content">
         @yield('admin-content')
       </main>
     </div>

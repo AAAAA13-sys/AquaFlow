@@ -23,19 +23,32 @@
       'approvals'  => ['label' => 'Approval Requests', 'hint' => 'Changes awaiting a decision',   'badge' => 'badgeApprovals', 'icon' => 'i-check-circle'],
       'audit-logs' => ['label' => 'Audit Log',         'hint' => 'Who changed what',               'badge' => null,             'icon' => 'i-orders'],
       'settings'   => ['label' => 'Settings',          'hint' => null,                             'badge' => null,             'icon' => 'i-terminal'],
+      'purchasing' => ['label' => 'Purchase Orders',   'hint' => 'Order and receive supplies',     'badge' => null,             'icon' => 'i-clipboard'],
+      'expenses'   => ['label' => 'Expenses',          'hint' => 'Operating costs',                'badge' => null,             'icon' => 'i-wallet'],
+      'reports'    => ['label' => 'Reports',           'hint' => 'Period sales, costs and profit', 'badge' => null,             'icon' => 'i-report'],
       'cashier-pos' => ['label' => 'Cashier POS',      'hint' => 'Point of sale terminal',         'badge' => null,             'icon' => 'i-terminal', 'url' => '/cashier'],
       'staff-workspace' => ['label' => 'Rider & Refiller', 'hint' => 'Delivery & refill interface', 'badge' => null,           'icon' => 'i-walkin', 'url' => '/employee'],
   ];
   if (! auth()->user()?->isSuperAdmin()) { unset($tabs['settings']); }
   $groups = [
-      'Analytics' => ['arima'],
-      'Daily operations' => ['orders', 'cash', 'sales'],
-      'Stock & purchasing' => ['inventory', 'suppliers', 'defects', 'customers'],
+      'Analytics' => ['reports', 'arima'],
+      'Daily operations' => ['orders', 'cash', 'sales', 'expenses'],
+      'Stock & purchasing' => ['inventory', 'purchasing', 'suppliers', 'defects', 'customers'],
       'Management' => array_values(array_intersect(['users', 'approvals', 'audit-logs', 'settings'], array_keys($tabs))),
       'Staff Interfaces' => array_values(array_intersect(['cashier-pos', 'staff-workspace'], array_keys($tabs))),
   ];
 @endphp
-@php($active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard'))
+@php
+  $active = request()->route('tab') ?? (request()->is('admin/settings') ? 'settings' : 'dashboard');
+  $activeGroup = collect($groups)->search(fn ($slugs) => in_array($active, $slugs, true));
+@endphp
+{{-- The top bar's breadcrumb reads the active group from here. The layout
+     includes this partial before partials/portal-topbar, and a page that sets
+     its own @section('topbar-group') still wins: Blade keeps the first
+     definition of a section. --}}
+@if ($activeGroup !== false)
+  @section('topbar-group', $activeGroup)
+@endif
 
 <aside class="admin-sidebar no-print" id="adminSidebar">
   <div class="sidebar-header">
@@ -49,6 +62,7 @@
     <button class="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close Sidebar">&times;</button>
   </div>
 
+  {{-- One flat list: quiet group labels, every page one click away. --}}
   <nav class="sidebar-nav" id="sideNav" aria-label="{{ auth()->user()?->isSuperAdmin() ? 'Owner' : 'Manager' }} page catalog">
     <a href="{{ url('/admin/dashboard') }}" data-s="dashboard"
        class="sidebar-link {{ $active === 'dashboard' ? 'active' : '' }}"
@@ -59,9 +73,8 @@
       </span>
     </a>
     @foreach ($groups as $group => $slugs)
-    <details class="sidebar-group" name="admin-navigation" @if(in_array($active, $slugs, true)) open @endif>
-      <summary class="sidebar-group-title">{{ $group }}</summary>
-      <div class="sidebar-group-links">
+    <div class="sidebar-group" role="group" aria-labelledby="sideNavGroup{{ $loop->index }}">
+      <p class="sidebar-group-label" id="sideNavGroup{{ $loop->index }}">{{ $group }}</p>
       @foreach ($slugs as $slug)
         @php($label = $tabs[$slug])
         <?php $linkUrl = !empty($label['url']) ? url($label['url']) : url('/admin/' . $slug); ?>
@@ -80,8 +93,7 @@
           @endif
         </a>
       @endforeach
-      </div>
-    </details>
+    </div>
     @endforeach
   </nav>
 
@@ -89,6 +101,7 @@
     <div class="sidebar-user-card">
       <span class="sidebar-user-label">Active Session</span>
       <b class="sidebar-user-name" id="who" title="{{ auth()->user()?->name ?? 'Owner' }}">{{ auth()->user()?->name ?? 'Owner' }}</b>
+      <span id="adminClock" class="sidebar-clock"></span>
     </div>
     <div class="sidebar-action-row">
       <button onclick="logout()" class="sidebar-logout-btn">Logout</button>

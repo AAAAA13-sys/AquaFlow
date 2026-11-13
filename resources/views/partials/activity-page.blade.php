@@ -7,7 +7,7 @@
   <header class="activity-header">
     <div>
       <p class="activity-eyebrow">TODAY</p>
-      <h1>What I did today</h1>
+      <h2>What I did today</h2>
       <p id="activitySummary">{{ $activitySummary ?? 'Loading your activity…' }}</p>
     </div>
     <div class="activity-heading-actions">
@@ -23,12 +23,14 @@
       <span id="pulseDot" class="activity-pulse-dot"></span>
       <span id="activityUpdated" role="status">Updating…</span>
     </div>
-    <span id="activityCount" class="activity-count-pill">0</span>
+    {{-- The summary line above already says "N actions"; the count is kept for
+         scripts but not shown twice. --}}
+    <span id="activityCount" class="activity-count-pill" hidden>0</span>
   </div>
 
   <div id="activityError" class="activity-alert hidden" role="alert"></div>
 
-  <section aria-labelledby="activityListTitle">
+  <section aria-labelledby="activityListTitle" class="activity-list-section">
     <h2 id="activityListTitle" class="activity-section-title">Today's activity</h2>
     <div id="activityList">
       <div class="activity-empty">Loading your activity…</div>

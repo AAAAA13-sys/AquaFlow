@@ -1,0 +1,20 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ctx = vm.createContext({});
+vm.runInContext(fs.readFileSync('public/js/data/level-meter.js', 'utf8'), ctx);
+assert.equal(ctx.levelMeterState(81,84,168).level, 81/168);
+assert.equal(ctx.levelMeterState(81,84,168).low, true);
+assert.equal(ctx.levelMeterState(84,84,168).low, true);
+assert.equal(ctx.levelMeterState(0,84,168).empty, true);
+assert.equal(ctx.levelMeterState(200,84,168).level, 1);
+assert.equal(ctx.levelMeterState(1,0,0).low, false);
+assert.equal(ctx.levelMeterState(NaN,84,168), null);
+assert.equal(ctx.levelMeterState(5,null,10), null);
+assert.doesNotMatch(ctx.levelMeterHTML(NaN,5,10), /NaN|Infinity/);
+assert.match(ctx.levelMeterHTML(81,84,168), /aria-label="81 on hand; reorder point 84"/);
+// Reaching expected cash or the ordered quantity is the goal, not a low state.
+assert.equal(ctx.levelMeterState(10,10,10,'ordered').low, false);
+assert.equal(ctx.levelMeterState(9,10,10,'ordered').low, true);
+assert.match(ctx.levelMeterHTML(1500,1500,3000,'expected'), /aria-label="1,500 counted; expected 1,500"/);
+console.log('PASS: level meter thresholds, clamping, zero and unavailable values.');

@@ -4,14 +4,17 @@
 // list. Staff never receive defect reports in their snapshot at all.
 
 let defectReports = [];
+let defectLoadError = '';
 
 async function loadDefectReports() {
   try {
     const data = await API.defectReports();
     defectReports = Array.isArray(data.reports) ? data.reports : [];
+    defectLoadError = '';
   } catch (error) {
     appNotice((error.message || 'Could not load defect reports.') + ' Retry in a moment.');
     defectReports = [];
+    defectLoadError = error.message || 'Could not load defect reports.';
   }
   renderDefectTable();
   renderDefectBadge();
@@ -31,20 +34,23 @@ function renderDefectTable() {
   const summary = document.getElementById('defectSummary');
   if (summary) {
     const pending = defectReports.filter(r => r.status === 'pending').length;
-    const approved = defectReports.filter(r => r.status === 'approved').length;
-    const rejected = defectReports.filter(r => r.status === 'rejected').length;
-    summary.innerHTML =
-      '<article><span>Pending</span><strong>' + pending + '</strong><small>Awaiting a decision</small></article>' +
-      '<article><span>Approved</span><strong>' + approved + '</strong><small>Written off stock</small></article>' +
-      '<article><span>Rejected</span><strong>' + rejected + '</strong><small>Not a loss</small></article>';
+    summary.textContent = defectLoadError ? 'Defect reports are unavailable.' : pending ? pending + (pending === 1 ? ' defect report awaits' : ' defect reports await') + ' a decision.' : 'No defect reports await a decision.';
   }
 
   const status = (document.getElementById('defectStatus')?.value || '').trim().toLowerCase();
   const rows = filterTableRows(defectReports, 'defectBody')
     .filter(r => !status || r.status === status);
 
+  if (defectLoadError) {
+    body.innerHTML = '<tr><td colspan="7"><div class="error-state" role="alert"><p class="error-state__message">Defect reports could not be loaded. ' + esc(defectLoadError) + '</p>' +
+      '<button type="button" class="btn btn-secondary btn-sm error-state__retry" onclick="loadDefectReports()">Retry</button></div></td></tr>';
+    return;
+  }
+
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="7" class="text-center empty-cell" style="padding:2rem;color:#64748b;">No defect reports filed yet.</td></tr>';
+    body.innerHTML = defectReports.length
+      ? '<tr><td colspan="7"><div class="empty-state"><p class="empty-state__title">No reports match these filters</p><p class="empty-state__body">Change the status or clear the search.</p></div></td></tr>'
+      : '<tr><td colspan="7"><div class="empty-state"><p class="empty-state__title">No defect reports filed yet.</p><p class="empty-state__body">Damaged stock your refillers and riders report will wait here for a decision.</p></div></td></tr>';
     return;
   }
 
@@ -56,8 +62,8 @@ function renderDefectTable() {
     const statusPill = r.status === 'pending'
       ? '<span class="pill pill-bad">Pending</span>'
       : r.status === 'approved'
-        ? '<span class="pill pill-ok">Approved</span>'
-        : '<span class="pill pill-neutral">Rejected</span>';
+        ? '<span class="cell-quiet">Approved</span>'
+        : '<span class="cell-quiet">Rejected</span>';
 
     const actions = r.status === 'pending'
       ? '<button type="button" class="btn btn-primary btn-sm" onclick="resolveDefect(' + r.id + ', \'approve\')">Approve</button>' +
@@ -71,7 +77,7 @@ function renderDefectTable() {
       '<td>' + reason + '</td>' +
       '<td class="text-center">' + statusPill + '</td>' +
       '<td>' + created + '</td>' +
-      '<td class="text-right"><div style="display:flex;gap:6px;justify-content:flex-end;">' + actions + '</div></td>' +
+      '<td class="text-right"><div class="row-actions">' + actions + '</div></td>' +
     '</tr>';
   }).join('');
   showTableEmpty(body, 7);
