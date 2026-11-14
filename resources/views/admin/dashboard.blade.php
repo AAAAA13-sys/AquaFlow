@@ -257,37 +257,41 @@
     @endif
   </section>
   @include('partials.fulfillment', ['monitor' => true])
+
+  {{-- Customer balance reminder drawer. --}}
+  <div id="remindDrawer" class="af-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="remindDrawerTitle">
+    <div class="af-drawer-backdrop" data-action="close" onclick="closeRemindDrawer()"></div>
+    <div class="af-drawer-panel">
+      <header class="af-drawer-head">
+        <h3 id="remindDrawerTitle" class="af-drawer-title">Send a reminder</h3>
+        <button type="button" class="af-drawer-close" data-action="close" onclick="closeRemindDrawer()" aria-label="Close">&times;</button>
+      </header>
+
+      <div class="af-drawer-body">
+        <div class="af-drawer-party">
+          <span class="af-drawer-name" data-field="name"></span>
+          <span class="af-drawer-contact" data-field="contact"></span>
+        </div>
+        <p class="af-drawer-summary" data-field="summary"></p>
+
+        <label class="af-drawer-label" for="remindTemplate">Message</label>
+        <pre class="af-drawer-template" id="remindTemplate" data-field="template"></pre>
+        <p class="af-drawer-hint">Copy this reminder, or open WhatsApp to review it before sending.</p>
+      </div>
+
+      <footer class="af-drawer-foot">
+        <button type="button" class="btn btn-secondary" data-action="copy" onclick="copyReminder()">Copy</button>
+        {{-- A <button> rather than a bare <a>: without an href an anchor is skipped
+             by the tab order and exposes no role, so this was mouse-only. --}}
+        <button type="button" class="btn btn-primary" data-action="send" onclick="sendWhatsApp()">Send via WhatsApp</button>
+      </footer>
+    </div>
+  </div>
 @endsection
 
-{{-- Customer balance reminder drawer. --}}
-<div id="remindDrawer" class="af-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="remindDrawerTitle">
-  <div class="af-drawer-backdrop" data-action="close" onclick="closeRemindDrawer()"></div>
-  <div class="af-drawer-panel">
-    <header class="af-drawer-head">
-      <h3 id="remindDrawerTitle" class="af-drawer-title">Send a reminder</h3>
-      <button type="button" class="af-drawer-close" data-action="close" onclick="closeRemindDrawer()" aria-label="Close">&times;</button>
-    </header>
-
-    <div class="af-drawer-body">
-      <div class="af-drawer-party">
-        <span class="af-drawer-name" data-field="name"></span>
-        <span class="af-drawer-contact" data-field="contact"></span>
-      </div>
-      <p class="af-drawer-summary" data-field="summary"></p>
-
-      <label class="af-drawer-label" for="remindTemplate">Message</label>
-      <pre class="af-drawer-template" id="remindTemplate" data-field="template"></pre>
-      <p class="af-drawer-hint">Copy this reminder, or open WhatsApp to review it before sending.</p>
-    </div>
-
-    <footer class="af-drawer-foot">
-      <button type="button" class="btn btn-secondary" data-action="copy" onclick="copyReminder()">Copy</button>
-      {{-- A <button> rather than a bare <a>: without an href an anchor is skipped
-           by the tab order and exposes no role, so this was mouse-only. --}}
-      <button type="button" class="btn btn-primary" data-action="send" onclick="sendWhatsApp()">Send via WhatsApp</button>
-    </footer>
-  </div>
-</div>
+@push('scripts')
+  <script src="{{ asset('js/admin/dashboard-onboarding.js') }}?v={{ asset_version('js/admin/dashboard-onboarding.js') }}"></script>
+@endpush
 
 @component('partials.page-startup', ['portal' => 'admin', 'pageTitle' => 'Overview'])
 renderInvTable();
@@ -296,4 +300,3 @@ renderDemandChart();
 refreshOverviewDecisions();
 startPageRefresh(async () => { await loadFromServer(); renderInvTable(); renderInsights(); renderDemandChart(); renderSidebarBadges(); renderStamp(); refreshOverviewDecisions(); });
 @endcomponent
-<script src="{{ asset('js/admin/dashboard-onboarding.js') }}?v={{ asset_version('js/admin/dashboard-onboarding.js') }}"></script>
