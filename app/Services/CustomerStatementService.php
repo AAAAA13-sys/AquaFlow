@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Data\CustomerStatementLedger;
+use App\Data\FinancialPeriod;
 use App\Models\Customer;
 use App\Models\Transaction;
 use Carbon\CarbonImmutable;
@@ -28,8 +29,13 @@ class CustomerStatementService
     /**
      * @return array<string,mixed>
      */
-    public function build(Customer $customer, CarbonImmutable $from, CarbonImmutable $to): array
+    public function build(Customer $customer, CarbonImmutable|FinancialPeriod $from, ?CarbonImmutable $to = null): array
     {
+        if ($from instanceof FinancialPeriod) {
+            $to = $from->to;
+            $from = $from->from;
+        }
+
         $currentCents = $this->cents($customer->debt_balance);
 
         // Net movement from the start of the period up to now.
@@ -53,14 +59,13 @@ class CustomerStatementService
 
         foreach ($rows as $row) {
             $amountCents = $this->cents($row->total_amount);
-            $isPayment = $row->order_type === 'Debt Payment';
             $ledger->recordEntry(
                 date: $row->transaction_date->toDateString(),
                 time: (string) $row->transaction_time,
                 receiptNumber: (string) $row->receipt_number,
-                description: $this->describe($row),
+                description: $row->describeForStatement(),
                 amountCents: $amountCents,
-                isPayment: $isPayment,
+                isPayment: $row->isDebtPayment(),
             );
         }
 
@@ -70,10 +75,7 @@ class CustomerStatementService
     /** @return Builder<Transaction> */
     private function movements(Customer $customer): Builder
     {
-        return Transaction::query()
-            ->where('customer_id', $customer->id)
-            ->whereNull('voided_at')
-            ->where(fn (Builder $q) => $q->where('order_type', 'Debt Payment')->orWhere('payment_method', 'Account'));
+        return Transaction::query()->customerStatementMovements($customer);
     }
 
     /** Charges minus payments, in cents. */
@@ -90,12 +92,7 @@ class CustomerStatementService
 
     private function describe(Transaction $row): string
     {
-        if ($row->order_type === 'Debt Payment') {
-            return 'Payment received';
-        }
-        $items = $row->items->map(fn ($item): string => $item->quantity.' x '.$item->item_name)->implode(', ');
-
-        return trim($row->order_type.' on account'.($items !== '' ? ': '.$items : ''));
+        return $row->describeForStatement();
     }
 
     private function cents(float|int|string|null $amount): int

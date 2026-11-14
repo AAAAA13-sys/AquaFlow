@@ -19,7 +19,7 @@ class TransactionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'voided' => $this->voided_at !== null,
+            'voided' => $this->isVoided(),
             'void' => $this->whenLoaded('voidRecord', fn () => $this->voidRecord ? [
                 'reason' => $this->voidRecord->reason,
                 'approved_by' => $this->voidRecord->approver?->name,

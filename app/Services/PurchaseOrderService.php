@@ -225,7 +225,7 @@ class PurchaseOrderService
             'stock_on_hand' => $i->stock_on_hand,
             'reorder_point' => $i->reorder_point,
             'target_stock' => $i->target_stock,
-            'suggested_qty' => max($i->target_stock - $i->stock_on_hand, 1),
+            'suggested_qty' => $i->suggestedReorderQuantity(),
             'supplier_id' => $i->supplier_id,
             'supplier_name' => $i->supplier?->name,
             'last_unit_cost' => $costs[$i->id] ?? null,

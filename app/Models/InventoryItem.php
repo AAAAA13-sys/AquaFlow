@@ -96,4 +96,12 @@ class InventoryItem extends Model
     {
         return $this->stock_on_hand <= $this->reorder_point;
     }
+
+    /**
+     * Quantity to order to bring stock on hand up to the target stock level.
+     */
+    public function suggestedReorderQuantity(): int
+    {
+        return max($this->target_stock - $this->stock_on_hand, 1);
+    }
 }

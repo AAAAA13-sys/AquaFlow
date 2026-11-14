@@ -16,8 +16,6 @@ class CustomerStatementController extends Controller
         // The walk-in guest is a shared placeholder, not an account.
         abort_if($customer->system_key === 'walk-in', 404, 'The walk-in guest has no account statement.');
 
-        [$from, $to] = $request->range();
-
-        return response()->json($this->statements->build($customer, $from, $to));
+        return response()->json($this->statements->build($customer, $request->period()));
     }
 }

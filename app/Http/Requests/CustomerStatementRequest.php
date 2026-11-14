@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Data\FinancialPeriod;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -52,5 +53,12 @@ class CustomerStatementRequest extends FormRequest
             : $to->subDays(self::DEFAULT_DAYS - 1);
 
         return [$from, $to];
+    }
+
+    public function period(): FinancialPeriod
+    {
+        [$from, $to] = $this->range();
+
+        return new FinancialPeriod($from, $to, (string) config('app.timezone'));
     }
 }

@@ -89,6 +89,64 @@ class Transaction extends Model
         return $user->isAdmin() ? $query : $query->where('cashier_id', $user->id);
     }
 
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->voided_at === null;
+    }
+
+    public function isDebtPayment(): bool
+    {
+        return $this->order_type === 'Debt Payment';
+    }
+
+    public function isAccountSale(): bool
+    {
+        return $this->payment_method === 'Account' && ! $this->isDebtPayment();
+    }
+
+    public function isCash(): bool
+    {
+        return $this->payment_method === 'Cash';
+    }
+
+    public function isEligiblePhysicalCash(): bool
+    {
+        return $this->isCash() && ! $this->isVoided();
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNull('voided_at');
+    }
+
+    public function scopeVoided(Builder $query): Builder
+    {
+        return $query->whereNotNull('voided_at');
+    }
+
+    public function scopeCustomerStatementMovements(Builder $query, Customer $customer): Builder
+    {
+        return $query->where('customer_id', $customer->id)
+            ->whereNull('voided_at')
+            ->where(fn (Builder $q) => $q->where('order_type', 'Debt Payment')->orWhere('payment_method', 'Account'));
+    }
+
+    public function describeForStatement(): string
+    {
+        if ($this->isDebtPayment()) {
+            return 'Payment received';
+        }
+
+        $items = $this->items->map(fn ($item): string => $item->quantity.' x '.$item->item_name)->implode(', ');
+
+        return trim($this->order_type.' on account'.($items !== '' ? ': '.$items : ''));
+    }
+
     /**
      * Count the refill jugs recorded in a volume label.
      *

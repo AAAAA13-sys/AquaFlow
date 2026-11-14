@@ -277,4 +277,56 @@ class ErpDomainModelTest extends TestCase
         $hash = $dto->computeRequestHash();
         $this->assertSame(64, strlen($hash));
     }
+
+    public function test_transaction_domain_methods_and_statement_description(): void
+    {
+        $sale = new \App\Models\Transaction([
+            'order_type' => 'Delivery',
+            'payment_method' => 'Account',
+            'total_amount' => 150.0,
+        ]);
+        $this->assertFalse($sale->isVoided());
+        $this->assertTrue($sale->isActive());
+        $this->assertFalse($sale->isDebtPayment());
+        $this->assertTrue($sale->isAccountSale());
+        $this->assertFalse($sale->isCash());
+        $this->assertFalse($sale->isEligiblePhysicalCash());
+
+        $cashSale = new \App\Models\Transaction([
+            'order_type' => 'Walk-in',
+            'payment_method' => 'Cash',
+            'total_amount' => 100.0,
+        ]);
+        $this->assertTrue($cashSale->isCash());
+        $this->assertTrue($cashSale->isEligiblePhysicalCash());
+
+        $payment = new \App\Models\Transaction([
+            'order_type' => 'Debt Payment',
+            'payment_method' => 'Cash',
+            'total_amount' => 50.0,
+        ]);
+        $this->assertTrue($payment->isDebtPayment());
+        $this->assertFalse($payment->isAccountSale());
+        $this->assertSame('Payment received', $payment->describeForStatement());
+    }
+
+    public function test_inventory_item_suggested_reorder_quantity(): void
+    {
+        $item = new \App\Models\InventoryItem([
+            'stock_on_hand' => 10,
+            'reorder_point' => 15,
+            'target_stock' => 50,
+        ]);
+        $this->assertTrue($item->needsReorder());
+        $this->assertSame(40, $item->suggestedReorderQuantity());
+
+        // Clamped to at least 1 even if stock exceeds target:
+        $fullItem = new \App\Models\InventoryItem([
+            'stock_on_hand' => 60,
+            'reorder_point' => 15,
+            'target_stock' => 50,
+        ]);
+        $this->assertFalse($fullItem->needsReorder());
+        $this->assertSame(1, $fullItem->suggestedReorderQuantity());
+    }
 }

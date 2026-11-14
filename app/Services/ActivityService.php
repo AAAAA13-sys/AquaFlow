@@ -204,18 +204,19 @@ class ActivityService
             }
 
             $lines = $sale->items->map(fn ($line) => $line->quantity.' × '.$line->item_name)->all();
-            $isCash = $sale->payment_method === 'Cash' && $sale->voided_at === null;
+            $isCash = $sale->isEligiblePhysicalCash();
+            $isPayment = $sale->isDebtPayment();
             $entries[] = [
-                'kind' => $sale->order_type === 'Debt Payment' ? 'payment' : 'sale',
+                'kind' => $isPayment ? 'payment' : 'sale',
                 'at' => $at->toISOString(),
                 'title' => $sale->receipt_number,
                 'subtitle' => $sale->customer?->name ?: 'Walk-in customer',
-                'badge' => $sale->order_type === 'Debt Payment' ? 'Payment collected' : 'Sale recorded',
-                'tone' => $sale->order_type === 'Debt Payment' ? 'payment' : 'sale',
-                'lines' => $lines ? implode(', ', $lines) : ($sale->order_type === 'Debt Payment' ? 'Account payment' : 'Water refill'),
+                'badge' => $isPayment ? 'Payment collected' : 'Sale recorded',
+                'tone' => $isPayment ? 'payment' : 'sale',
+                'lines' => $lines ? implode(', ', $lines) : ($isPayment ? 'Account payment' : 'Water refill'),
                 'amount' => round((float) $sale->total_amount, 2),
-                'amount_label' => $sale->order_type === 'Debt Payment' ? 'Collected' : 'Total',
-                'note' => $sale->payment_method === 'Cash' ? null : 'Paid by '.$sale->payment_method,
+                'amount_label' => $isPayment ? 'Collected' : 'Total',
+                'note' => $sale->isCash() ? null : 'Paid by '.$sale->payment_method,
                 'address' => $sale->delivery_address,
                 'is_cash' => $isCash,
             ];
