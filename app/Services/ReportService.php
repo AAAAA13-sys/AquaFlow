@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Data\CashFlow;
+use App\Data\FinancialPeriod;
+use App\Data\OperatingMargin;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +36,8 @@ class ReportService
         $from = $from->startOfDay();
         $to = $to->startOfDay();
 
+        $period = new FinancialPeriod($from, $to, (string) config('app.timezone'));
+
         $sales = $this->sales($from, $to);
         $collections = $this->collections($from, $to);
         $cost = $this->costOfSupplies($from, $to);
@@ -40,16 +45,20 @@ class ReportService
         $expenses = $this->expenses->totalsBetween($from, $to);
         $expenseCents = $this->toCents($expenses['total']);
 
-        $margin = $sales['net_cents'] - $cost['total_cents'] - $expenseCents;
-        $cashFlow = $collections['total_cents'] - $purchases - $expenseCents;
+        $operatingMargin = new OperatingMargin(
+            netSalesCents: $sales['net_cents'],
+            costOfSuppliesCents: $cost['total_cents'],
+            expenseCents: $expenseCents,
+        );
+
+        $cashFlow = new CashFlow(
+            collectionsTotalCents: $collections['total_cents'],
+            purchasesReceivedCents: $purchases,
+            expenseCents: $expenseCents,
+        );
 
         return [
-            'period' => [
-                'from' => $from->toDateString(),
-                'to' => $to->toDateString(),
-                'days' => (int) $from->diffInDays($to) + 1,
-                'timezone' => (string) config('app.timezone'),
-            ],
+            'period' => $period->toArray(),
             'sales' => $sales['public'],
             'collections' => [
                 'sales_cash' => $this->fmt($collections['sales_cash']),
@@ -66,14 +75,8 @@ class ReportService
             ],
             'expenses' => $expenses,
             'purchases_received' => ['total' => $this->fmt($purchases)],
-            'operating_margin' => [
-                'value' => $this->fmt($margin),
-                'formula' => 'Net sales (without VAT) minus the cost of supplies consumed minus expenses.',
-            ],
-            'cash_flow' => [
-                'value' => $this->fmt($cashFlow),
-                'formula' => 'Cash collected (cash sales, debt payments and rider remittances; GCash is not included) minus purchases at order cost (supplier credit not modelled) minus expenses.',
-            ],
+            'operating_margin' => $operatingMargin->toArray(),
+            'cash_flow' => $cashFlow->toArray(),
         ];
     }
 

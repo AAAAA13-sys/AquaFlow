@@ -20,7 +20,7 @@ class ExpenseResource extends JsonResource
             'id' => $this->id,
             'spent_on' => $this->spent_on?->format('Y-m-d'),
             'category' => $this->category,
-            'category_label' => Expense::CATEGORIES[$this->category] ?? $this->category,
+            'category_label' => $this->categoryLabel(),
             'amount' => round((float) $this->amount, 2),
             'payee' => $this->payee,
             'reference' => $this->reference,

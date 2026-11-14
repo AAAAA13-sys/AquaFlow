@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Data\CustomerStatementLedger;
 use App\Models\Customer;
 use App\Models\Transaction;
 use Carbon\CarbonImmutable;
@@ -29,11 +30,19 @@ class CustomerStatementService
      */
     public function build(Customer $customer, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $current = $this->cents($customer->debt_balance);
+        $currentCents = $this->cents($customer->debt_balance);
 
         // Net movement from the start of the period up to now.
         $sinceFrom = $this->net($this->movements($customer)->whereDate('transaction_date', '>=', $from->toDateString()));
-        $opening = $current - $sinceFrom;
+        $openingCents = $currentCents - $sinceFrom;
+
+        $ledger = new CustomerStatementLedger(
+            customer: $customer,
+            from: $from,
+            to: $to,
+            openingBalanceCents: $openingCents,
+            currentBalanceCents: $currentCents,
+        );
 
         $rows = $this->movements($customer)
             ->with('items:id,transaction_id,item_name,quantity')
@@ -42,39 +51,20 @@ class CustomerStatementService
             ->orderBy('transaction_date')->orderBy('transaction_time')->orderBy('id')
             ->get();
 
-        $running = $opening;
-        $charges = 0;
-        $payments = 0;
-        $lines = [];
         foreach ($rows as $row) {
-            $amount = $this->cents($row->total_amount);
+            $amountCents = $this->cents($row->total_amount);
             $isPayment = $row->order_type === 'Debt Payment';
-            $running += $isPayment ? -$amount : $amount;
-            if ($isPayment) {
-                $payments += $amount;
-            } else {
-                $charges += $amount;
-            }
-            $lines[] = [
-                'date' => $row->transaction_date->toDateString(),
-                'time' => $row->transaction_time,
-                'receipt_number' => $row->receipt_number,
-                'description' => $this->describe($row),
-                'charge' => $isPayment ? 0.0 : $amount / 100,
-                'payment' => $isPayment ? $amount / 100 : 0.0,
-                'balance_after' => $running / 100,
-            ];
+            $ledger->recordEntry(
+                date: $row->transaction_date->toDateString(),
+                time: (string) $row->transaction_time,
+                receiptNumber: (string) $row->receipt_number,
+                description: $this->describe($row),
+                amountCents: $amountCents,
+                isPayment: $isPayment,
+            );
         }
 
-        return [
-            'customer' => ['id' => $customer->id, 'name' => $customer->name, 'address' => $customer->address, 'contact' => $customer->contact],
-            'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
-            'opening_balance' => $opening / 100,
-            'lines' => $lines,
-            'totals' => ['charges' => $charges / 100, 'payments' => $payments / 100],
-            'closing_balance' => $running / 100,
-            'current_balance' => $current / 100,
-        ];
+        return $ledger->toArray();
     }
 
     /** @return Builder<Transaction> */

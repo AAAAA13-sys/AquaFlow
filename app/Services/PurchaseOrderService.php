@@ -45,7 +45,7 @@ class PurchaseOrderService
             $po->total_cost = $this->replaceLines($po, $data['lines']);
             $po->save();
 
-            $this->audit->record($user, 'po_create', $po, null, $this->snapshot($po));
+            $this->audit->record($user, 'po_create', $po, null, $po->toAuditSnapshot());
 
             return $this->fresh($po);
         });
@@ -56,8 +56,10 @@ class PurchaseOrderService
     {
         return DB::transaction(function () use ($user, $po, $data): PurchaseOrder {
             $po = $this->lock($po);
-            $this->requireStatus($po, [PurchaseOrder::DRAFT], 'Only a draft purchase order can be edited.');
-            $before = $this->snapshot($po);
+            if (! $po->canBeEdited()) {
+                throw ValidationException::withMessages(['status' => 'Only a draft purchase order can be edited.']);
+            }
+            $before = $po->toAuditSnapshot();
 
             $po->fill([
                 'supplier_id' => $data['supplier_id'],
@@ -67,7 +69,7 @@ class PurchaseOrderService
             $po->total_cost = $this->replaceLines($po, $data['lines']);
             $po->save();
 
-            $this->audit->record($user, 'po_update', $po, $before, $this->snapshot($po));
+            $this->audit->record($user, 'po_update', $po, $before, $po->toAuditSnapshot());
 
             return $this->fresh($po);
         });
@@ -77,12 +79,11 @@ class PurchaseOrderService
     {
         return DB::transaction(function () use ($user, $po): PurchaseOrder {
             $po = $this->lock($po);
-            $this->requireStatus($po, [PurchaseOrder::DRAFT], 'Only a draft purchase order can be marked as ordered.');
-            $before = $this->snapshot($po);
+            $before = $po->toAuditSnapshot();
 
-            $po->forceFill(['status' => PurchaseOrder::ORDERED, 'ordered_at' => now()])->save();
+            $po->markAsOrdered()->save();
 
-            $this->audit->record($user, 'po_order', $po, $before, $this->snapshot($po));
+            $this->audit->record($user, 'po_order', $po, $before, $po->toAuditSnapshot());
 
             return $this->fresh($po);
         });
@@ -112,8 +113,9 @@ class PurchaseOrderService
                 return json_decode($existing->result, true, 512, JSON_THROW_ON_ERROR);
             }
 
-            $this->requireStatus($po, [PurchaseOrder::ORDERED, PurchaseOrder::PARTIAL],
-                'Only an ordered purchase order can receive stock.');
+            if (! $po->canReceiveStock()) {
+                throw ValidationException::withMessages(['status' => 'Only an ordered purchase order can receive stock.']);
+            }
 
             // The PO lock serialises receiving, so these rows cannot move under us.
             $lines = PurchaseOrderLine::where('purchase_order_id', $po->id)->orderBy('inventory_item_id')->get()->keyBy('id');
@@ -123,7 +125,7 @@ class PurchaseOrderService
                 if (! $line) {
                     throw ValidationException::withMessages(['lines' => 'A line does not belong to this purchase order.']);
                 }
-                if ($row['qty'] > $line->qty_ordered - $line->qty_received) {
+                if ($row['qty'] > $line->remainingQuantity()) {
                     throw ValidationException::withMessages(['lines' => 'Cannot receive more than the remaining quantity.']);
                 }
                 $quantities[$line->id] = $row['qty'];
@@ -132,7 +134,7 @@ class PurchaseOrderService
                 throw ValidationException::withMessages(['lines' => 'Enter a received quantity for at least one line.']);
             }
 
-            $before = $this->snapshot($po);
+            $before = $po->toAuditSnapshot();
             $received = [];
             // Ascending inventory id keeps row-lock order consistent with other writers.
             foreach ($lines as $line) {
@@ -148,22 +150,17 @@ class PurchaseOrderService
                     'purchase_order_id' => $po->id,
                     'notes' => 'Received on '.$po->po_number,
                 ], $user);
-                $line->qty_received += $qty;
+                $line->receiveQuantity($qty);
                 $line->save();
                 $received[] = ['line_id' => $line->id, 'qty' => $qty];
             }
             usort($received, fn (array $a, array $b): int => $a['line_id'] <=> $b['line_id']);
 
-            $complete = $lines->every(fn (PurchaseOrderLine $l): bool => $l->qty_received >= $l->qty_ordered);
-            $po->status = $complete ? PurchaseOrder::RECEIVED : PurchaseOrder::PARTIAL;
-            $po->received_at = $complete ? now() : null;
-            // Unit costs are fixed on the order, so the total is the ordered value.
-            $po->total_cost = $this->total($lines);
-            $po->save();
+            $po->recalculateFromLines($lines)->save();
             Supplier::whereKey($po->supplier_id)->update(['last_delivery' => today()->toDateString()]);
 
             $this->audit->record($user, 'po_receive', $po, $before,
-                $this->snapshot($po) + ['received' => $received]);
+                $po->toAuditSnapshot() + ['received' => $received]);
 
             $result = [
                 'purchase_order' => (new PurchaseOrderResource($this->fresh($po)))->resolve(),
@@ -185,23 +182,11 @@ class PurchaseOrderService
     {
         return DB::transaction(function () use ($user, $po, $reason): PurchaseOrder {
             $po = $this->lock($po);
-            $this->requireStatus($po, [PurchaseOrder::DRAFT, PurchaseOrder::ORDERED, PurchaseOrder::PARTIAL],
-                'This purchase order can no longer be cancelled.');
+            $before = $po->toAuditSnapshot();
 
-            if ($po->status === PurchaseOrder::DRAFT) {
-                abort_unless($user->isSuperAdmin() || (int) $po->created_by === $user->id, 403,
-                    'Only the creator or the owner can cancel a draft.');
-            } else {
-                abort_unless($user->isSuperAdmin(), 403, 'Only the owner can cancel an ordered purchase order.');
-            }
-            $before = $this->snapshot($po);
+            $po->cancel($user, $reason)->save();
 
-            $po->forceFill([
-                'status' => PurchaseOrder::CANCELLED, 'cancelled_at' => now(),
-                'cancelled_by' => $user->id, 'cancel_reason' => $reason,
-            ])->save();
-
-            $this->audit->record($user, 'po_cancel', $po, $before, $this->snapshot($po) + ['cancel_reason' => $reason]);
+            $this->audit->record($user, 'po_cancel', $po, $before, $po->toAuditSnapshot() + ['cancel_reason' => $reason]);
 
             return $this->fresh($po);
         });
@@ -247,14 +232,6 @@ class PurchaseOrderService
         return PurchaseOrder::whereKey($po->id)->lockForUpdate()->firstOrFail();
     }
 
-    /** @param array<int,string> $allowed */
-    private function requireStatus(PurchaseOrder $po, array $allowed, string $message): void
-    {
-        if (! in_array($po->status, $allowed, true)) {
-            throw ValidationException::withMessages(['status' => $message]);
-        }
-    }
-
     /**
      * @param  array<int,array{inventory_item_id:int,qty:int,unit_cost:float|int|string}>  $lines
      * @return float the order total
@@ -264,35 +241,16 @@ class PurchaseOrderService
         $po->lines()->delete();
         $total = 0.0;
         foreach ($lines as $line) {
-            PurchaseOrderLine::create([
+            $createdLine = PurchaseOrderLine::create([
                 'purchase_order_id' => $po->id,
                 'inventory_item_id' => $line['inventory_item_id'],
                 'qty_ordered' => $line['qty'],
                 'unit_cost' => $line['unit_cost'],
             ]);
-            $total += $line['qty'] * (float) $line['unit_cost'];
+            $total += $createdLine->lineTotal();
         }
 
         return round($total, 2);
-    }
-
-    /** @param \Illuminate\Support\Collection<int,PurchaseOrderLine> $lines */
-    private function total($lines): float
-    {
-        return round($lines->sum(fn (PurchaseOrderLine $l): float => $l->qty_ordered * (float) $l->unit_cost), 2);
-    }
-
-    /** @return array<string,mixed> */
-    private function snapshot(PurchaseOrder $po): array
-    {
-        return [
-            'po_number' => $po->po_number,
-            'status' => $po->status,
-            'supplier_id' => $po->supplier_id,
-            'expected_date' => $po->expected_date?->format('Y-m-d'),
-            'notes' => $po->notes,
-            'total_cost' => (float) $po->total_cost,
-        ];
     }
 
     private function fresh(PurchaseOrder $po): PurchaseOrder

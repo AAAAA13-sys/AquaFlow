@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,16 +30,16 @@ class PurchaseOrderResource extends JsonResource
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'cancel_reason' => $this->cancel_reason,
             'created_by' => ['id' => $this->created_by, 'name' => $this->creator?->name],
-            'lines' => $this->lines->map(fn ($line): array => [
+            'lines' => $this->lines->map(fn (PurchaseOrderLine $line): array => [
                 'id' => $line->id,
                 'inventory_item_id' => $line->inventory_item_id,
                 'item_name' => $line->item?->item_name,
                 'unit' => $line->item?->unit,
                 'qty_ordered' => (int) $line->qty_ordered,
                 'qty_received' => (int) $line->qty_received,
-                'qty_remaining' => max(0, (int) $line->qty_ordered - (int) $line->qty_received),
+                'qty_remaining' => $line->remainingQuantity(),
                 'unit_cost' => round((float) $line->unit_cost, 4),
-                'line_total' => round((int) $line->qty_ordered * (float) $line->unit_cost, 2),
+                'line_total' => $line->lineTotal(),
             ])->values()->all(),
         ];
     }

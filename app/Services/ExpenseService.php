@@ -44,7 +44,7 @@ class ExpenseService
                     'submission_key' => $data['submission_key'],
                     'request_hash' => $hash,
                 ]);
-                $this->audit->record($user, 'expense_create', $expense, null, $this->snapshot($expense));
+                $this->audit->record($user, 'expense_create', $expense, null, $expense->toAuditSnapshot());
 
                 return $this->fresh($expense);
             });
@@ -61,20 +61,13 @@ class ExpenseService
 
     public function void(User $user, Expense $expense, string $reason): Expense
     {
-        abort_unless($user->isSuperAdmin(), 403, 'Only the owner can void an expense.');
-
         return DB::transaction(function () use ($user, $expense, $reason): Expense {
             $expense = Expense::whereKey($expense->id)->lockForUpdate()->firstOrFail();
-            if ($expense->voided_at !== null) {
-                throw ValidationException::withMessages(['status' => 'This expense has already been voided.']);
-            }
-            $before = $this->snapshot($expense);
+            $before = $expense->toAuditSnapshot();
 
-            $expense->forceFill([
-                'voided_at' => now(), 'voided_by' => $user->id, 'void_reason' => $reason,
-            ])->save();
+            $expense->void($user, $reason)->save();
 
-            $this->audit->record($user, 'expense_void', $expense, $before, $this->snapshot($expense) + ['void_reason' => $reason]);
+            $this->audit->record($user, 'expense_void', $expense, $before, $expense->toAuditSnapshot() + ['void_reason' => $reason]);
 
             return $this->fresh($expense);
         });
@@ -85,8 +78,14 @@ class ExpenseService
      */
     public function list(CarbonImmutable $from, CarbonImmutable $to, ?string $category, int $limit = 500)
     {
-        return $this->scope($from, $to, $category)->with(['recorder', 'voider'])
-            ->orderByDesc('spent_on')->orderByDesc('id')->limit($limit)->get();
+        return Expense::query()
+            ->forPeriod($from, $to)
+            ->forCategory($category)
+            ->with(['recorder', 'voider'])
+            ->orderByDesc('spent_on')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
     }
 
     /**
@@ -96,8 +95,13 @@ class ExpenseService
      */
     public function totalsBetween(CarbonImmutable $from, CarbonImmutable $to, ?string $category = null): array
     {
-        $sums = $this->scope($from, $to, $category)->whereNull('voided_at')
-            ->groupBy('category')->selectRaw('category, SUM(amount) as total')->pluck('total', 'category');
+        $sums = Expense::query()
+            ->forPeriod($from, $to)
+            ->forCategory($category)
+            ->active()
+            ->groupBy('category')
+            ->selectRaw('category, SUM(amount) as total')
+            ->pluck('total', 'category');
 
         $byCategory = [];
         $cents = 0;
@@ -108,13 +112,6 @@ class ExpenseService
         }
 
         return ['by_category' => $byCategory, 'total' => $this->fmt($cents)];
-    }
-
-    private function scope(CarbonImmutable $from, CarbonImmutable $to, ?string $category)
-    {
-        return Expense::query()
-            ->whereBetween('spent_on', [$from->toDateString(), $to->toDateString()])
-            ->when($category, fn ($q) => $q->where('category', $category));
     }
 
     private function fmt(int $cents): string
@@ -150,20 +147,6 @@ class ExpenseService
         $value = is_string($value) ? trim($value) : null;
 
         return $value === '' ? null : $value;
-    }
-
-    /** @return array<string,mixed> */
-    private function snapshot(Expense $expense): array
-    {
-        return [
-            'spent_on' => $expense->spent_on?->format('Y-m-d'),
-            'category' => $expense->category,
-            'amount' => (float) $expense->amount,
-            'payee' => $expense->payee,
-            'reference' => $expense->reference,
-            'notes' => $expense->notes,
-            'voided' => $expense->voided_at !== null,
-        ];
     }
 
     private function fresh(Expense $expense): Expense

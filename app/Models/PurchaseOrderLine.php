@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseOrderLine extends Model
 {
@@ -22,5 +23,33 @@ class PurchaseOrderLine extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(InventoryItem::class, 'inventory_item_id');
+    }
+
+    // ---- Domain Methods (OOP Invariants & Calculations) -------------------
+
+    public function remainingQuantity(): int
+    {
+        return max(0, (int) $this->qty_ordered - (int) $this->qty_received);
+    }
+
+    public function isFullyReceived(): bool
+    {
+        return (int) $this->qty_received >= (int) $this->qty_ordered;
+    }
+
+    public function lineTotal(): float
+    {
+        return round((int) $this->qty_ordered * (float) $this->unit_cost, 2);
+    }
+
+    public function receiveQuantity(int $qty): self
+    {
+        if ($qty > $this->remainingQuantity()) {
+            throw ValidationException::withMessages(['lines' => 'Cannot receive more than the remaining quantity.']);
+        }
+
+        $this->qty_received += $qty;
+
+        return $this;
     }
 }
