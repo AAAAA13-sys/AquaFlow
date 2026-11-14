@@ -140,6 +140,30 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Replaces existing line items with new lines and updates total_cost.
+     *
+     * @param  list<array{inventory_item_id: int, qty: int, unit_cost: float|int|string}>  $lines
+     */
+    public function syncLines(array $lines): float
+    {
+        $this->lines()->delete();
+        $total = 0.0;
+        foreach ($lines as $line) {
+            $created = PurchaseOrderLine::create([
+                'purchase_order_id' => $this->id,
+                'inventory_item_id' => $line['inventory_item_id'],
+                'qty_ordered' => $line['qty'],
+                'unit_cost' => $line['unit_cost'],
+            ]);
+            $total += $created->lineTotal();
+        }
+
+        $this->total_cost = round($total, 2);
+
+        return $this->total_cost;
+    }
+
+    /**
      * Recalculates order total and receiving status from its collection of line items.
      *
      * @param iterable<PurchaseOrderLine> $lines

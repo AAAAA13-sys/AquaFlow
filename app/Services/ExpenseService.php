@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Data\ExpenseData;
 use App\Models\Expense;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -20,37 +21,28 @@ class ExpenseService
     /**
      * Records an expense; an identical retry returns the stored row.
      *
-     * @param  array<string,mixed>  $data  validated payload including submission_key
+     * @param  ExpenseData|array<string,mixed>  $data  validated payload including submission_key
      */
-    public function record(User $user, array $data): Expense
+    public function record(User $user, ExpenseData|array $data): Expense
     {
-        $hash = $this->hash($data);
+        $dto = $data instanceof ExpenseData ? $data : ExpenseData::fromArray($data);
+        $hash = $dto->computeRequestHash();
 
         try {
-            return DB::transaction(function () use ($user, $data, $hash): Expense {
-                $existing = $this->findByKey($user, $data['submission_key']);
+            return DB::transaction(function () use ($user, $dto, $hash): Expense {
+                $existing = $this->findByKey($user, $dto->submissionKey);
                 if ($existing) {
                     return $this->replay($existing, $hash);
                 }
 
-                $expense = Expense::create([
-                    'spent_on' => $data['spent_on'],
-                    'category' => $data['category'],
-                    'amount' => $data['amount'],
-                    'payee' => $this->clean($data['payee'] ?? null),
-                    'reference' => $this->clean($data['reference'] ?? null),
-                    'notes' => $this->clean($data['notes'] ?? null),
-                    'recorded_by' => $user->id,
-                    'submission_key' => $data['submission_key'],
-                    'request_hash' => $hash,
-                ]);
+                $expense = Expense::create($dto->toModelAttributes($user->id, $hash));
                 $this->audit->record($user, 'expense_create', $expense, null, $expense->toAuditSnapshot());
 
                 return $this->fresh($expense);
             });
         } catch (UniqueConstraintViolationException) {
             // A concurrent request with the same key inserted first.
-            $existing = $this->findByKey($user, $data['submission_key']);
+            $existing = $this->findByKey($user, $dto->submissionKey);
             if (! $existing) {
                 throw ValidationException::withMessages(['submission_key' => 'This expense could not be saved. Please try again.']);
             }
@@ -131,22 +123,6 @@ class ExpenseService
         }
 
         return $this->fresh($existing);
-    }
-
-    /** @param array<string,mixed> $data */
-    private function hash(array $data): string
-    {
-        return hash('sha256', json_encode([
-            (string) $data['spent_on'], (string) $data['category'], number_format((float) $data['amount'], 2, '.', ''),
-            $this->clean($data['payee'] ?? null), $this->clean($data['reference'] ?? null), $this->clean($data['notes'] ?? null),
-        ], JSON_THROW_ON_ERROR));
-    }
-
-    private function clean(mixed $value): ?string
-    {
-        $value = is_string($value) ? trim($value) : null;
-
-        return $value === '' ? null : $value;
     }
 
     private function fresh(Expense $expense): Expense

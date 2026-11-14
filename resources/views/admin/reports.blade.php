@@ -68,7 +68,7 @@
 @endsection
 
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/erp-reports.css') }}?v={{ asset_version('css/erp-reports.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/erp.css') }}?v={{ asset_version('css/erp.css') }}">
 @endpush
 
 @push('scripts')

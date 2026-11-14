@@ -212,4 +212,69 @@ class ErpDomainModelTest extends TestCase
         $this->assertSame(7, $period->days());
         $this->assertSame('Asia/Manila', $period->timezone);
     }
+
+    public function test_purchase_order_data_and_receipt_dto(): void
+    {
+        $payload = [
+            'supplier_id' => 3,
+            'expected_date' => '2026-12-15',
+            'notes' => '  Urgent caps  ',
+            'lines' => [
+                ['inventory_item_id' => 12, 'qty' => 50, 'unit_cost' => 5.25],
+            ],
+        ];
+
+        $dto = \App\Data\PurchaseOrderData::fromArray($payload);
+        $this->assertSame(3, $dto->supplierId);
+        $this->assertSame('2026-12-15', $dto->expectedDate);
+        $this->assertSame('Urgent caps', $dto->notes);
+        $this->assertCount(1, $dto->lines);
+
+        $receiptPayload = [
+            'submission_key' => '4b611e03-7cb7-45e7-a9c6-112233445566',
+            'lines' => [
+                ['line_id' => 20, 'qty' => 25],
+                ['line_id' => 10, 'qty' => 10],
+            ],
+        ];
+        $receiptDto = \App\Data\ReceivePurchaseOrderData::fromArray($receiptPayload);
+        $this->assertSame('4b611e03-7cb7-45e7-a9c6-112233445566', $receiptDto->submissionKey);
+        // Lines are sorted deterministically by line_id:
+        $this->assertSame(10, $receiptDto->lines[0]['line_id']);
+        $this->assertSame(20, $receiptDto->lines[1]['line_id']);
+
+        $hashA = $receiptDto->computeRequestHash(100);
+        $hashB = $receiptDto->computeRequestHash(100);
+        $this->assertSame($hashA, $hashB);
+        $this->assertNotSame($hashA, $receiptDto->computeRequestHash(101));
+    }
+
+    public function test_expense_data_dto_and_hashing(): void
+    {
+        $payload = [
+            'spent_on' => '2026-11-14',
+            'category' => 'utilities',
+            'amount' => 500.5,
+            'payee' => '  Meralco  ',
+            'reference' => '  REF-123  ',
+            'notes' => '  Monthly bill  ',
+            'submission_key' => '8a721b04-1234-4567-89ab-cdef01234567',
+        ];
+
+        $dto = \App\Data\ExpenseData::fromArray($payload);
+        $this->assertSame('2026-11-14', $dto->spentOn);
+        $this->assertSame('utilities', $dto->category);
+        $this->assertSame(500.5, $dto->amount);
+        $this->assertSame('Meralco', $dto->payee);
+        $this->assertSame('REF-123', $dto->reference);
+        $this->assertSame('Monthly bill', $dto->notes);
+        $this->assertSame('8a721b04-1234-4567-89ab-cdef01234567', $dto->submissionKey);
+
+        $attrs = $dto->toModelAttributes(recordedBy: 1, requestHash: 'dummy-hash');
+        $this->assertSame(1, $attrs['recorded_by']);
+        $this->assertSame('dummy-hash', $attrs['request_hash']);
+
+        $hash = $dto->computeRequestHash();
+        $this->assertSame(64, strlen($hash));
+    }
 }

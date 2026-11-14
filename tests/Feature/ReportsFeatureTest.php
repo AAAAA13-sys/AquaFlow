@@ -345,7 +345,7 @@ class ReportsFeatureTest extends TestCase
             ->assertSee('id="repPresets"', false)
             ->assertSee('id="repStats"', false)
             ->assertSee('js/admin/reports.js', false)
-            ->assertSee('css/erp-reports.css', false);
+            ->assertSee('css/erp.css', false);
         $this->actingAs($this->manager)->get('/admin/reports')->assertOk();
         $this->actingAs($this->cashier)->get('/admin/reports')->assertRedirect();
     }

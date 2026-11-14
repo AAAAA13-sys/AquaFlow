@@ -28,7 +28,7 @@ class ExpenseController extends Controller
 
     public function store(StoreExpenseRequest $request): JsonResponse
     {
-        $expense = $this->expenses->record($request->user(), $request->validated());
+        $expense = $this->expenses->record($request->user(), $request->toDto());
 
         // A replay answers exactly as the first call did.
         return response()->json(['expense' => new ExpenseResource($expense)], 201);

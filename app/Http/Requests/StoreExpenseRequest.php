@@ -50,6 +50,11 @@ class StoreExpenseRequest extends FormRequest
         });
     }
 
+    public function toDto(): \App\Data\ExpenseData
+    {
+        return \App\Data\ExpenseData::fromArray($this->validated());
+    }
+
     /**
      * @return array<string,string>
      */

@@ -48,6 +48,11 @@ class StorePurchaseOrderRequest extends FormRequest
         });
     }
 
+    public function toDto(): \App\Data\PurchaseOrderData
+    {
+        return \App\Data\PurchaseOrderData::fromArray($this->validated());
+    }
+
     /**
      * @return array<string,string>
      */

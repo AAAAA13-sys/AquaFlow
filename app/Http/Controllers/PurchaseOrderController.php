@@ -41,7 +41,7 @@ class PurchaseOrderController extends Controller
 
     public function store(StorePurchaseOrderRequest $request): JsonResponse
     {
-        $po = $this->orders->create($request->user(), $request->validated());
+        $po = $this->orders->create($request->user(), $request->toDto());
 
         return response()->json(['purchase_order' => new PurchaseOrderResource($po)], 201);
     }
@@ -55,7 +55,7 @@ class PurchaseOrderController extends Controller
 
     public function update(UpdatePurchaseOrderRequest $request, PurchaseOrder $purchaseOrder): JsonResponse
     {
-        $po = $this->orders->update($request->user(), $purchaseOrder, $request->validated());
+        $po = $this->orders->update($request->user(), $purchaseOrder, $request->toDto());
 
         return response()->json(['purchase_order' => new PurchaseOrderResource($po)]);
     }
@@ -69,7 +69,7 @@ class PurchaseOrderController extends Controller
 
     public function receive(ReceivePurchaseOrderRequest $request, PurchaseOrder $purchaseOrder): JsonResponse
     {
-        return response()->json($this->orders->receive($request->user(), $purchaseOrder, $request->validated()));
+        return response()->json($this->orders->receive($request->user(), $purchaseOrder, $request->toDto()));
     }
 
     public function cancel(CancelPurchaseOrderRequest $request, PurchaseOrder $purchaseOrder): JsonResponse

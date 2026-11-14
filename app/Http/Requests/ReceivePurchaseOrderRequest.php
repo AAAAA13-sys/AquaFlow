@@ -23,4 +23,9 @@ class ReceivePurchaseOrderRequest extends FormRequest
             'lines.*.qty' => ['required', 'integer', 'min:0', 'max:100000'],
         ];
     }
+
+    public function toDto(): \App\Data\ReceivePurchaseOrderData
+    {
+        return \App\Data\ReceivePurchaseOrderData::fromArray($this->validated());
+    }
 }

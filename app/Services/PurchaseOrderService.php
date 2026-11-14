@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Data\PurchaseOrderData;
+use App\Data\ReceivePurchaseOrderData;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Models\InventoryItem;
 use App\Models\PurchaseOrder;
@@ -28,21 +30,23 @@ class PurchaseOrderService
         private readonly AuditLogService $audit,
     ) {}
 
-    /** @param array<string,mixed> $data */
-    public function create(User $user, array $data): PurchaseOrder
+    /** @param PurchaseOrderData|array<string,mixed> $data */
+    public function create(User $user, PurchaseOrderData|array $data): PurchaseOrder
     {
-        return DB::transaction(function () use ($user, $data): PurchaseOrder {
+        $dto = $data instanceof PurchaseOrderData ? $data : PurchaseOrderData::fromArray($data);
+
+        return DB::transaction(function () use ($user, $dto): PurchaseOrder {
             $po = PurchaseOrder::create([
                 // Unique placeholder; replaced by the id-based number just below.
                 'po_number' => 'TMP'.Str::random(16),
-                'supplier_id' => $data['supplier_id'],
+                'supplier_id' => $dto->supplierId,
                 'status' => PurchaseOrder::DRAFT,
-                'expected_date' => $data['expected_date'] ?? null,
-                'notes' => $data['notes'] ?? null,
+                'expected_date' => $dto->expectedDate,
+                'notes' => $dto->notes,
                 'created_by' => $user->id,
             ]);
             $po->po_number = sprintf('PO-%04d', $po->id);
-            $po->total_cost = $this->replaceLines($po, $data['lines']);
+            $po->syncLines($dto->lines);
             $po->save();
 
             $this->audit->record($user, 'po_create', $po, null, $po->toAuditSnapshot());
@@ -51,10 +55,12 @@ class PurchaseOrderService
         });
     }
 
-    /** @param array<string,mixed> $data */
-    public function update(User $user, PurchaseOrder $po, array $data): PurchaseOrder
+    /** @param PurchaseOrderData|array<string,mixed> $data */
+    public function update(User $user, PurchaseOrder $po, PurchaseOrderData|array $data): PurchaseOrder
     {
-        return DB::transaction(function () use ($user, $po, $data): PurchaseOrder {
+        $dto = $data instanceof PurchaseOrderData ? $data : PurchaseOrderData::fromArray($data);
+
+        return DB::transaction(function () use ($user, $po, $dto): PurchaseOrder {
             $po = $this->lock($po);
             if (! $po->canBeEdited()) {
                 throw ValidationException::withMessages(['status' => 'Only a draft purchase order can be edited.']);
@@ -62,11 +68,11 @@ class PurchaseOrderService
             $before = $po->toAuditSnapshot();
 
             $po->fill([
-                'supplier_id' => $data['supplier_id'],
-                'expected_date' => $data['expected_date'] ?? null,
-                'notes' => $data['notes'] ?? null,
+                'supplier_id' => $dto->supplierId,
+                'expected_date' => $dto->expectedDate,
+                'notes' => $dto->notes,
             ]);
-            $po->total_cost = $this->replaceLines($po, $data['lines']);
+            $po->syncLines($dto->lines);
             $po->save();
 
             $this->audit->record($user, 'po_update', $po, $before, $po->toAuditSnapshot());
@@ -90,21 +96,20 @@ class PurchaseOrderService
     }
 
     /**
-     * @param  array{submission_key:string,lines:array<int,array{line_id:int,qty:int}>}  $data
+     * @param  ReceivePurchaseOrderData|array{submission_key:string,lines:array<int,array{line_id:int,qty:int}>}  $data
      * @return array<string,mixed> the stored (and replayed) response body
      */
-    public function receive(User $user, PurchaseOrder $po, array $data): array
+    public function receive(User $user, PurchaseOrder $po, ReceivePurchaseOrderData|array $data): array
     {
-        $requested = collect($data['lines'])
-            ->map(fn (array $l): array => ['line_id' => (int) $l['line_id'], 'qty' => (int) $l['qty']])
-            ->sortBy('line_id')->values()->all();
-        $hash = hash('sha256', json_encode([$po->id, $requested], JSON_THROW_ON_ERROR));
+        $dto = $data instanceof ReceivePurchaseOrderData ? $data : ReceivePurchaseOrderData::fromArray($data);
+        $hash = $dto->computeRequestHash($po->id);
+        $requested = $dto->lines;
 
-        return DB::transaction(function () use ($user, $po, $data, $requested, $hash): array {
+        return DB::transaction(function () use ($user, $po, $dto, $requested, $hash): array {
             $po = $this->lock($po);
 
             $existing = DB::table('purchase_order_receipts')
-                ->where('user_id', $user->id)->where('submission_key', $data['submission_key'])->first();
+                ->where('user_id', $user->id)->where('submission_key', $dto->submissionKey)->first();
             if ($existing) {
                 if (! hash_equals($existing->request_hash, $hash)) {
                     throw ValidationException::withMessages(['submission_key' => 'This submission key was already used for a different receipt.']);
@@ -170,7 +175,7 @@ class PurchaseOrderService
 
             DB::table('purchase_order_receipts')->insert([
                 'purchase_order_id' => $po->id, 'user_id' => $user->id,
-                'submission_key' => $data['submission_key'], 'request_hash' => $hash,
+                'submission_key' => $dto->submissionKey, 'request_hash' => $hash,
                 'result' => json_encode($result, JSON_THROW_ON_ERROR), 'created_at' => now(),
             ]);
 
@@ -230,27 +235,6 @@ class PurchaseOrderService
     private function lock(PurchaseOrder $po): PurchaseOrder
     {
         return PurchaseOrder::whereKey($po->id)->lockForUpdate()->firstOrFail();
-    }
-
-    /**
-     * @param  array<int,array{inventory_item_id:int,qty:int,unit_cost:float|int|string}>  $lines
-     * @return float the order total
-     */
-    private function replaceLines(PurchaseOrder $po, array $lines): float
-    {
-        $po->lines()->delete();
-        $total = 0.0;
-        foreach ($lines as $line) {
-            $createdLine = PurchaseOrderLine::create([
-                'purchase_order_id' => $po->id,
-                'inventory_item_id' => $line['inventory_item_id'],
-                'qty_ordered' => $line['qty'],
-                'unit_cost' => $line['unit_cost'],
-            ]);
-            $total += $createdLine->lineTotal();
-        }
-
-        return round($total, 2);
     }
 
     private function fresh(PurchaseOrder $po): PurchaseOrder
